@@ -10,7 +10,8 @@ An AWS account ready to build in.
 │   AWS Organizations                                │
 │   ├─ AWS account (management account)              │
 │   │  ├─ root user                                  │
-│   │  └─ IAM role (from the permission set)         │
+│   │  ├─ IAM role (from the permission set)         │
+│   │  └─ AWS Billing and Cost Management            │
 │   └─ IAM Identity Center (organization instance)   │
 │      ├─ user (you)                                 │
 │      ├─ group (this platform's administrators)     │
@@ -26,6 +27,7 @@ An AWS account ready to build in.
 | [AWS account](#aws-account) | The container for resources and the boundary for billing and security |
 | [AWS Organizations](#aws-organizations) | Central management of accounts: one bill, policies, and services enabled organization-wide |
 | [IAM Identity Center](#iam-identity-center) | Sign-in for users, and their permissions per AWS account |
+| [AWS Billing and Cost Management](#aws-billing-and-cost-management) | Bills, credits, and cost tools such as Budgets |
 
 ## AWS account
 
@@ -46,8 +48,8 @@ To create the account and protect its root user:
 
 > [!NOTE]
 > The root user is needed only until a person can sign in through IAM Identity
-> Center: it enables AWS Organizations and Identity Center, and activates billing
-> access for Identity Center users. Otherwise, the root user is used only to manage
+> Center: it enables AWS Organizations and IAM Identity Center, and activates
+> billing access for IAM Identity Center users. Otherwise, the root user is used only to manage
 > the account itself. AWS lists the
 > [tasks that require the root user](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_root-user.html#root-user-tasks).
 
@@ -122,3 +124,18 @@ In this lab, the steps created these objects:
 > you into this role: the console session and the CLI credentials you receive
 > belong to the role, and AWS records your actions under it. The console shows the
 > role you are in at the top right, as `AdministratorAccess/<user>`.
+
+## AWS Billing and Cost Management
+
+[AWS Billing and Cost Management](https://docs.aws.amazon.com/awsaccountbilling/latest/aboutv2/billing-what-is.html)
+is where the account's bills, payments, credits, and cost tools such as Budgets
+live.
+
+To open billing to your IAM Identity Center user and turn on Free Tier alerts:
+
+1. As the root user, choose your account name at the top right of the console,
+   then **Account**, and [activate IAM user and role access to Billing information](https://docs.aws.amazon.com/awsaccountbilling/latest/aboutv2/billing-getting-started.html#activating-iam-access-to-billing-console).
+   This is a one-time setting, and the last task for the root user in this part.
+2. As your IAM Identity Center user, [opt in to AWS Free Tier alerts](https://docs.aws.amazon.com/awsaccountbilling/latest/aboutv2/tracking-free-tier-usage.html#opt-in-out)
+   under Billing preferences → Alert preferences. They email the account's address
+   when usage passes 85% of a Free Tier limit.
