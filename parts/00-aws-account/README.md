@@ -49,12 +49,18 @@ complete access to every service and resource in the account.
 
 To create the account and protect its root user:
 
-1. Sign up at <https://aws.amazon.com/free/> and choose the **paid plan**. The
-   free plan offers only a subset of services, and AWS Organizations, which this
-   part enables later, requires the paid plan.
+1. Sign up at <https://aws.amazon.com/free/>, give the account a name, and choose
+   the **paid plan**. The free plan offers only a subset of services, and AWS
+   Organizations, which this part enables later, requires the paid plan.
 2. [Enable MFA on the root user](https://docs.aws.amazon.com/IAM/latest/UserGuide/enable-virt-mfa-for-root.html).
    The root user can do anything in the account, so its sign-in deserves a second
    factor.
+
+In this lab, the steps created this object:
+
+| Object | Name | Denotes | Where |
+| --- | --- | --- | --- |
+| account | `hainet50b` | The owner, the organization, or the role the account plays | The account menu at the top right of the console |
 
 > [!NOTE]
 > The root user is needed only until a person can sign in through IAM Identity
