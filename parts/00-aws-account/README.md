@@ -14,6 +14,9 @@ An AWS account ready to build in.
 │  │  │  IAM role (from the permission set)              │  │  │
 │  │  │  ┌─ 4. AWS Billing and Cost Management ───────┐  │  │  │
 │  │  │  │  IAM access for roles, Free Tier alerts    │  │  │  │
+│  │  │  │  ┌─ 5. AWS Budgets ─────────────────────┐  │  │  │  │
+│  │  │  │  │  budget (such as monthly cost)       │  │  │  │  │
+│  │  │  │  └──────────────────────────────────────┘  │  │  │  │
 │  │  │  └────────────────────────────────────────────┘  │  │  │
 │  │  └──────────────────────────────────────────────────┘  │  │
 │  │                                                        │  │
@@ -34,6 +37,7 @@ An AWS account ready to build in.
 | [2. AWS Organizations](#aws-organizations) | Central management of accounts: one bill, policies, and services enabled organization-wide |
 | [3. IAM Identity Center](#iam-identity-center) | Sign-in for users, and their permissions per AWS account |
 | [4. AWS Billing and Cost Management](#aws-billing-and-cost-management) | Bills, credits, and cost tools such as Budgets |
+| [5. AWS Budgets](#aws-budgets) | Notification when spend exceeds, or is forecast to exceed, an amount you set |
 
 ## AWS account
 
@@ -145,3 +149,28 @@ To open billing to your IAM Identity Center user and turn on Free Tier alerts:
 2. As your IAM Identity Center user, [opt in to AWS Free Tier alerts](https://docs.aws.amazon.com/awsaccountbilling/latest/aboutv2/tracking-free-tier-usage.html#opt-in-out)
    under Billing preferences → Alert preferences. They email the account's address
    when usage passes 85% of a Free Tier limit.
+
+## AWS Budgets
+
+[AWS Budgets](https://docs.aws.amazon.com/cost-management/latest/userguide/budgets-managing-costs.html)
+tracks the account's cost and usage against amounts you set and notifies you when
+they are exceeded. There are several kinds of budget, such as cost and usage. This
+part sets one monthly cost budget for the whole account.
+
+To set the monthly cost budget:
+
+1. As your IAM Identity Center user, [create a budget from a template](https://docs.aws.amazon.com/cost-management/latest/userguide/budget-templates.html)
+   under Billing and Cost Management → Budgets. Choose **Monthly cost budget**,
+   enter an amount you are comfortable with, and give the account's email address
+   as the recipient. The template notifies you when you exceed, or are forecast to
+   exceed, that amount.
+
+In this lab, the step created this object:
+
+| Object | Name | Denotes |
+| --- | --- | --- |
+| budget | `account-monthly-cost` | The scope, the period, and what is measured, in that order. This is a convention of this lab |
+
+> [!NOTE]
+> A budget belongs to the account, not to the person who created it, so it should
+> notify the account's address rather than a person's.
