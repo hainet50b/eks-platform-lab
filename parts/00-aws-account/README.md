@@ -120,4 +120,5 @@ In this lab, the steps created these objects:
 > You cannot sign in to the IAM role directly. When you sign in through the access
 > portal and choose the account and AdministratorAccess, IAM Identity Center puts
 > you into this role: the console session and the CLI credentials you receive
-> belong to the role, and AWS records your actions under it.
+> belong to the role, and AWS records your actions under it. The console shows the
+> role you are in at the top right, as `AdministratorAccess/<user>`.
