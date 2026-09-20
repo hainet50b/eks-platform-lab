@@ -7,8 +7,9 @@ An AWS account ready to build in.
 ```
 ┌─ 00 aws-account ──────────────────────────────┐
 │                                               │
-│   AWS account                                 │
-│   └─ root user                                │
+│   AWS Organizations                           │
+│   └─ AWS account (management account)         │
+│      └─ root user                             │
 │                                               │
 └───────────────────────────────────────────────┘
 ```
@@ -18,6 +19,7 @@ An AWS account ready to build in.
 | Resource | Provides |
 | --- | --- |
 | [AWS account](#aws-account) | The container for resources and the boundary for billing and security |
+| [AWS Organizations](#aws-organizations) | Central management of accounts: one bill, policies, and services enabled organization-wide |
 
 ## AWS account
 
@@ -42,3 +44,16 @@ To create the account and protect its root user:
 > access for Identity Center users. Otherwise, the root user is used only to manage
 > the account itself. AWS lists the
 > [tasks that require the root user](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_root-user.html#root-user-tasks).
+
+## AWS Organizations
+
+[AWS Organizations](https://docs.aws.amazon.com/organizations/latest/userguide/orgs_introduction.html)
+groups accounts into an **organization** managed from one **management account**:
+one consolidated bill, policies that cap what each account may do, and AWS
+services enabled across all accounts at once.
+
+To create the organization:
+
+1. As the root user, [create an organization](https://docs.aws.amazon.com/organizations/latest/userguide/orgs_manage_org_create.html).
+   IAM Identity Center, enabled in the next section, requires an organization even
+   for a single account. The account you created becomes the management account.
