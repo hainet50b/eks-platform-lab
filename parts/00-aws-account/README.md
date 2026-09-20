@@ -5,29 +5,35 @@ An AWS account ready to build in.
 ## Overview
 
 ```
-┌─ 00 aws-account ───────────────────────────────────┐
-│                                                    │
-│   AWS Organizations                                │
-│   ├─ AWS account (management account)              │
-│   │  ├─ root user                                  │
-│   │  ├─ IAM role (from the permission set)         │
-│   │  └─ AWS Billing and Cost Management            │
-│   └─ IAM Identity Center (organization instance)   │
-│      ├─ user (you)                                 │
-│      ├─ group (this platform's administrators)     │
-│      └─ permission set (AdministratorAccess)       │
-│                                                    │
-└────────────────────────────────────────────────────┘
+┌─ 00 aws-account ─────────────────────────────────────────────┐
+│                                                              │
+│  ┌─ 2. AWS Organizations ─────────────────────────────────┐  │
+│  │                                                        │  │
+│  │  ┌─ 1. AWS account (management account) ────────────┐  │  │
+│  │  │  root user                                       │  │  │
+│  │  │  IAM role (from the permission set)              │  │  │
+│  │  │  ┌─ 4. AWS Billing and Cost Management ───────┐  │  │  │
+│  │  │  │  IAM access for roles, Free Tier alerts    │  │  │  │
+│  │  │  └────────────────────────────────────────────┘  │  │  │
+│  │  └──────────────────────────────────────────────────┘  │  │
+│  │                                                        │  │
+│  │  ┌─ 3. IAM Identity Center (organization instance) ─┐  │  │
+│  │  │  user (you)                                      │  │  │
+│  │  │  group (this platform's administrators)          │  │  │
+│  │  │  permission set (AdministratorAccess)            │  │  │
+│  │  └──────────────────────────────────────────────────┘  │  │
+│  └────────────────────────────────────────────────────────┘  │
+└──────────────────────────────────────────────────────────────┘
 ```
 
 ## Resources
 
 | Resource | Provides |
 | --- | --- |
-| [AWS account](#aws-account) | The container for resources and the boundary for billing and security |
-| [AWS Organizations](#aws-organizations) | Central management of accounts: one bill, policies, and services enabled organization-wide |
-| [IAM Identity Center](#iam-identity-center) | Sign-in for users, and their permissions per AWS account |
-| [AWS Billing and Cost Management](#aws-billing-and-cost-management) | Bills, credits, and cost tools such as Budgets |
+| [1. AWS account](#aws-account) | The container for resources and the boundary for billing and security |
+| [2. AWS Organizations](#aws-organizations) | Central management of accounts: one bill, policies, and services enabled organization-wide |
+| [3. IAM Identity Center](#iam-identity-center) | Sign-in for users, and their permissions per AWS account |
+| [4. AWS Billing and Cost Management](#aws-billing-and-cost-management) | Bills, credits, and cost tools such as Budgets |
 
 ## AWS account
 
