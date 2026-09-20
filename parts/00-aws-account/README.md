@@ -167,9 +167,9 @@ To set the monthly cost budget:
 
 In this lab, the step created this object:
 
-| Object | Name | Denotes |
-| --- | --- | --- |
-| budget | `account-monthly-cost` | The scope, the period, and what is measured, in that order. This is a convention of this lab |
+| Object | Name | Denotes | Where |
+| --- | --- | --- | --- |
+| budget | `account-monthly-cost` | The scope, the period, and what is measured, in that order. This is a convention of this lab | Billing and Cost Management → Budgets |
 
 > [!NOTE]
 > A budget belongs to the account, not to the person who created it, so it should
