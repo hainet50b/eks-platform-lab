@@ -10,7 +10,7 @@ The AWS CLI and agent skills, signed in to the account.
 │   you ──────▶ coding agent                                     │
 │    │            │                                              │
 │    │            │  ┌─ 2. Agent Toolkit for AWS skills ─────┐   │
-│    │            ├─▶│  signing-in-to-aws, aws-iam,          │   │
+│    │            ├─▶│  signing-in-to-aws,                   │   │
 │    │            │  │  aws-billing-and-cost-management      │   │
 │    │            │  └───────────────────────────────────────┘   │
 │    │            │ runs                                         │
@@ -129,7 +129,6 @@ To install them:
 
    ```bash
    aws agent-toolkit add-skill --skill-name signing-in-to-aws --region us-east-1
-   aws agent-toolkit add-skill --skill-name aws-iam --region us-east-1
    aws agent-toolkit add-skill --skill-name aws-billing-and-cost-management --region us-east-1
    ```
 
@@ -142,8 +141,8 @@ To install them:
 > names.
 >
 > ```bash
-> aws agent-toolkit add-skill --skill-name aws-iam --agent universal --region us-east-1
-> aws agent-toolkit add-skill --skill-name aws-iam --agent claude-code --region us-east-1
+> aws agent-toolkit add-skill --skill-name signing-in-to-aws --agent universal --region us-east-1
+> aws agent-toolkit add-skill --skill-name signing-in-to-aws --agent claude-code --region us-east-1
 > ```
 
 In this lab, the step installed these skills:
@@ -151,5 +150,4 @@ In this lab, the step installed these skills:
 | Skill | Use it for |
 | --- | --- |
 | `signing-in-to-aws` | Getting and refreshing CLI credentials |
-| `aws-iam` | IAM policies and roles |
 | `aws-billing-and-cost-management` | Costs, budgets, and Free Tier usage |
