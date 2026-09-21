@@ -109,10 +109,6 @@ To install the AWS CLI and sign in:
 > | `<account-name>-admin` | the account | AdministratorAccess |
 > | `<account-name>-readonly` | the account | ReadOnlyAccess |
 
-> [!NOTE]
-> When the sign-in expires, `aws sso login` opens the browser for you to sign in
-> again.
-
 ## Agent Toolkit for AWS skills
 
 The [Agent Toolkit for AWS](https://docs.aws.amazon.com/agent-toolkit/latest/userguide/what-is-agent-toolkit.html)
@@ -145,9 +141,67 @@ To install them:
 > aws agent-toolkit add-skill --skill-name signing-in-to-aws --agent claude-code --region us-east-1
 > ```
 
-In this lab, the step installed these skills:
+The step installs these skills:
 
 | Skill | Use it for |
 | --- | --- |
-| `signing-in-to-aws` | Getting and refreshing CLI credentials |
-| `aws-billing-and-cost-management` | Costs, budgets, and Free Tier usage |
+| [`signing-in-to-aws`](https://github.com/aws/agent-toolkit-for-aws/blob/main/skills/core-skills/signing-in-to-aws/SKILL.md) | Getting and refreshing CLI credentials |
+| [`aws-billing-and-cost-management`](https://github.com/aws/agent-toolkit-for-aws/blob/main/skills/core-skills/aws-billing-and-cost-management/SKILL.md) | Costs, budgets, and Free Tier usage |
+
+## Trying the tools
+
+With the AWS CLI signed in and the skills installed, both you and the coding
+agent can operate AWS resources. This section shows what that feels like with
+two examples: signing in to the account, and checking the credits and the budget.
+
+> [!NOTE]
+> Every prompt and every command in this section names the profile. On a
+> machine that manages several accounts, a default profile or an `AWS_PROFILE`
+> variable would let a command run against an account you did not intend.
+
+### Signing in to the account
+
+To sign in, ask the agent:
+
+> Sign in to AWS with the profile `<account-name>-admin`.
+
+The agent reads the `signing-in-to-aws` skill. The skill first
+recommends `aws login`, then reads `~/.aws/config`, finds that the profile
+signs in through IAM Identity Center, and runs
+`aws sso login --profile <account-name>-admin` instead. The browser opens for
+you to approve the sign-in. The agent then checks the result with
+`aws sts get-caller-identity --profile <account-name>-admin` and reports the
+account, the role, and the Region.
+
+> [!NOTE]
+> The skill ends by suggesting `AWS_PROFILE`. This lab does not set it. Pass
+> `--profile` on every command instead.
+
+### Checking the credits and the budget
+
+To check the credits and the budget, ask the agent:
+
+> Show the remaining credits and the budgets with the profile `<account-name>-admin`.
+
+The agent reads the `aws-billing-and-cost-management` skill. It checks the
+sign-in with `aws sts get-caller-identity`, looks at the month's costs in
+[Cost Explorer](https://aws.amazon.com/aws-cost-management/aws-cost-explorer/pricing/),
+then calls `aws billing get-credits` for the credits and commands such as
+`aws budgets describe-budgets` for the budget. Of these, only Cost Explorer
+bills each API request.
+
+The skill forbids arithmetic in the agent's own reasoning, so the agent sums
+the credits with a short script. It reports the credit (the Free Tier promotion,
+its initial and remaining amounts, and the estimated amount after pending
+usage) and the budget (its limit, the actual spend so far, its alerts, and
+their recipient).
+
+The same from the CLI:
+
+```bash
+aws billing get-credits --account-id <12 digits> --start-date <YYYY-MM-DD> --region us-east-1 --profile <account-name>-admin
+aws budgets describe-budgets --account-id <12 digits> --region us-east-1 --profile <account-name>-admin
+```
+
+`--start-date` is the earliest grant date to include. The day the account was
+created is a safe choice.
