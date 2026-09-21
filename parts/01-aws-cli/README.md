@@ -79,20 +79,12 @@ To install the AWS CLI and sign in:
    sso_registration_scopes = sso:account:access
    ```
 
-3. Make the profile the default for your shell, so that every tool that reads
-   `AWS_PROFILE` uses it: the AWS CLI, the coding agent, and Terraform and
-   kubectl in later parts.
-
-   ```bash
-   export AWS_PROFILE=<account-name>-admin   # put this in your shell profile
-   ```
-
-4. Check who you are signed in as with `aws sts get-caller-identity`. `sts` is AWS
+3. Check who you are signed in as with `aws sts get-caller-identity`. `sts` is AWS
    Security Token Service, which issues the temporary credentials you are now
    using.
 
    ```bash
-   aws sts get-caller-identity
+   aws sts get-caller-identity --profile <account-name>-admin
    ```
 
    ```json
