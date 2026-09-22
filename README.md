@@ -9,7 +9,7 @@ numbered, rebuildable parts.
 
 ## Overview
 
-This repository is split into numbered parts under `parts/`.
+This repository is split into numbered parts under [`parts/`](parts/).
 
 ```
 ┌─ 01 aws-cli ─────────────────┐
@@ -35,14 +35,34 @@ This repository is split into numbered parts under `parts/`.
 ## Parts
 
 A part holds two kinds of content: configuration files and scripts, and
-instructions. The instructions typically say what the part builds, how to
-build it, how to tear it down, and what it costs while it is running.
+instructions.
 
 | Part | Builds |
 | --- | --- |
 | [00 aws-account](parts/00-aws-account/README.md) | An AWS account ready to build in |
 | [01 aws-cli](parts/01-aws-cli/README.md) | The AWS CLI and agent skills, signed in to the account |
 | [05 terraform-state](parts/05-terraform-state/README.md) | An S3 bucket that holds the Terraform state |
+
+## Tools
+
+The tools that this repository uses.
+
+| Name | Installed in |
+| --- | --- |
+| [AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-welcome.html) | [01 aws-cli](parts/01-aws-cli/README.md#aws-cli) |
+| [Terraform](https://developer.hashicorp.com/terraform) | [05 terraform-state](parts/05-terraform-state/README.md#creating-the-bucket-with-terraform) |
+
+## Skills
+
+The skills that this repository uses.
+
+| Kind | Name | Installed in |
+| --- | --- | --- |
+| Agent Toolkit for AWS | [`signing-in-to-aws`](https://github.com/aws/agent-toolkit-for-aws/blob/main/skills/core-skills/signing-in-to-aws/SKILL.md) | [01 aws-cli](parts/01-aws-cli/README.md#agent-toolkit-for-aws-skills) |
+| Agent Toolkit for AWS | [`aws-billing-and-cost-management`](https://github.com/aws/agent-toolkit-for-aws/blob/main/skills/core-skills/aws-billing-and-cost-management/SKILL.md) | [01 aws-cli](parts/01-aws-cli/README.md#agent-toolkit-for-aws-skills) |
+| Agent Toolkit for AWS | [`securing-s3-buckets`](https://github.com/aws/agent-toolkit-for-aws/blob/main/skills/specialized-skills/storage-skills/securing-s3-buckets/SKILL.md) | [05 terraform-state](parts/05-terraform-state/README.md#creating-the-bucket-with-terraform) |
+| APEX Skills | [`terraform-skill`](https://aws-samples.github.io/sample-apex-skills/docs/skills/general/terraform-skill/) | [05 terraform-state](parts/05-terraform-state/README.md#creating-the-bucket-with-terraform) |
+| HashiCorp | [`terraform-style-guide`](https://github.com/hashicorp/agent-skills/blob/main/plugins/terraform/skills/terraform-style-guide/SKILL.md) | [05 terraform-state](parts/05-terraform-state/README.md#creating-the-bucket-with-terraform) |
 
 ## License
 
