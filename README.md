@@ -12,11 +12,24 @@ numbered, rebuildable parts.
 This repository is split into numbered parts under `parts/`.
 
 ```
-┌─ 00 aws-account ─────────────┐     ┌─ 01 aws-cli ─────────────────┐
-│                              │     │                              │
-│   AWS account                │◀────│   AWS CLI and agent skills   │
-│                              │     │                              │
-└──────────────────────────────┘     └──────────────────────────────┘
+┌─ 01 aws-cli ─────────────────┐
+│                              │
+│   AWS CLI and agent skills   │
+│                              │
+└──────────────┬───────────────┘
+               │
+               ▼
+┌─ 00 aws-account ──────────────────────────────┐
+│                                               │
+│   AWS account                                 │
+│                                               │
+│   ┌─ 05 terraform-state ──────────────────┐   │
+│   │                                       │   │
+│   │   S3 bucket for the Terraform state   │   │
+│   │                                       │   │
+│   └───────────────────────────────────────┘   │
+│                                               │
+└───────────────────────────────────────────────┘
 ```
 
 ## Parts
@@ -29,6 +42,7 @@ build it, how to tear it down, and what it costs while it is running.
 | --- | --- |
 | [00 aws-account](parts/00-aws-account/README.md) | An AWS account ready to build in |
 | [01 aws-cli](parts/01-aws-cli/README.md) | The AWS CLI and agent skills, signed in to the account |
+| [05 terraform-state](parts/05-terraform-state/README.md) | An S3 bucket that holds the Terraform state |
 
 ## License
 
