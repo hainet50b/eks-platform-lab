@@ -50,7 +50,8 @@ To install the AWS CLI and sign in:
    access portal.
 
    ```bash
-   aws configure sso --profile <account-name>-admin
+   aws --profile <account-name>-admin \
+     configure sso
    ```
 
    | Value | Answer | Set in (part 00) |
@@ -84,7 +85,8 @@ To install the AWS CLI and sign in:
    using.
 
    ```bash
-   aws sts get-caller-identity --profile <account-name>-admin
+   aws --profile <account-name>-admin \
+     sts get-caller-identity
    ```
 
    ```json
@@ -199,8 +201,11 @@ their recipient).
 The same from the CLI:
 
 ```bash
-aws billing get-credits --account-id <12 digits> --start-date <YYYY-MM-DD> --region us-east-1 --profile <account-name>-admin
-aws budgets describe-budgets --account-id <12 digits> --region us-east-1 --profile <account-name>-admin
+aws --profile <account-name>-admin \
+  billing get-credits --account-id <12 digits> --start-date <YYYY-MM-DD> --region us-east-1
+
+aws --profile <account-name>-admin \
+  budgets describe-budgets --account-id <12 digits> --region us-east-1
 ```
 
 `--start-date` is the earliest grant date to include. The day the account was
