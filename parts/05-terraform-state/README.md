@@ -115,11 +115,19 @@ To create the bucket:
    - Put a .gitignore that excludes generated files in the same directory.
 
    ## AWS resource settings
-   - Name the bucket eks-platform-lab-terraform-state-<account ID>
-     with the account ID of the credentials that run Terraform.
+
+   ### Common
+   - Tag every resource with the following tags.
+     - Project = eks-platform-lab
+     - Part = 05-terraform-state
    - Use the Region ap-northeast-1.
 
-   ## S3 bucket settings
+   ### AWS resource list
+   - S3 bucket: 1
+
+   ### S3 bucket
+   - Name the bucket eks-platform-lab-terraform-state-<account ID>
+     with the account ID of the credentials that run Terraform.
    - Enable versioning.
    - Keep noncurrent versions for 90 days.
    - Encrypt with SSE-S3. Do not use Bucket Keys.
