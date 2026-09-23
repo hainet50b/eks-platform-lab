@@ -19,17 +19,24 @@ This repository is split into numbered parts under [`parts/`](parts/).
 └──────────────┬───────────────┘
                │
                ▼
-┌─ 00 aws-account ──────────────────────────────┐
-│                                               │
-│   AWS account                                 │
-│                                               │
-│   ┌─ 05 terraform-state ──────────────────┐   │
-│   │                                       │   │
-│   │   S3 bucket for the Terraform state   │   │
-│   │                                       │   │
-│   └───────────────────────────────────────┘   │
-│                                               │
-└───────────────────────────────────────────────┘
+┌─ 00 aws-account ────────────────────────────────────────────┐
+│                                                             │
+│   AWS account                                               │
+│                                                             │
+│   ┌─ 05 terraform-state ────────────────────────────────┐   │
+│   │                                                     │   │
+│   │   S3 bucket for the Terraform state                 │   │
+│   │                                                     │   │
+│   └─────────────────────────────────────────────────────┘   │
+│                                                             │
+│   ┌─ 10 vpc ────────────────────────────────────────────┐   │
+│   │                                                     │   │
+│   │   VPC with public, private, and data subnets        │   │
+│   │   in two Availability Zones                         │   │
+│   │                                                     │   │
+│   └─────────────────────────────────────────────────────┘   │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
 ```
 
 ## Parts
@@ -42,6 +49,7 @@ instructions.
 | [00 aws-account](parts/00-aws-account/README.md) | An AWS account ready to build in |
 | [01 aws-cli](parts/01-aws-cli/README.md) | The AWS CLI and agent skills, signed in to the account |
 | [05 terraform-state](parts/05-terraform-state/README.md) | An S3 bucket that holds the Terraform state |
+| [10 vpc](parts/10-vpc/README.md) | A VPC with public, private, and data subnets in two Availability Zones |
 
 ## Tools
 
