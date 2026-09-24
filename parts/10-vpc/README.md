@@ -70,7 +70,10 @@ This part creates a VPC with three tiers of subnets.
 | private | ✅ Through the NAT gateway | ❌ No | Later, the EKS cluster |
 | data | ❌ No | ❌ No | Later, the database |
 
-Each tier has one subnet in each Availability Zone.
+Each tier has one subnet in each Availability Zone. The private subnets are
+/20, larger than the others, because the pods of the EKS cluster take their
+IP addresses from them: EKS Auto Mode assigns addresses to the nodes in
+blocks of 16, and a /24 holds at most 16 such blocks, where a /20 holds 256.
 
 | Tier | ap-northeast-1a | ap-northeast-1c |
 | --- | --- | --- |
