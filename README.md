@@ -55,7 +55,7 @@ instructions.
 
 The tools that this repository uses.
 
-| Name | Installed in |
+| Name | Introduced in |
 | --- | --- |
 | [AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-welcome.html) | [01 aws-cli](parts/01-aws-cli/README.md#aws-cli) |
 | [Terraform](https://developer.hashicorp.com/terraform) | [05 terraform-state](parts/05-terraform-state/README.md#creating-the-bucket-with-terraform) |
@@ -64,12 +64,13 @@ The tools that this repository uses.
 
 The skills that this repository uses.
 
-| Kind | Name | Installed in |
+| Kind | Name | Introduced in |
 | --- | --- | --- |
 | Agent Toolkit for AWS | [`signing-in-to-aws`](https://github.com/aws/agent-toolkit-for-aws/blob/main/skills/core-skills/signing-in-to-aws/SKILL.md) | [01 aws-cli](parts/01-aws-cli/README.md#agent-toolkit-for-aws-skills) |
 | Agent Toolkit for AWS | [`aws-billing-and-cost-management`](https://github.com/aws/agent-toolkit-for-aws/blob/main/skills/core-skills/aws-billing-and-cost-management/SKILL.md) | [01 aws-cli](parts/01-aws-cli/README.md#agent-toolkit-for-aws-skills) |
 | Agent Toolkit for AWS | [`securing-s3-buckets`](https://github.com/aws/agent-toolkit-for-aws/blob/main/skills/specialized-skills/storage-skills/securing-s3-buckets/SKILL.md) | [05 terraform-state](parts/05-terraform-state/README.md#creating-the-bucket-with-terraform) |
 | APEX Skills | [`terraform-skill`](https://aws-samples.github.io/sample-apex-skills/docs/skills/general/terraform-skill/) | [05 terraform-state](parts/05-terraform-state/README.md#creating-the-bucket-with-terraform) |
+| APEX Skills | [`/apex:eks-design`](https://aws-samples.github.io/sample-apex-skills/docs/steering/commands/apex/eks-design) | [10 vpc](parts/10-vpc/README.md#creating-the-network-with-terraform) |
 | HashiCorp | [`terraform-style-guide`](https://github.com/hashicorp/agent-skills/blob/main/plugins/terraform/skills/terraform-style-guide/SKILL.md) | [05 terraform-state](parts/05-terraform-state/README.md#creating-the-bucket-with-terraform) |
 
 ## License
