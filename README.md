@@ -17,7 +17,7 @@ This repository is split into numbered parts under [`parts/`](parts/).
 │   AWS CLI and agent skills   │
 │                              │
 └──────────────┬───────────────┘
-               │
+               │ operates AWS resources
                ▼
 ┌─ 00 aws-account ────────────────────────────────────────────┐
 │                                                             │
@@ -35,6 +35,13 @@ This repository is split into numbered parts under [`parts/`](parts/).
 │   │   in two Availability Zones                         │   │
 │   │                                                     │   │
 │   └─────────────────────────────────────────────────────┘   │
+│                         ▲                                   │
+│                         │ places nodes in private subnets   │
+│   ┌─ 20 eks-cluster ────┴───────────────────────────────┐   │
+│   │                                                     │   │
+│   │   EKS Auto Mode cluster                             │   │
+│   │                                                     │   │
+│   └─────────────────────────────────────────────────────┘   │
 │                                                             │
 └─────────────────────────────────────────────────────────────┘
 ```
@@ -50,6 +57,7 @@ instructions.
 | [01 aws-cli](parts/01-aws-cli/README.md) | The AWS CLI and agent skills, signed in to the account |
 | [05 terraform-state](parts/05-terraform-state/README.md) | An S3 bucket that holds the Terraform state |
 | [10 vpc](parts/10-vpc/README.md) | A VPC with public, private, and data subnets in two Availability Zones |
+| [20 eks-cluster](parts/20-eks-cluster/README.md) | An EKS Auto Mode cluster |
 
 ## Tools
 
