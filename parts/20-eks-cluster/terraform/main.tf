@@ -108,7 +108,6 @@ resource "aws_eks_cluster" "main" {
     subnet_ids              = data.terraform_remote_state.vpc.outputs.private_subnet_ids
     endpoint_private_access = true
     endpoint_public_access  = true
-    public_access_cidrs     = var.public_access_cidrs
   }
 
   # Create the log group first so that EKS does not create its own, and keep
