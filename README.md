@@ -67,6 +67,7 @@ The tools that this repository uses.
 | --- | --- |
 | [AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-welcome.html) | [01 aws-cli](parts/01-aws-cli/README.md#aws-cli) |
 | [Terraform](https://developer.hashicorp.com/terraform) | [05 terraform-state](parts/05-terraform-state/README.md#creating-the-bucket-with-terraform) |
+| [kubectl](https://kubernetes.io/docs/reference/kubectl/) | [20 eks-cluster](parts/20-eks-cluster/README.md#creating-the-cluster-with-terraform) |
 
 ## Skills
 
