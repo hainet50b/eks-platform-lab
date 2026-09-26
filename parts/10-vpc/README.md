@@ -344,7 +344,12 @@ To create the network:
 
    aws --profile <account-name>-admin \
      ec2 describe-subnets --filters Name=vpc-id,Values="$vpc_id" \
-     --query 'sort_by(Subnets,&Tags[?Key==`Name`].Value|[0])[].[Tags[?Key==`Name`].Value|[0],AvailabilityZone,CidrBlock,MapPublicIpOnLaunch]' \
+     --query 'sort_by(Subnets, &Tags[?Key==`Name`].Value|[0])[].[
+       Tags[?Key==`Name`].Value|[0],
+       AvailabilityZone,
+       CidrBlock,
+       MapPublicIpOnLaunch
+     ]' \
      --output table
    ```
 
@@ -365,7 +370,16 @@ To create the network:
    ```bash
    aws --profile <account-name>-admin \
      ec2 describe-route-tables --filters Name=vpc-id,Values="$vpc_id" \
-     --query 'RouteTables[].{Name:Tags[?Key==`Name`].Value|[0],Id:RouteTableId,Main:Associations[0].Main,Subnets:length(Associations[?SubnetId]),Routes:Routes[].{Destination:DestinationCidrBlock||DestinationPrefixListId,Target:GatewayId||NatGatewayId}}' \
+     --query 'RouteTables[].{
+       Name: Tags[?Key==`Name`].Value|[0],
+       Id: RouteTableId,
+       Main: Associations[0].Main,
+       Subnets: length(Associations[?SubnetId]),
+       Routes: Routes[].{
+         Destination: DestinationCidrBlock||DestinationPrefixListId,
+         Target: GatewayId||NatGatewayId
+       }
+     }' \
      --output table
    ```
 
@@ -392,7 +406,12 @@ To create the network:
 
    aws --profile <account-name>-admin \
      ec2 describe-nat-gateways --filter Name=vpc-id,Values="$vpc_id" \
-     --query 'NatGateways[].[Tags[?Key==`Name`].Value|[0],State,SubnetId,NatGatewayAddresses[0].PublicIp]' \
+     --query 'NatGateways[].[
+       Tags[?Key==`Name`].Value|[0],
+       State,
+       SubnetId,
+       NatGatewayAddresses[0].PublicIp
+     ]' \
      --output table
 
    aws --profile <account-name>-admin \
@@ -416,7 +435,13 @@ To create the network:
    ```bash
    aws --profile <account-name>-admin \
      ec2 describe-vpc-endpoints --filters Name=vpc-id,Values="$vpc_id" \
-     --query 'VpcEndpoints[].[Tags[?Key==`Name`].Value|[0],ServiceName,VpcEndpointType,State,join(`", "`,RouteTableIds)]' \
+     --query 'VpcEndpoints[].[
+       Tags[?Key==`Name`].Value|[0],
+       ServiceName,
+       VpcEndpointType,
+       State,
+       join(`", "`, RouteTableIds)
+     ]' \
      --output table
    ```
 
