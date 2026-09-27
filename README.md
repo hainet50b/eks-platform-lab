@@ -19,31 +19,43 @@ This repository is split into numbered parts under [`parts/`](parts/).
 └──────────────┬───────────────┘
                │ operates AWS resources
                ▼
-┌─ 00 aws-account ────────────────────────────────────────────┐
-│                                                             │
-│   AWS account                                               │
-│                                                             │
-│   ┌─ 05 terraform-state ────────────────────────────────┐   │
-│   │                                                     │   │
-│   │   S3 bucket for the Terraform state                 │   │
-│   │                                                     │   │
-│   └─────────────────────────────────────────────────────┘   │
-│                                                             │
-│   ┌─ 10 vpc ────────────────────────────────────────────┐   │
-│   │                                                     │   │
-│   │   VPC with public, private, and data subnets        │   │
-│   │   in two Availability Zones                         │   │
-│   │                                                     │   │
-│   └─────────────────────────────────────────────────────┘   │
-│                         ▲                                   │
-│                         │ places nodes in private subnets   │
-│   ┌─ 20 eks-cluster ────┴───────────────────────────────┐   │
-│   │                                                     │   │
-│   │   EKS Auto Mode cluster                             │   │
-│   │                                                     │   │
-│   └─────────────────────────────────────────────────────┘   │
-│                                                             │
-└─────────────────────────────────────────────────────────────┘
+┌─ 00 aws-account ─────────────────────────────────────────────────┐
+│                                                                  │
+│   AWS account                                                    │
+│                                                                  │
+│   ┌─ 05 terraform-state ─────────────────────────────────────┐   │
+│   │                                                          │   │
+│   │   S3 bucket for the Terraform state                      │   │
+│   │                                                          │   │
+│   └──────────────────────────────────────────────────────────┘   │
+│                                                                  │
+│   ┌─ 10 vpc ─────────────────────────────────────────────────┐   │
+│   │                                                          │   │
+│   │   VPC with public, private, and data subnets             │   │
+│   │   in two Availability Zones                              │   │
+│   │                                                          │   │
+│   │   ┌─ 30 workload ────────────────────────────────────┐   │   │
+│   │   │                                                  │   │   │
+│   │   │   nodes, a load balancer, and pods               │   │   │
+│   │   │                                                  │   │   │
+│   │   └──────────────────────────────────────────────────┘   │   │
+│   │                  ▲                                       │   │
+│   └──────────────────┼───────────────────────────────────────┘   │
+│                      │ places nodes, a load balancer, and pods   │
+│   ┌─ 20 eks-cluster ─┴───────────────────────────────────────┐   │
+│   │                                                          │   │
+│   │   EKS Auto Mode cluster                                  │   │
+│   │                                                          │   │
+│   │   ┌─ 30 workload ────────────────────────────────────┐   │   │
+│   │   │                                                  │   │   │
+│   │   │   NodePool, IngressClass,                        │   │   │
+│   │   │   and manifests of workloads                     │   │   │
+│   │   │                                                  │   │   │
+│   │   └──────────────────────────────────────────────────┘   │   │
+│   │                                                          │   │
+│   └──────────────────────────────────────────────────────────┘   │
+│                                                                  │
+└──────────────────────────────────────────────────────────────────┘
 ```
 
 ## Parts
@@ -58,6 +70,7 @@ instructions.
 | [05 terraform-state](parts/05-terraform-state/README.md) | An S3 bucket that holds the Terraform state |
 | [10 vpc](parts/10-vpc/README.md) | A VPC with public, private, and data subnets in two Availability Zones |
 | [20 eks-cluster](parts/20-eks-cluster/README.md) | An EKS Auto Mode cluster |
+| [30 workload](parts/30-workload/README.md) | A NodePool, an IngressClass, and a sample workload |
 
 ## Tools
 
@@ -78,6 +91,7 @@ The skills that this repository uses.
 | Agent Toolkit for AWS | [`signing-in-to-aws`](https://github.com/aws/agent-toolkit-for-aws/blob/main/skills/core-skills/signing-in-to-aws/SKILL.md) | [01 aws-cli](parts/01-aws-cli/README.md#agent-toolkit-for-aws-skills) |
 | Agent Toolkit for AWS | [`aws-billing-and-cost-management`](https://github.com/aws/agent-toolkit-for-aws/blob/main/skills/core-skills/aws-billing-and-cost-management/SKILL.md) | [01 aws-cli](parts/01-aws-cli/README.md#agent-toolkit-for-aws-skills) |
 | Agent Toolkit for AWS | [`securing-s3-buckets`](https://github.com/aws/agent-toolkit-for-aws/blob/main/skills/specialized-skills/storage-skills/securing-s3-buckets/SKILL.md) | [05 terraform-state](parts/05-terraform-state/README.md#creating-the-bucket-with-terraform) |
+| Agent Toolkit for AWS | [`aws-containers`](https://github.com/aws/agent-toolkit-for-aws/blob/main/skills/core-skills/aws-containers/SKILL.md) | [30 workload](parts/30-workload/README.md) |
 | APEX Skills | [`terraform-skill`](https://aws-samples.github.io/sample-apex-skills/docs/skills/general/terraform-skill/) | [05 terraform-state](parts/05-terraform-state/README.md#creating-the-bucket-with-terraform) |
 | APEX Skills | [`/apex:eks-design`](https://aws-samples.github.io/sample-apex-skills/docs/steering/commands/apex/eks-design) | [10 vpc](parts/10-vpc/README.md#creating-the-network-with-terraform) |
 | HashiCorp | [`terraform-style-guide`](https://github.com/hashicorp/agent-skills/blob/main/plugins/terraform/skills/terraform-style-guide/SKILL.md) | [05 terraform-state](parts/05-terraform-state/README.md#creating-the-bucket-with-terraform) |
