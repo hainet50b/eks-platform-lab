@@ -217,9 +217,8 @@ To create the NodePool:
 
    The agent writes the manifest. Before you go on, read it against the
    prompt. In particular, check that the requirement keys are those of EKS
-   Auto Mode, such as `eks.amazonaws.com/instance-category`, not those of
-   upstream Karpenter, and that nothing was added that the prompt did not
-   ask for: a NodeClass, a taint, a weight, or an expiry. The file
+   Auto Mode, not those of upstream Karpenter, and that nothing was added
+   that the prompt did not ask for. The file
    [manifests/nodepool.yaml](manifests/nodepool.yaml) is the result of this
    step.
 
@@ -272,3 +271,132 @@ To create the NodePool:
    manifest, the defaults that the cluster filled in, such as an
    `expireAfter` of 336 hours, and its `status`. The third finds no
    resources.
+
+## Creating the IngressClass with a Kubernetes manifest
+
+An [Ingress](https://kubernetes.io/docs/concepts/services-networking/ingress/)
+exposes a workload to HTTP requests from outside the cluster, with rules
+that map the path of a request to a backend in the cluster. An Ingress
+does nothing by itself: an ingress controller watches the Ingresses and
+sets up a load balancer or a proxy that carries the requests to the
+backend.
+
+An [IngressClass](https://kubernetes.io/docs/concepts/services-networking/ingress/#ingress-class)
+names that controller, and an Ingress refers to the IngressClass by name.
+An IngressClass can also refer to an IngressClassParams, which holds
+settings for the controller, such as whether the load balancer faces the
+internet, and those settings apply to every Ingress of the class.
+
+This IngressClass, `alb`, and its IngressClassParams, also `alb`, are set
+as follows.
+
+| Setting | Value |
+| --- | --- |
+| Controller | The ingress controller of EKS Auto Mode, which creates an [Application Load Balancer](https://docs.aws.amazon.com/eks/latest/userguide/auto-configure-alb.html) (ALB) |
+| Default IngressClass of the cluster | No |
+| Where the ALB faces | The internet |
+
+The IngressClass is not the default, so that an Ingress gets an ALB only
+when it names the class. The subnets are not set: the cluster finds the
+public subnets by the tag `kubernetes.io/role/elb`, which the subnets of
+the VPC carry.
+
+To create the IngressClass:
+
+1. Ask the agent to write the manifest. Start a Claude Code session at the
+   repository root and paste the following prompt.
+
+   ```text
+   /aws-containers
+
+   # Summary
+   Create a manifest for an IngressClass and IngressClassParams for routing on an EKS Auto Mode cluster.
+
+   ## Prerequisites
+   - The cluster is EKS Auto Mode.
+   - The public subnets of the VPC have the tag kubernetes.io/role/elb = 1.
+
+   ## Working environment
+   - Create the manifest at parts/30-workload/manifests/ingressclass.yaml.
+
+   ## Kubernetes resource settings
+
+   ### Kubernetes resource list
+   - IngressClass: 1
+   - IngressClassParams: 1
+
+   ### IngressClass
+   - Name it alb.
+   - Use the controller that creates ALBs.
+   - Reference the IngressClassParams alb as its parameters.
+   - Do not make it the default IngressClass of the cluster.
+
+   ### IngressClassParams
+   - Name it alb.
+   - Make the ALBs created with these parameters reachable from the internet.
+
+   ## Style
+   - Keep the manifest, and especially the comments, to the minimum.
+   ```
+
+   The agent writes the manifest. Before you go on, read it against the
+   prompt. In particular, check that the IngressClassParams is of the API
+   group of EKS Auto Mode, not of the upstream AWS Load Balancer
+   Controller, and that nothing was added that the prompt did not ask
+   for. The file [manifests/ingressclass.yaml](manifests/ingressclass.yaml)
+   is the result of this step.
+
+2. Apply the manifest. Ask the agent:
+
+   ```text
+   Apply parts/30-workload/manifests/ingressclass.yaml to the cluster.
+   ```
+
+   Or run the command yourself:
+
+   ```bash
+   kubectl apply -f parts/30-workload/manifests/ingressclass.yaml
+   ```
+
+   Nothing is created in AWS yet. The cluster creates a load balancer only
+   for an Ingress that names this class, and there is no Ingress yet.
+
+3. Check the IngressClass. It and its IngressClassParams exist, their
+   settings are those of the manifest, and no load balancer of the cluster
+   exists yet.
+
+   To check this, ask the agent:
+
+   ```text
+   Check the IngressClass alb and the IngressClassParams alb of the cluster:
+
+   - Both exist.
+   - The controller of the IngressClass is the one of EKS Auto Mode that creates ALBs.
+   - The ALBs it creates face the internet.
+   - The IngressClass is not the default of the cluster.
+
+   Then check with the profile <account-name>-admin that no load balancer
+   tagged eks:eks-cluster-name = eks-platform-lab exists.
+   ```
+
+   Or run the commands yourself:
+
+   ```bash
+   kubectl get ingressclass/alb ingressclassparams/alb
+
+   kubectl get ingressclass alb -o yaml
+
+   aws --profile <account-name>-admin \
+     resourcegroupstaggingapi get-resources \
+     --tag-filters Key=eks:eks-cluster-name,Values=eks-platform-lab \
+     --resource-type-filters elasticloadbalancing:loadbalancer \
+     --query 'ResourceTagMappingList[].ResourceARN' \
+     --output table
+   ```
+
+   The first command lists the two resources, with the controller of the
+   IngressClass and the scheme of the IngressClassParams. The second
+   prints the IngressClass without the annotation
+   `ingressclass.kubernetes.io/is-default-class`. The third prints
+   nothing: the cluster tags every load balancer it creates with its name,
+   and there is none.
