@@ -197,7 +197,7 @@ To create the NodePool:
 
    ### NodePool
    - Name it apps.
-   - Reference the default NodeClass, default.
+   - Reference the built-in NodeClass, default.
    - Require the following of the nodes.
      - Instance category: c or m
      - Instance generation: 5 or later
@@ -409,7 +409,7 @@ Each pod gets an IP address of the VPC, from the subnet of its node. A
 [Service](https://kubernetes.io/docs/concepts/services-networking/service/)
 gives a set of pods, selected by a label, one DNS name and one IP
 address, the cluster IP, that stay the same while the pods come and go.
-An Ingress, as above, maps the path of a request to a Service.
+An Ingress maps the path of a request to a Service.
 
 Together, the three are the sample workload. The cluster launches a node
 for the pods, creates an ALB for the Ingress, and registers the IP
@@ -465,7 +465,7 @@ To create the sample workload:
    - Run 2 replicas.
    - Use the following container image.
      - Image: public.ecr.aws/nginx/nginx
-     - Tag: the latest version of the stable line
+     - Tag: the latest release of the stable line
    - Request the following resources.
      - CPU: 100m
      - Memory: 128Mi
@@ -525,8 +525,8 @@ To create the sample workload:
    watch -n 2 kubectl get pods,nodeclaims,nodes,ingress -o wide
    ```
 
-3. Check the workload from outside Kubernetes. The checks come in four
-   groups, each covering related resources.
+3. Check the workload. The checks come in four groups, each covering
+   related resources.
 
    **The pods and their node.** The Deployment has two pods `Running`, on
    one node of the NodePool `apps`. The pods have IP addresses of the
