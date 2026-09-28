@@ -644,3 +644,102 @@ To create the sample workload:
 
    The log shows a `GET /` from `ELB-HealthChecker/2.0` every fifteen
    seconds, from an address in a public subnet: the ALB itself.
+
+## Teardown
+
+This part is torn down every night and built again the next day, because
+the node and the ALB are charged by the hour. Tear it down before the
+cluster, in the reverse order of the steps: the sample workload first,
+so that the cluster removes the ALB and lets the node go, then the
+IngressClass and the NodePool.
+
+To tear down the workload:
+
+1. Delete the sample workload. Ask the agent:
+
+   ```text
+   Delete parts/30-workload/manifests/nginx.yaml from the cluster.
+   ```
+
+   Or run the command yourself:
+
+   ```bash
+   kubectl delete -f parts/30-workload/manifests/nginx.yaml
+   ```
+
+   The command takes a little while to return, because the Ingress is
+   not gone until the cluster has deleted the ALB, its target group, and
+   its security groups. The pods go at once, and the node about a minute
+   later, once the cluster sees it empty.
+
+2. Delete the IngressClass and the NodePool. Ask the agent:
+
+   ```text
+   Delete parts/30-workload/manifests/ingressclass.yaml and
+   parts/30-workload/manifests/nodepool.yaml from the cluster.
+   ```
+
+   Or run the commands yourself:
+
+   ```bash
+   kubectl delete -f parts/30-workload/manifests/ingressclass.yaml
+
+   kubectl delete -f parts/30-workload/manifests/nodepool.yaml
+   ```
+
+   Deleting the NodePool terminates its node if it is still there.
+
+3. Confirm that nothing of this part is left and nothing is charged: no
+   load balancer, target group, or security group of the cluster exists,
+   and the NodePool `apps` has no node.
+
+   To check this, ask the agent:
+
+   ```text
+   Check with the profile <account-name>-admin
+   that no load balancer, target group, or security group
+   tagged eks:eks-cluster-name = eks-platform-lab exists,
+   and that the cluster has no node of the NodePool apps.
+   ```
+
+   Or run the commands yourself:
+
+   ```bash
+   aws --profile <account-name>-admin \
+     resourcegroupstaggingapi get-resources \
+     --tag-filters Key=eks:eks-cluster-name,Values=eks-platform-lab \
+     --resource-type-filters \
+       elasticloadbalancing:loadbalancer \
+       elasticloadbalancing:targetgroup \
+       ec2:security-group \
+     --query 'ResourceTagMappingList[].ResourceARN' \
+     --output table
+
+   kubectl get nodeclaims,nodes -l karpenter.sh/nodepool=apps
+   ```
+
+   The first command prints nothing, and the second finds no resources.
+
+> [!NOTE]
+> Delete the Ingress before the cluster. The cluster deletes the ALB
+> when it goes, but it may leave a security group behind, and that
+> security group blocks the teardown of the VPC. If that happens, find
+> the leftovers by the tag `eks:eks-cluster-name` and delete them with
+> the AWS CLI.
+
+## Cost
+
+This part is charged for the following resources while the sample
+workload runs.
+
+| Resource | Name | Per day | Per month |
+| --- | --- | --- | --- |
+| EC2 instance for the node | `c5a.large`\* | 2.30 USD | 70.08 USD |
+| EKS Auto Mode management of the node | | 0.28 USD | 8.41 USD |
+| Application Load Balancer | `k8s-default-nginx-<hash>` | 0.58 USD | 17.74 USD |
+| Capacity used by the load balancer | | 0.008 USD per LCU-hour | 0.008 USD per LCU-hour |
+| Public IPv4 addresses of the load balancer, one per Availability Zone | | 0.24 USD | 7.30 USD |
+| Data processed by the NAT gateway, such as the image pulled by the node | | 0.062 USD per GB | 0.062 USD per GB |
+
+\* The type that the cluster picked as the cheapest that satisfies the
+NodePool. It may pick another type of the same size.
