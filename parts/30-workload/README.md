@@ -400,3 +400,247 @@ To create the IngressClass:
    `ingressclass.kubernetes.io/is-default-class`. The third prints
    nothing: the cluster tags every load balancer it creates with its name,
    and there is none.
+
+## Creating the sample workload with a Kubernetes manifest
+
+A [Deployment](https://kubernetes.io/docs/concepts/workloads/controllers/deployment/)
+runs pods from a template and keeps the number of them that you ask for.
+Each pod gets an IP address of the VPC, from the subnet of its node. A
+[Service](https://kubernetes.io/docs/concepts/services-networking/service/)
+gives a set of pods, selected by a label, one DNS name and one IP
+address, the cluster IP, that stay the same while the pods come and go.
+An Ingress, as above, maps the path of a request to a Service.
+
+Together, the three are the sample workload. The cluster launches a node
+for the pods, creates an ALB for the Ingress, and registers the IP
+addresses of the pods as the targets of the ALB, so that a request from
+the internet goes from the ALB straight to a pod.
+
+The sample workload, `nginx`, is set as follows. The three resources
+share the name, the namespace `default`, and the label
+`app.kubernetes.io/name: nginx`, which later parts select on.
+
+| Setting | Value |
+| --- | --- |
+| Image | [nginx](https://gallery.ecr.aws/nginx/nginx) from the Amazon ECR Public Gallery, the latest release of the stable line |
+| Replicas | 2 |
+| Resources of a pod | 100m of CPU and 128 MiB of memory, with the memory also as the limit |
+| Targets of the ALB | The pods, by IP address |
+
+Two pods with these resources fit on one node, so the node appears when
+the pods are created and disappears when they are deleted. The targets
+are the pods themselves because they have addresses of the VPC. The
+image comes from the ECR Public Gallery, which has no pull limit.
+
+To create the sample workload:
+
+1. Ask the agent to write the manifest. Start a Claude Code session at the
+   repository root and paste the following prompt.
+
+   ```text
+   /aws-containers
+
+   # Summary
+   Create a manifest for the Deployment, Service, and Ingress of a sample workload on an EKS Auto Mode cluster.
+
+   ## Prerequisites
+   - The IngressClass alb exists.
+
+   ## Working environment
+   - Create the manifest at parts/30-workload/manifests/nginx.yaml.
+
+   ## Kubernetes resource settings
+
+   ### Common
+   - Use the namespace default.
+   - Use the label app.kubernetes.io/name: nginx.
+
+   ### Kubernetes resource list
+   - Deployment: 1
+   - Service: 1
+   - Ingress: 1
+
+   ### Deployment
+   - Name it nginx.
+   - Run 2 replicas.
+   - Use the following container image.
+     - Image: public.ecr.aws/nginx/nginx
+     - Tag: the latest version of the stable line
+   - Request the following resources.
+     - CPU: 100m
+     - Memory: 128Mi
+   - Limit the memory only, to 128Mi.
+
+   ### Service
+   - Name it nginx.
+   - Make it reachable only from inside the cluster.
+   - Send to the pods of the Deployment nginx.
+   - Receive on port 80 and send to port 80 of the pods.
+
+   ### Ingress
+   - Name it nginx.
+   - Use the IngressClass alb.
+   - Make the IP addresses of the pods the targets of the ALB.
+   - Set no host, and send every request under the path / to port 80 of the Service nginx.
+
+   ## Style
+   - Keep the manifest, and especially the comments, to the minimum.
+   ```
+
+   The agent writes the manifest. Before you go on, read it against the
+   prompt. In particular, check that the tag of the image is the latest
+   stable release on the
+   [gallery page](https://gallery.ecr.aws/nginx/nginx), that the
+   selectors of the Deployment and the Service use the label of the
+   prompt, and that nothing was added that the prompt did not ask for.
+   The file [manifests/nginx.yaml](manifests/nginx.yaml) is the result of
+   this step.
+
+2. Apply the manifest. Ask the agent:
+
+   ```text
+   Apply parts/30-workload/manifests/nginx.yaml to the cluster.
+   ```
+
+   Or run the command yourself:
+
+   ```bash
+   kubectl apply -f parts/30-workload/manifests/nginx.yaml
+   ```
+
+   From now on, the node and the ALB are charged (see [Cost](#cost)), so
+   tear the workload down when you stop for the day.
+
+   It takes about three minutes for the workload to answer. The pods are
+   `Pending` at first, because no node has room for them. The cluster
+   decides to launch one, which a NodeClaim records at once with the
+   instance type it picked, and a minute or two later the node is `Ready`
+   and the pods are `Running`.
+
+   Meanwhile the cluster creates the ALB, which takes two to three
+   minutes, and the Ingress shows the DNS name of the ALB as its address.
+   To watch this happen, run:
+
+   ```bash
+   watch -n 2 kubectl get pods,nodeclaims,nodes,ingress -o wide
+   ```
+
+3. Check the workload from outside Kubernetes. The checks come in four
+   groups, each covering related resources.
+
+   **The pods and their node.** The Deployment has two pods `Running`, on
+   one node of the NodePool `apps`. The pods have IP addresses of the
+   private subnets.
+
+   To check this, ask the agent:
+
+   ```text
+   Check the Deployment nginx of the cluster:
+
+   - It has 2 pods, and both are running.
+   - Both are on one node, and that node is of the NodePool apps.
+   - The IP address of each pod is in a private subnet of the VPC.
+   ```
+
+   Or run the commands yourself:
+
+   ```bash
+   kubectl get pods -l app.kubernetes.io/name=nginx -o wide
+
+   kubectl get nodeclaims,nodes -l karpenter.sh/nodepool=apps -o wide
+   ```
+
+   **The Service.** The Service has an address of its own, outside the
+   VPC, and its endpoints are the two pods. A request from inside the
+   cluster reaches the pods through the name of the Service.
+
+   To check this, ask the agent:
+
+   ```text
+   Check the Service nginx of the cluster:
+
+   - It has a cluster IP, and that address is not in the VPC.
+   - Its endpoints are the IP addresses of the two pods.
+   - A request to http://nginx from a temporary pod in the cluster is answered by nginx with 200.
+   ```
+
+   Or run the commands yourself:
+
+   ```bash
+   kubectl get service nginx
+
+   kubectl get endpointslices -l kubernetes.io/service-name=nginx
+
+   kubectl run check --rm -it --restart=Never --image=public.ecr.aws/docker/library/busybox:1.37 -- \
+     wget -S --spider http://nginx
+   ```
+
+   **The ALB.** The Ingress has the DNS name of the ALB as its address.
+   The ALB faces the internet, and its targets are the two pods, by IP
+   address, both healthy.
+
+   To check this, ask the agent:
+
+   ```text
+   Check the Ingress nginx of the cluster and its ALB, with the profile <account-name>-admin:
+
+   - The Ingress has the DNS name of the ALB as its address.
+   - The ALB faces the internet.
+   - Its targets are the two pods, by IP address, and both are healthy.
+   ```
+
+   Or run the commands yourself. The second takes the ARN of the ALB from
+   its tag for the others:
+
+   ```bash
+   kubectl get ingress nginx
+
+   alb_arn=$( \
+   aws --profile <account-name>-admin \
+     resourcegroupstaggingapi get-resources \
+     --tag-filters Key=eks:eks-cluster-name,Values=eks-platform-lab \
+     --resource-type-filters elasticloadbalancing:loadbalancer \
+     --query 'ResourceTagMappingList[0].ResourceARN' \
+     --output text \
+   )
+
+   aws --profile <account-name>-admin \
+     elbv2 describe-load-balancers --load-balancer-arns $alb_arn \
+     --query 'LoadBalancers[].[DNSName, Scheme]' \
+     --output table
+
+   target_group_arn=$( \
+   aws --profile <account-name>-admin \
+     elbv2 describe-target-groups --load-balancer-arn $alb_arn \
+     --query 'TargetGroups[0].TargetGroupArn' \
+     --output text \
+   )
+
+   aws --profile <account-name>-admin \
+     elbv2 describe-target-health --target-group-arn $target_group_arn \
+     --query 'TargetHealthDescriptions[].[Target.Id, TargetHealth.State]' \
+     --output table
+   ```
+
+   **The response.** A request from the internet to the DNS name of the
+   ALB gets the welcome page of nginx, and the access log of nginx shows
+   the health checks of the ALB.
+
+   To check this, ask the agent:
+
+   ```text
+   Check that http://<alb-dns-name>/ answers with the nginx welcome page,
+   and show me a few lines of the log of the Deployment nginx.
+   ```
+
+   Or run the commands yourself, and open the same URL in a browser. Type
+   `http://` in the browser: the ALB has no HTTPS listener.
+
+   ```bash
+   curl http://<alb-dns-name>/
+
+   kubectl logs deployment/nginx --tail=5
+   ```
+
+   The log shows a `GET /` from `ELB-HealthChecker/2.0` every fifteen
+   seconds, from an address in a public subnet: the ALB itself.
