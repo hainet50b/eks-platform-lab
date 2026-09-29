@@ -276,15 +276,19 @@ To create the cluster:
 
    ```bash
    aws --profile <account-name>-admin \
-     eks update-kubeconfig --name eks-platform-lab --region ap-northeast-1
+     eks update-kubeconfig --name eks-platform-lab --region ap-northeast-1 \
+     --alias <account-name>-admin \
+     --user-alias <account-name>-admin
    ```
 
    The command writes the cluster, and how to get credentials for it, into
-   `~/.kube/config`, the configuration file of kubectl. The credentials
-   come from `aws eks get-token`, so kubectl authenticates with your IAM
-   role, and the access entry gives that role its permissions in the
-   cluster. Run the command again after every rebuild, because a new cluster
-   has a new endpoint and a new certificate.
+   `~/.kube/config`, the configuration file of kubectl. `--alias` and
+   `--user-alias` give the context and its user the name of the profile,
+   `<account-name>-admin`. The credentials come from `aws eks get-token`,
+   so kubectl authenticates with your IAM role, and the access entry gives
+   that role its permissions in the cluster. Run the command again after
+   every rebuild, because a new cluster has a new endpoint and a new
+   certificate.
 
    Then check the connection:
 
