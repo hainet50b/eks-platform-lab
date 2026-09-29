@@ -99,15 +99,15 @@ workloads of their own tenant. In this lab, that comes out as follows:
 | | | Administrator | | Developers | |
 | --- | --- | :---: | :---: | :---: | :---: |
 | | | read | write | read | write |
-| In AWS | The cluster | ✓ | ✓ | ✓\* | ✗ |
-| | Other resources | ✓ | ✓ | ✗ | ✗ |
-| In the cluster | Nodes, NodePools, IngressClasses | ✓ | ✓ | ✗ | ✗ |
-| | The list of namespaces | ✓ | ✓ | ✗ | ✗ |
-| In the namespace `team-a` | The namespace itself | ✓ | ✓ | ✓ | ✗ |
-| | ResourceQuota, LimitRange | ✓ | ✓ | ✓ | ✗ |
-| | NetworkPolicies | ✓ | ✓ | ✓ | ✓\*\* |
-| | Workloads | ✓ | ✓ | ✓ | ✓ |
-| In other namespaces | Everything | ✓ | ✓ | ✗ | ✗ |
+| In AWS | The cluster | ✅ | ✅ | ✅\* | ❌ |
+| | Other resources | ✅ | ✅ | ❌ | ❌ |
+| In the cluster | Nodes, NodePools, IngressClasses | ✅ | ✅ | ❌ | ❌ |
+| | The list of namespaces | ✅ | ✅ | ❌ | ❌ |
+| In the namespace `team-a` | The namespace itself | ✅ | ✅ | ✅ | ❌ |
+| | ResourceQuota, LimitRange | ✅ | ✅ | ✅ | ❌ |
+| | NetworkPolicies | ✅ | ✅ | ✅ | ✅\*\* |
+| | Workloads | ✅ | ✅ | ✅ | ✅ |
+| In other namespaces | Everything | ✅ | ✅ | ❌ | ❌ |
 
 \* Needed to connect to the EKS cluster.
 
@@ -119,11 +119,11 @@ server. In this lab, that comes out as follows:
 
 | Peer | Ingress | Egress |
 | --- | :---: | :---: |
-| The load balancer | ✓ | ✗ |
-| The DNS server | ✗ | ✓ |
-| Pods of the same namespace | ✓ | ✓ |
-| Pods of other namespaces | ✗ | ✗ |
-| Anything else | ✗ | ✗ |
+| The load balancer | ✅ | ❌ |
+| The DNS server | ❌ | ✅ |
+| Pods of the same namespace | ✅ | ✅ |
+| Pods of other namespaces | ❌ | ❌ |
+| Anything else | ❌ | ❌ |
 
 **The resources of the pods.** Caps and defaults, set per tenant and
 per container, keep the resources of the pods in balance with what the
