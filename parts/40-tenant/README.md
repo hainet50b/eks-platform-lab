@@ -862,3 +862,150 @@ To grant the developer access:
    user at its end. The second finds no pods in `team-a` yet. The third
    and the fourth are forbidden, with a message that names the developer,
    the resource, and the namespace or the cluster scope.
+
+## Creating the sample workload as the developer with a Kubernetes manifest
+
+The developer runs the sample workload in the tenant, within its
+guardrails. To meet `restricted`, the workload uses
+[nginx-unprivileged](https://gallery.ecr.aws/nginx/nginx-unprivileged),
+an image of nginx that runs as a user other than root. A process that
+is not root cannot listen on a port below 1024 without a capability,
+and `restricted` drops all capabilities, so the image listens on 8080.
+
+To create the sample workload:
+
+1. Ask the agent to write the manifest. Start a Claude Code session at the
+   repository root and paste the following prompt.
+
+   ```text
+   /aws-containers
+
+   # Summary
+   Create a manifest for the Deployment, Service, and Ingress of a sample workload in a tenant on an EKS Auto Mode cluster.
+
+   ## Prerequisites
+   - None.
+
+   ## Working environment
+   - Create the manifest at parts/40-tenant/manifests/nginx.yaml.
+
+   ## Kubernetes resource settings
+
+   ### Common
+   - Use the namespace team-a.
+   - Use the label app.kubernetes.io/name: nginx.
+
+   ### Kubernetes resource list
+   - Deployment: 1
+   - Service: 1
+   - Ingress: 1
+
+   ### Deployment
+   - Name it nginx.
+   - Run 2 replicas.
+   - Use the following container image.
+     - Image: public.ecr.aws/nginx/nginx-unprivileged
+     - Tag: the latest release of the stable line
+   - Make the pods meet the restricted level of Pod Security Standards.
+   - Request the following resources.
+     - CPU: 100m
+     - Memory: 128Mi
+   - Limit the memory only, to 128Mi.
+
+   ### Service
+   - Name it nginx.
+   - Make it reachable only from inside the cluster.
+   - Send to the pods of the Deployment nginx.
+   - Receive on port 80 and send to port 8080 of the pods.
+
+   ### Ingress
+   - Name it nginx.
+   - Use the IngressClass alb.
+   - Make the IP addresses of the pods the targets of the ALB.
+   - Set no host, and send every request under the path / to port 80 of the Service nginx.
+
+   ## Style
+   - Keep the manifest, and especially the comments, to the minimum.
+   ```
+
+   The agent writes the manifest. Before you go on, read it against the
+   prompt. In particular, check that the tag of the image is the latest
+   stable release on the
+   [gallery page](https://gallery.ecr.aws/nginx/nginx-unprivileged), and
+   that nothing was added that the prompt did not ask for. The file
+   [manifests/nginx.yaml](manifests/nginx.yaml) is the result of this step.
+
+2. Apply the manifest as the developer. Make sure that
+   [the NodePool and the IngressClass](../30-workload/README.md) exist,
+   then ask the agent:
+
+   ```text
+   Apply parts/40-tenant/manifests/nginx.yaml to the cluster
+   with the kubectl context <account-name>-team-a-dev.
+   ```
+
+   Or run the command yourself:
+
+   ```bash
+   kubectl --context <account-name>-team-a-dev apply -f parts/40-tenant/manifests/nginx.yaml
+   ```
+
+   From now on, the node and the ALB are charged (see [Cost](#cost)), so
+   tear the workload down when you stop for the day.
+
+   It takes about three minutes for the workload to answer. To watch this
+   happen, run:
+
+   ```bash
+   watch -n 2 kubectl --context <account-name>-team-a-dev get pods,ingress
+   ```
+
+3. Check the workload. The checks come in two groups, each covering
+   related resources.
+
+   **The pods.** The Deployment has two pods `Running`, and nginx runs as
+   a user other than root.
+
+   To check this, ask the agent:
+
+   ```text
+   Check the Deployment nginx, with the kubectl context <account-name>-team-a-dev:
+
+   - It has 2 pods, and both are running.
+   - nginx runs as a user other than root.
+   ```
+
+   Or run the commands yourself:
+
+   ```bash
+   kubectl --context <account-name>-team-a-dev get pods
+
+   kubectl --context <account-name>-team-a-dev exec deployment/nginx -- id
+   ```
+
+   **The traffic.** The ALB reaches the pods, and a pod in the namespace
+   `default` does not.
+
+   To check this, ask the agent:
+
+   ```text
+   Check the traffic of the workload:
+
+   - The ALB of the Ingress nginx answers with the nginx welcome page.
+   - A temporary pod in the namespace default cannot reach http://nginx.team-a.
+   ```
+
+   Or run the commands yourself:
+
+   ```bash
+   kubectl get ingress nginx -n team-a
+
+   curl http://<alb-dns-name>/
+
+   kubectl run check -n default --rm -it --restart=Never \
+     --image=public.ecr.aws/docker/library/busybox:1.37 \
+     -- wget -T 5 -O /dev/null http://nginx.team-a
+   ```
+
+   The `curl` gets the welcome page. The last command resolves the name
+   to the address of the Service, then times out.
