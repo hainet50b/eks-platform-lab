@@ -1,0 +1,20 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: team-a-nginx-gitops
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/hainet50b/eks-platform-lab-workloads.git
+    targetRevision: main
+    path: nginx-gitops
+  destination:
+    name: in-cluster
+    namespace: team-a
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
