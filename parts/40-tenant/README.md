@@ -275,3 +275,113 @@ To enable the network policy controller:
 
    The command prints the ConfigMap with
    `enable-network-policy-controller` set to `"true"` in its `data`.
+
+## Creating the namespace with a Kubernetes manifest
+
+A [namespace](https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/)
+divides the resources of a cluster into groups. The name of a resource
+is unique within its namespace, and access and quotas can be set per
+namespace. The namespace of the tenant is where its workloads run, and
+the guardrails of the tenant are set on it.
+
+[Pod Security Standards](https://kubernetes.io/docs/concepts/security/pod-security-standards/)
+define three levels of what a pod may do on its node, each stricter than
+the one before:
+
+- `privileged`: The pod may do anything.
+- `baseline`: The pod may not use the known ways to escalate its
+  privileges.
+- `restricted`: The pod must also follow the practices of hardening a
+  pod.
+
+With [Pod Security Admission](https://kubernetes.io/docs/concepts/security/pod-security-admission/),
+a label on the namespace applies a level in one of three modes:
+
+- `enforce`: The API server rejects a pod that violates the level.
+- `warn`: The API server warns the client.
+- `audit`: The API server records the violation in the audit log.
+
+The namespace of the tenant, `team-a`, applies `restricted` in all three
+modes.
+
+To create the namespace:
+
+1. Ask the agent to write the manifest. Start a Claude Code session at the
+   repository root and paste the following prompt.
+
+   ```text
+   /aws-containers
+
+   # Summary
+   Create a manifest for the namespace of a tenant on an EKS cluster.
+
+   ## Prerequisites
+   - None.
+
+   ## Working environment
+   - Create the manifest at parts/40-tenant/manifests/namespace.yaml.
+
+   ## Kubernetes resource settings
+
+   ### Kubernetes resource list
+   - Namespace: 1
+
+   ### Namespace
+   - Name it team-a.
+   - Apply the restricted level of Pod Security Standards in all of the following modes.
+     - enforce
+     - warn
+     - audit
+
+   ## Style
+   - Keep the manifest, and especially the comments, to the minimum.
+   ```
+
+   The agent writes the manifest. Before you go on, read it against the
+   prompt. In particular, check that nothing was added that the prompt
+   did not ask for. The file
+   [manifests/namespace.yaml](manifests/namespace.yaml) is the result of
+   this step.
+
+2. Apply the manifest. Ask the agent:
+
+   ```text
+   Apply parts/40-tenant/manifests/namespace.yaml to the cluster.
+   ```
+
+   Or run the command yourself:
+
+   ```bash
+   kubectl apply -f parts/40-tenant/manifests/namespace.yaml
+   ```
+
+3. Check the namespace. It exists and applies `restricted` in the three
+   modes, and it rejects a pod that does not meet `restricted`.
+
+   To check this, ask the agent:
+
+   ```text
+   Check the namespace team-a of the cluster:
+
+   - It exists.
+   - It applies the restricted level of Pod Security Standards in the modes enforce, warn, and audit.
+   - It rejects a pod that does not meet restricted. Try this with a server-side dry run, so that nothing is created.
+   ```
+
+   Or run the commands yourself:
+
+   ```bash
+   kubectl get namespace team-a -o yaml
+
+   kubectl run check -n team-a \
+     --image=public.ecr.aws/docker/library/busybox:1.37 \
+     --restart=Never \
+     --dry-run=server \
+     -- sleep 5
+   ```
+
+   The first command prints the namespace with the three labels
+   `pod-security.kubernetes.io/<mode>: restricted`. The second sends a pod
+   with no security settings as a server-side dry run, which is checked
+   but not stored. The API server rejects the pod and lists the four
+   settings that it lacks.
