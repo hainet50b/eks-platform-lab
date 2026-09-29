@@ -1,0 +1,74 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-gitops
+  namespace: team-a
+  labels:
+    app.kubernetes.io/name: nginx-gitops
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: nginx-gitops
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: nginx-gitops
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: nginx-gitops
+          image: public.ecr.aws/nginx/nginx-unprivileged:1.30.5
+          ports:
+            - containerPort: 8080
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              memory: 128Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-gitops
+  namespace: team-a
+  labels:
+    app.kubernetes.io/name: nginx-gitops
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: nginx-gitops
+  ports:
+    - port: 80
+      targetPort: 8080
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: nginx-gitops
+  namespace: team-a
+  labels:
+    app.kubernetes.io/name: nginx-gitops
+  annotations:
+    alb.ingress.kubernetes.io/target-type: ip
+spec:
+  ingressClassName: alb
+  rules:
+    - http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: nginx-gitops
+                port:
+                  number: 80
