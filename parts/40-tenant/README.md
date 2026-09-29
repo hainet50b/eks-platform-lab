@@ -192,3 +192,86 @@ The command answers with a table of findings ranked by severity and the
 details of each finding. Fix the design according to the findings, and
 review it again until nothing new comes up. The prompts of steps 2 to 5,
 7, and 8 are the result of a few rounds.
+
+## Enabling the network policy controller with a Kubernetes manifest
+
+A [NetworkPolicy](https://kubernetes.io/docs/concepts/services-networking/network-policies/)
+is a set of rules for the traffic of the pods that it selects. The API
+server stores a NetworkPolicy but does not enforce it: the network plugin
+of the cluster does. With EKS Auto Mode, the network plugin on each node
+enforces the NetworkPolicies, with a
+[network policy controller](https://docs.aws.amazon.com/eks/latest/userguide/auto-net-pol.html)
+that runs on the control plane of the cluster. The controller stays
+disabled until a ConfigMap enables it.
+
+To enable the network policy controller:
+
+1. Ask the agent to write the manifest. Start a Claude Code session at the
+   repository root and paste the following prompt.
+
+   ```text
+   /aws-containers
+
+   # Summary
+   Create a manifest that enables the network policy controller on an EKS Auto Mode cluster.
+
+   ## Prerequisites
+   - None.
+
+   ## Working environment
+   - Create the manifest at parts/40-tenant/manifests/network-policy-controller.yaml.
+
+   ## Kubernetes resource settings
+
+   ### Kubernetes resource list
+   - ConfigMap: 1
+
+   ### ConfigMap
+   - Make it the ConfigMap that enables the network policy controller.
+
+   ## Style
+   - Keep the manifest, and especially the comments, to the minimum.
+   ```
+
+   The agent writes the manifest. Before you go on, read it against the
+   prompt. In particular, check that the key of the ConfigMap is that of
+   the [Auto Mode documentation](https://docs.aws.amazon.com/eks/latest/userguide/auto-net-pol.html),
+   and that nothing was added that the prompt did not ask for. The file
+   [manifests/network-policy-controller.yaml](manifests/network-policy-controller.yaml)
+   is the result of this step.
+
+2. Apply the manifest. Make sure that
+   [the cluster](../20-eks-cluster/README.md#creating-the-cluster-with-terraform)
+   is up and that kubectl is set up for it again, with
+   `aws eks update-kubeconfig`, then ask the agent:
+
+   ```text
+   Apply parts/40-tenant/manifests/network-policy-controller.yaml to the cluster.
+   ```
+
+   Or run the command yourself:
+
+   ```bash
+   kubectl apply -f parts/40-tenant/manifests/network-policy-controller.yaml
+   ```
+
+3. Check the ConfigMap. It exists in the namespace `kube-system` and
+   enables the network policy controller.
+
+   To check this, ask the agent:
+
+   ```text
+   Check the ConfigMap amazon-vpc-cni in the namespace kube-system of the cluster:
+
+   - It exists.
+   - It enables the network policy controller.
+   ```
+
+   Or run the command yourself:
+
+   ```bash
+   kubectl get configmap amazon-vpc-cni -n kube-system -o yaml
+   ```
+
+   The command prints the ConfigMap with
+   `enable-network-policy-controller` set to `"true"` in its `data`.
