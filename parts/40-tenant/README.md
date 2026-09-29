@@ -141,3 +141,54 @@ NodePool launches. In this lab, they are set as follows:
 
 \* No CPU limit anywhere: a CPU limit throttles a container while its
 node has CPU to spare.
+
+## Reviewing the tenant design
+
+The steps that follow write the tenant as Kubernetes manifests and one
+Terraform configuration. Before you ask the agent to write them, review
+the tenant design with the
+[`/apex:eks-design`](https://aws-samples.github.io/sample-apex-skills/docs/steering/commands/apex/eks-design)
+command.
+
+To review the tenant design, start a Claude Code session at the
+repository root and paste the following review request. Fill its "Design"
+section with the following sections of the prompts, in this order:
+
+- The "Kubernetes resource settings" sections of steps 2 to 5
+- The "AWS resource settings" section of step 7
+- The "Kubernetes resource settings" section of step 8
+
+````text
+/apex:eks-design
+
+# Review request
+I am creating one tenant on an EKS Auto Mode cluster.
+The design below consists of the following.
+- A ConfigMap that enables the network policy controller
+- The namespace of the tenant and its Pod Security labels
+- NetworkPolicies
+- A ResourceQuota and a LimitRange
+- The access entry and the access policy of the developers
+- The Deployment, Service, and Ingress of a sample workload in the tenant
+Review the design with the context in mind.
+
+## Context
+- This is a personal lab. It is torn down every night to keep the cost down.
+- The VPC, the EKS Auto Mode cluster, the NodePool, and the IngressClass already exist.
+- There is one tenant, meant for a trusted internal team.
+- The following concerns are out of scope here.
+  - Scaling and availability
+  - Pod health checks
+  - Secret injection
+  - A custom domain and HTTPS
+
+## Design
+```
+(the sections of the prompts of steps 2 to 5, 7, and 8)
+```
+````
+
+The command answers with a table of findings ranked by severity and the
+details of each finding. Fix the design according to the findings, and
+review it again until nothing new comes up. The prompts of steps 2 to 5,
+7, and 8 are the result of a few rounds.
