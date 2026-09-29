@@ -1009,3 +1009,109 @@ To create the sample workload:
 
    The `curl` gets the welcome page. The last command resolves the name
    to the address of the Service, then times out.
+
+## Teardown
+
+This part is torn down every night and built again the next day, because
+the ALB and the node of the sample workload are charged by the hour.
+Tear it down before the cluster, in the reverse order of the steps. The
+user, the group, and the permission set in IAM Identity Center stay, and
+so do the profile and the kubectl context of the developer. To build the
+part again, apply the manifests and the configuration in the order of
+the steps, and add the cluster to the configuration of kubectl for the
+developer again.
+
+To tear down the tenant:
+
+1. Delete the sample workload. Ask the agent:
+
+   ```text
+   Delete parts/40-tenant/manifests/nginx.yaml from the cluster.
+   ```
+
+   Or run the command yourself:
+
+   ```bash
+   kubectl delete -f parts/40-tenant/manifests/nginx.yaml
+   ```
+
+   The command takes a little while to return, because the Ingress is
+   not gone until the cluster has deleted the ALB, its target group, and
+   its security group.
+
+2. Plan and destroy. Ask the agent:
+
+   ```text
+   /terraform-skill
+   Destroy parts/40-tenant/terraform with the profile <account-name>-admin.
+   Show me the plan first, and destroy after I approve.
+   ```
+
+   Or run the commands yourself:
+
+   ```bash
+   AWS_PROFILE=<account-name>-admin \
+   terraform -chdir=parts/40-tenant/terraform \
+     plan -destroy -out=terraform.tfplan
+
+   AWS_PROFILE=<account-name>-admin \
+   terraform -chdir=parts/40-tenant/terraform \
+     apply terraform.tfplan
+   ```
+
+3. Delete the namespace and the ConfigMap. Ask the agent:
+
+   ```text
+   Delete parts/40-tenant/manifests/namespace.yaml and
+   parts/40-tenant/manifests/network-policy-controller.yaml from the cluster.
+   ```
+
+   Or run the commands yourself:
+
+   ```bash
+   kubectl delete -f parts/40-tenant/manifests/namespace.yaml
+
+   kubectl delete -f parts/40-tenant/manifests/network-policy-controller.yaml
+   ```
+
+   Deleting the namespace deletes everything in it, including the
+   ResourceQuota, the LimitRange, and the NetworkPolicies.
+
+4. Confirm that nothing of this part is left and nothing is charged: the
+   state has no resources, no load balancer, target group, or security
+   group of the Ingress of the tenant exists, and the namespace `team-a`
+   is gone.
+
+   To check this, ask the agent:
+
+   ```text
+   Check with the profile <account-name>-admin:
+
+   - The state of parts/40-tenant/terraform has no resources.
+   - No load balancer, target group, or security group
+     tagged ingress.eks.amazonaws.com/stack = team-a/nginx exists.
+   - The cluster has no namespace team-a.
+   ```
+
+   Or run the commands yourself:
+
+   ```bash
+   AWS_PROFILE=<account-name>-admin \
+   terraform -chdir=parts/40-tenant/terraform \
+     state list
+
+   aws --profile <account-name>-admin \
+     resourcegroupstaggingapi get-resources \
+     --tag-filters Key=ingress.eks.amazonaws.com/stack,Values=team-a/nginx \
+     --resource-type-filters \
+       elasticloadbalancing:loadbalancer \
+       elasticloadbalancing:targetgroup \
+       ec2:security-group \
+     --query 'ResourceTagMappingList[].ResourceARN' \
+     --output table
+
+   kubectl get namespace team-a
+   ```
+
+   The first two commands print nothing, and the third fails with
+   `NotFound`.
