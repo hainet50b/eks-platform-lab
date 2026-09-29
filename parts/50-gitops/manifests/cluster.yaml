@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: in-cluster
+  namespace: argocd
+  labels:
+    argocd.argoproj.io/secret-type: cluster
+stringData:
+  name: in-cluster
+  # The capability identifies clusters by ARN, not by API server URL.
+  server: <cluster-arn>
