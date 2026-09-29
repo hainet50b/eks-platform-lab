@@ -385,3 +385,121 @@ To create the namespace:
    with no security settings as a server-side dry run, which is checked
    but not stored. The API server rejects the pod and lists the four
    settings that it lacks.
+
+## Creating the NetworkPolicies with a Kubernetes manifest
+
+The pods of the tenant talk only to the pods of the tenant, the load
+balancer, and the DNS server. NetworkPolicies put this in place in two
+steps:
+
+- A NetworkPolicy with no rules blocks all the traffic of the pods.
+- A separate NetworkPolicy for each peer allows the traffic with that
+  peer.
+
+The four NetworkPolicies apply to all the pods of the namespace:
+
+| NetworkPolicy | Allows ingress | Allows egress |
+| --- | --- | --- |
+| Default deny | Nothing | Nothing |
+| Load balancer | From the public subnets | — |
+| DNS | — | To the DNS server, on port 53 |
+| Same namespace | From the pods of the namespace | To the pods of the namespace |
+
+The load balancer and the DNS server are not pods of the cluster, so
+their rules name them by address. The load balancer sends requests from
+its addresses in the public subnets. With EKS Auto Mode, CoreDNS runs
+on each node, and the pods reach it at the tenth address of the service
+CIDR of the cluster, `172.20.0.10`.
+
+To create the NetworkPolicies:
+
+1. Ask the agent to write the manifest. Start a Claude Code session at the
+   repository root and paste the following prompt.
+
+   ```text
+   /aws-containers
+
+   # Summary
+   Create a manifest for the NetworkPolicies of the namespace of a tenant on an EKS Auto Mode cluster.
+
+   ## Prerequisites
+   - None.
+
+   ## Working environment
+   - Create the manifest at parts/40-tenant/manifests/network-policies.yaml.
+
+   ## Kubernetes resource settings
+
+   ### Common
+   - Use the namespace team-a.
+   - Apply each NetworkPolicy to all the pods of the namespace.
+
+   ### Kubernetes resource list
+   - NetworkPolicy: 4
+
+   ### NetworkPolicy (default deny)
+   - Deny all incoming and outgoing traffic.
+
+   ### NetworkPolicy (traffic from the ALB)
+   - Allow incoming traffic from the public subnets of the VPC, where the ALB is placed.
+     - The public subnets are 10.0.0.0/24 and 10.0.1.0/24.
+   - Do not restrict the ports.
+
+   ### NetworkPolicy (DNS)
+   - Allow traffic to UDP and TCP port 53 of CoreDNS.
+     - The pods see CoreDNS at 172.20.0.10.
+
+   ### NetworkPolicy (same namespace)
+   - Allow traffic with the pods of the same namespace, in both directions.
+
+   ## Style
+   - Keep the manifest, and especially the comments, to the minimum.
+   ```
+
+   The agent writes the manifest. Before you go on, read it against the
+   prompt. In particular, check that nothing was added that the prompt
+   did not ask for. The file
+   [manifests/network-policies.yaml](manifests/network-policies.yaml) is
+   the result of this step.
+
+2. Apply the manifest. Ask the agent:
+
+   ```text
+   Apply parts/40-tenant/manifests/network-policies.yaml to the cluster.
+   ```
+
+   Or run the command yourself:
+
+   ```bash
+   kubectl apply -f parts/40-tenant/manifests/network-policies.yaml
+   ```
+
+3. Check the NetworkPolicies. The namespace has the four, each applying
+   to all its pods and allowing the traffic of the table, and the network
+   policy controller has made a PolicyEndpoint for each of them.
+
+   To check this, ask the agent:
+
+   ```text
+   Check the NetworkPolicies of the namespace team-a of the cluster:
+
+   - There are four, and each applies to all the pods of the namespace.
+   - One allows no traffic in either direction.
+   - One allows ingress from the ALB in 10.0.0.0/24 and 10.0.1.0/24, on any port.
+   - One allows egress to CoreDNS at 172.20.0.10, on UDP and TCP port 53.
+   - One allows ingress and egress with the pods of the namespace.
+   - There is a PolicyEndpoint for each of them.
+   ```
+
+   Or run the commands yourself:
+
+   ```bash
+   kubectl describe networkpolicies -n team-a
+
+   kubectl get policyendpoints -n team-a
+   ```
+
+   The first command prints each NetworkPolicy with the traffic that it
+   allows. The second lists a PolicyEndpoint for each NetworkPolicy,
+   named after it, which the network policy controller writes for the
+   nodes to enforce.
