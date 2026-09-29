@@ -503,3 +503,101 @@ To create the NetworkPolicies:
    allows. The second lists a PolicyEndpoint for each NetworkPolicy,
    named after it, which the network policy controller writes for the
    nodes to enforce.
+
+## Limiting the resources of the namespace with a Kubernetes manifest
+
+The pods of the tenant use no more resources than the tenant is given.
+Two Kubernetes resources put this in place:
+
+- A [ResourceQuota](https://kubernetes.io/docs/concepts/policy/resource-quotas/)
+  holds the caps for the tenant, on the totals of all its pods.
+- A [LimitRange](https://kubernetes.io/docs/concepts/policy/limit-range/)
+  holds the defaults and the caps per container.
+
+To limit the resources of the namespace:
+
+1. Ask the agent to write the manifest. Start a Claude Code session at the
+   repository root and paste the following prompt.
+
+   ```text
+   /aws-containers
+
+   # Summary
+   Create a manifest for the ResourceQuota and the LimitRange of the namespace of a tenant on an EKS cluster.
+
+   ## Prerequisites
+   - None.
+
+   ## Working environment
+   - Create the manifest at parts/40-tenant/manifests/quota.yaml.
+
+   ## Kubernetes resource settings
+
+   ### Common
+   - Use the namespace team-a.
+
+   ### Kubernetes resource list
+   - ResourceQuota: 1
+   - LimitRange: 1
+
+   ### ResourceQuota
+   - Cap the namespace as follows.
+     - CPU requests: 2
+     - Memory requests: 4Gi
+     - Memory limits: 4Gi
+     - Number of pods: 10
+     - Number of Ingresses: 2
+   - Allow no Service of the following types.
+     - LoadBalancer
+     - NodePort
+
+   ### LimitRange
+   - Set the following for each container.
+     - Default requests
+       - CPU: 100m
+       - Memory: 128Mi
+     - Default limits
+       - Memory: 128Mi
+     - Maximum
+       - Memory: 2Gi
+
+   ## Style
+   - Keep the manifest, and especially the comments, to the minimum.
+   ```
+
+   The agent writes the manifest. Before you go on, read it against the
+   prompt. In particular, check that nothing was added that the prompt
+   did not ask for. The file [manifests/quota.yaml](manifests/quota.yaml)
+   is the result of this step.
+
+2. Apply the manifest. Ask the agent:
+
+   ```text
+   Apply parts/40-tenant/manifests/quota.yaml to the cluster.
+   ```
+
+   Or run the command yourself:
+
+   ```bash
+   kubectl apply -f parts/40-tenant/manifests/quota.yaml
+   ```
+
+3. Check the ResourceQuota and the LimitRange. Their caps and defaults are
+   those of the manifest.
+
+   To check this, ask the agent:
+
+   ```text
+   Show me the ResourceQuota and the LimitRange of the namespace team-a of the cluster:
+   the caps of the ResourceQuota,
+   and the defaults and the caps per container of the LimitRange.
+   ```
+
+   Or run the command yourself:
+
+   ```bash
+   kubectl describe resourcequota,limitrange -n team-a
+   ```
+
+   The command prints the caps of the ResourceQuota, with what the
+   namespace uses, and the defaults and the caps of the LimitRange.
