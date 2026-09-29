@@ -23,6 +23,18 @@ This repository is split into numbered parts under [`parts/`](parts/).
 │                                                                  │
 │   AWS account                                                    │
 │                                                                  │
+│   ┌─ IAM Identity Center ────────────────────────────────────┐   │
+│   │                                                          │   │
+│   │   ┌─ 00 aws-account ──────┐  ┌─ 40 tenant ───────────┐   │   │
+│   │   │                       │  │                       │   │   │
+│   │   │   an administrator    │  │   a developer         │   │   │
+│   │   │   who may do anything │  │   who may work        │   │   │
+│   │   │   in the account      │  │   only in the tenant  │   │   │
+│   │   │                       │  │                       │   │   │
+│   │   └───────────────────────┘  └───────────────────────┘   │   │
+│   │                                                          │   │
+│   └──────────────────────────────────────────────────────────┘   │
+│                                                                  │
 │   ┌─ 05 terraform-state ─────────────────────────────────────┐   │
 │   │                                                          │   │
 │   │   S3 bucket for the Terraform state                      │   │
@@ -53,6 +65,13 @@ This repository is split into numbered parts under [`parts/`](parts/).
 │   │   │                                                  │   │   │
 │   │   └──────────────────────────────────────────────────┘   │   │
 │   │                                                          │   │
+│   │   ┌─ 40 tenant ──────────────────────────────────────┐   │   │
+│   │   │                                                  │   │   │
+│   │   │   a namespace with guardrails,                   │   │   │
+│   │   │   where the workloads of one tenant run          │   │   │
+│   │   │                                                  │   │   │
+│   │   └──────────────────────────────────────────────────┘   │   │
+│   │                                                          │   │
 │   └──────────────────────────────────────────────────────────┘   │
 │                                                                  │
 └──────────────────────────────────────────────────────────────────┘
@@ -71,6 +90,7 @@ instructions.
 | [10 vpc](parts/10-vpc/README.md) | A VPC with public, private, and data subnets in two Availability Zones |
 | [20 eks-cluster](parts/20-eks-cluster/README.md) | An EKS Auto Mode cluster |
 | [30 workload](parts/30-workload/README.md) | A NodePool, an IngressClass, and a sample workload |
+| [40 tenant](parts/40-tenant/README.md) | A namespace with guardrails, and a developer who may work only there |
 
 ## Tools
 
