@@ -41,12 +41,12 @@ A namespace with guardrails, and a developer who may work only there.
 │  │  │  namespace, with Pod Security Standards restricted                          │◀───┤           │  │
 │  │  │                                                                             │    │           │  │
 │  │  │  ┌─ 4. ──────────────────────────────────────────────────────────────────┐  │    │           │  │
-│  │  │  │  ResourceQuota and LimitRange                                         │  │    │           │  │
-│  │  │  │  caps and defaults for the resources of the pods                      │  │    │           │  │
-│  │  │  └───────────────────────────────────────────────────────────────────────┘  │    │           │  │
-│  │  │  ┌─ 5. ──────────────────────────────────────────────────────────────────┐  │    │           │  │
 │  │  │  │  NetworkPolicies                                                      │  │    │           │  │
 │  │  │  │  rules for the traffic of the pods                                    │  │    │           │  │
+│  │  │  └───────────────────────────────────────────────────────────────────────┘  │    │           │  │
+│  │  │  ┌─ 5. ──────────────────────────────────────────────────────────────────┐  │    │           │  │
+│  │  │  │  ResourceQuota and LimitRange                                         │  │    │           │  │
+│  │  │  │  caps and defaults for the resources of the pods                      │  │    │           │  │
 │  │  │  └───────────────────────────────────────────────────────────────────────┘  │    │           │  │
 │  │  │  ┌─ 8. ──────────────────────────────────────────────────────────────────┐  │    │           │  │
 │  │  │  │  sample workload                                                      │  │    │           │  │
@@ -71,8 +71,8 @@ A namespace with guardrails, and a developer who may work only there.
 | [1. Reviewing the tenant design](#reviewing-the-tenant-design) | Reviews the design of the tenant: the namespace, its guardrails, the access of the developers, and the sample workload |
 | [2. Enabling the network policy controller with a Kubernetes manifest](#enabling-the-network-policy-controller-with-a-kubernetes-manifest) | Creates the ConfigMap that enables the network policy controller of the cluster |
 | [3. Creating the namespace with a Kubernetes manifest](#creating-the-namespace-with-a-kubernetes-manifest) | Creates the namespace, with Pod Security Standards restricted |
-| [4. Limiting the resources of the namespace with a Kubernetes manifest](#limiting-the-resources-of-the-namespace-with-a-kubernetes-manifest) | Creates the ResourceQuota and the LimitRange that cap the resources of the namespace and fill in defaults |
-| [5. Creating the NetworkPolicies with a Kubernetes manifest](#creating-the-networkpolicies-with-a-kubernetes-manifest) | Creates the NetworkPolicies that restrict the traffic of the pods |
+| [4. Creating the NetworkPolicies with a Kubernetes manifest](#creating-the-networkpolicies-with-a-kubernetes-manifest) | Creates the NetworkPolicies that restrict the traffic of the pods |
+| [5. Limiting the resources of the namespace with a Kubernetes manifest](#limiting-the-resources-of-the-namespace-with-a-kubernetes-manifest) | Creates the ResourceQuota and the LimitRange that cap the resources of the namespace and fill in defaults |
 | [6. Creating the developer with IAM Identity Center](#creating-the-developer-with-iam-identity-center) | Creates the user, the group, and the permission set of the developer |
 | [7. Granting the developer access with Terraform](#granting-the-developer-access-with-terraform) | Creates the access entry that gives the developer access to the namespace |
 | [8. Creating the sample workload as the developer with a Kubernetes manifest](#creating-the-sample-workload-as-the-developer-with-a-kubernetes-manifest) | Creates the Deployment, Service, and Ingress of the sample workload, as the developer |
