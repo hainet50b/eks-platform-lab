@@ -7,5 +7,5 @@ metadata:
     argocd.argoproj.io/secret-type: cluster
 stringData:
   name: in-cluster
-  # The capability identifies clusters by ARN, not by API server URL.
+  # The capability identifies clusters by ARN.
   server: <cluster-arn>
