@@ -481,3 +481,118 @@ To create the workloads repository:
 
    Then open the repository on GitHub, and see that it is public and holds
    `nginx-gitops/nginx-gitops.yaml`.
+
+## Syncing the sample workload
+
+An [Application](https://argo-cd.readthedocs.io/en/stable/user-guide/application-specification/)
+tells Argo CD what to sync and where to deploy it: a directory of a Git
+repository, and a cluster and a namespace. With automated sync, Argo CD
+applies a change in Git, deletes what is removed from Git, and reverts a
+change made directly in the cluster.
+
+To sync the sample workload:
+
+1. Ask the agent to write the manifest. Start a Claude Code session at the
+   repository root and paste the following prompt. Replace `<owner>` with
+   the owner of the workloads repository.
+
+   ```text
+   /aws-containers
+
+   # Summary
+   Create a manifest for an Application that syncs a sample application with the Argo CD capability of an EKS cluster.
+
+   ## Prerequisites
+   - None.
+
+   ## Working environment
+   - Create the manifest at parts/50-gitops/manifests/application.yaml.
+
+   ## Kubernetes resource settings
+
+   ### Common
+   - Put the Application in the namespace argocd.
+
+   ### Kubernetes resource list
+   - Argo CD Application: 1
+
+   ### Application
+   - Name it team-a-nginx-gitops.
+   - Use the Argo CD project default.
+   - Sync the following directory of a public GitHub repository.
+     - Repository: https://github.com/<owner>/eks-platform-lab-workloads.git
+     - Branch: main
+     - Directory: nginx-gitops
+   - Deploy to the namespace team-a of the cluster in-cluster.
+   - Sync changes in Git automatically.
+     - Delete from the cluster what is removed from Git.
+     - Revert changes made in the cluster to the state in Git.
+   - When the Application is deleted, delete the resources that it synced.
+
+   ## Style
+   - Keep the manifest, and especially the comments, to the minimum.
+   ```
+
+   The agent writes the manifest. Before you go on, read it against the
+   prompt. In particular, check that it has the finalizer
+   `resources-finalizer.argocd.argoproj.io`, and that nothing was added
+   that the prompt did not ask for. The file
+   [manifests/application.yaml](manifests/application.yaml) is the result
+   of this step.
+
+2. Apply the manifest. Ask the agent:
+
+   ```text
+   Apply parts/50-gitops/manifests/application.yaml to the cluster.
+   ```
+
+   Or run the command yourself:
+
+   ```bash
+   kubectl apply -f parts/50-gitops/manifests/application.yaml
+   ```
+
+   `kubectl` warns that the name of the finalizer has no path. Kubernetes
+   now prefers finalizer names with a path, such as `example.com/cleanup`,
+   while Argo CD keeps the name that it has used from before. The warning
+   does no harm.
+
+3. Check the sync. The Application is `Synced` and `Healthy`, and the
+   sample workload answers through its ALB.
+
+   To check this, ask the agent:
+
+   ```text
+   Check the Application team-a-nginx-gitops in the namespace argocd of the cluster:
+
+   - It is synced and healthy.
+   - The ALB of the Ingress nginx-gitops in the namespace team-a answers with the nginx welcome page.
+   ```
+
+   Or run the commands yourself:
+
+   ```bash
+   kubectl get application team-a-nginx-gitops -n argocd
+
+   kubectl get ingress nginx-gitops -n team-a
+
+   curl http://<alb-dns-name>/
+   ```
+
+   The first command shows `Synced` and `Healthy`. The `curl` gets the
+   welcome page.
+
+4. See Argo CD revert a change made in the cluster. As the developer,
+   scale the Deployment to 5 replicas. The developer may do this in the
+   tenant namespace, but Argo CD puts the Deployment back to the 2
+   replicas in Git shortly after.
+
+   ```bash
+   kubectl --context <account-name>-team-a-dev \
+     scale deployment nginx-gitops --replicas=5
+
+   kubectl --context <account-name>-team-a-dev \
+     get deployment nginx-gitops
+   ```
+
+   The scale succeeds, and the second command shows `2/2` again.
