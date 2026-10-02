@@ -112,3 +112,189 @@ The command answers with a table of findings ranked by severity and the
 details of each finding. Fix the design according to the findings, and
 review it again until nothing new comes up. The prompts of steps 2 to 5
 are the result of a few rounds.
+
+## Creating the Argo CD capability with Terraform
+
+[Argo CD](https://argo-cd.readthedocs.io/) keeps the resources in a cluster
+in sync with the manifests in a Git repository. EKS runs it as the
+[Argo CD capability](https://docs.aws.amazon.com/eks/latest/userguide/argocd.html),
+outside the nodes of the cluster. An Argo CD capability comes with three things:
+
+- An IAM role that the capability assumes. The role needs permissions only
+  when Argo CD reads the sources of the manifests from AWS services.
+- Sign-in through IAM Identity Center. Its users and groups are mapped to
+  the roles of Argo CD.
+- Access to the cluster. EKS creates an access entry for the IAM role, but
+  the entry does not let Argo CD apply manifests until an access policy is
+  associated with it.
+
+To create the Argo CD capability:
+
+1. Ask the agent to write the configuration. Start a Claude Code session at
+   the repository root and paste the following prompt.
+
+   ```text
+   /terraform-skill
+   /terraform-style-guide
+
+   # Summary
+   Create a Terraform configuration for the Argo CD capability of an EKS cluster.
+
+   ## Prerequisites
+   - AWS credentials are passed at run time through AWS_PROFILE.
+   - The EKS cluster already exists.
+     - Its state is in the following S3 location.
+       - Bucket: eks-platform-lab-terraform-state-<account ID>
+       - Key: parts/20-eks-cluster/terraform.tfstate
+     - The state has the following output.
+       - cluster_name: the name of the EKS cluster
+
+   ## Working environment
+   - Create the Terraform configuration in parts/50-gitops/terraform.
+   - Put a .gitignore that excludes generated files in the same directory.
+
+   ## AWS resource settings
+
+   ### Common
+   - Tag every resource with the following tags.
+     - Project = eks-platform-lab
+     - Part = 50-gitops
+   - Use the Region ap-northeast-1.
+
+   ### AWS resource list
+   - IAM role: 1
+   - EKS capability: 1
+   - EKS access policy association: 1
+
+   ### IAM role
+   - Name it eks-platform-lab-argocd.
+   - Make it a role that the Argo CD capability of EKS assumes.
+   - Attach no permissions policy. Argo CD reads public repositories only.
+
+   ### EKS capability
+   - Make it an Argo CD capability.
+   - Name it argocd.
+   - Put the resources of Argo CD in the namespace argocd.
+   - Authenticate with IAM Identity Center.
+   - Map the IAM Identity Center group eks-platform-lab-admins to the Argo CD role ADMIN.
+   - Create it after the IAM role has propagated, so that EKS accepts the trust policy of the role.
+
+   ### EKS access policy association
+   - Associate the access policy AmazonEKSClusterAdminPolicy, scoped to the whole cluster,
+     with the access entry that the EKS capability creates.
+
+   ## Terraform settings
+
+   ### Versions
+   - Constrain the Terraform version to ~> 1.10, which supports S3 native locking.
+   - Constrain the AWS provider version to ~> 6.0.
+
+   ### State
+   - Use the S3 backend.
+   - Use parts/50-gitops/terraform.tfstate as the state key.
+   - Lock with S3 native locking.
+   - Do not include the bucket name in the backend configuration;
+     pass it with -backend-config on terraform init.
+
+   ### Output
+   - None.
+
+   ### Style
+   - Place each data source right before the resource that references it.
+   - Name each data source label after its content.
+   - Do not add unnecessary depends_on.
+   - Keep the configuration, and especially the comments, to the minimum.
+   ```
+
+   The agent writes the configuration files and a `.gitignore` under
+   [terraform/](terraform/), then runs `terraform init -backend=false`,
+   `fmt`, and `validate`.
+
+   Before you go on, read the result against the prompt. In particular,
+   check that the capability is the resource `aws_eks_capability` of the
+   AWS provider, that the instance of IAM Identity Center and the group
+   are found by name, with no IDs in the configuration, and that the
+   `backend "s3"` block has no `bucket` line. The files in
+   [terraform/](terraform/) are the result of this step.
+
+2. Plan and apply. Make sure that the AWS CLI is signed in to the profile
+   `<account-name>-admin`, then ask the agent:
+
+   ```text
+   /terraform-skill
+   Initialize parts/50-gitops/terraform with the profile <account-name>-admin.
+   Take the bucket name from the output bucket_name of parts/05-terraform-state/terraform,
+   and pass it as -backend-config.
+   Then show me the plan, and apply it after I approve.
+   ```
+
+   The plan adds 4 resources: the IAM role, a wait for the role to
+   propagate, the capability, and the access policy association. The
+   capability takes several minutes to become active.
+
+   Or run the commands yourself:
+
+   ```bash
+   bucket_name=$( \
+   AWS_PROFILE=<account-name>-admin \
+   terraform -chdir=parts/05-terraform-state/terraform \
+     output -raw bucket_name \
+   )
+
+   AWS_PROFILE=<account-name>-admin \
+   terraform -chdir=parts/50-gitops/terraform \
+     init -backend-config="bucket=${bucket_name}"
+
+   AWS_PROFILE=<account-name>-admin \
+   terraform -chdir=parts/50-gitops/terraform \
+     plan -out=terraform.tfplan
+
+   AWS_PROFILE=<account-name>-admin \
+   terraform -chdir=parts/50-gitops/terraform \
+     apply terraform.tfplan
+   ```
+
+3. Check the capability. The capability is active, the cluster has the
+   namespace `argocd`, and the access entry of the IAM role has the access
+   policy `AmazonEKSClusterAdminPolicy`.
+
+   To check this, ask the agent:
+
+   ```text
+   Check the Argo CD capability argocd of the cluster eks-platform-lab, with the profile <account-name>-admin:
+
+   - The capability is active, and shows the URL of its UI.
+   - The cluster has the namespace argocd.
+   - The access entry of the IAM role eks-platform-lab-argocd has the access policy AmazonEKSClusterAdminPolicy.
+   ```
+
+   Or run the commands yourself:
+
+   ```bash
+   aws --profile <account-name>-admin \
+     eks describe-capability --cluster-name eks-platform-lab --capability-name argocd \
+     --query 'capability.[status, configuration.argoCd.serverUrl]' \
+     --output table
+
+   kubectl get namespace argocd
+
+   role_arn=$( \
+   aws --profile <account-name>-admin \
+     iam get-role --role-name eks-platform-lab-argocd \
+     --query 'Role.Arn' \
+     --output text \
+   )
+
+   aws --profile <account-name>-admin \
+     eks list-associated-access-policies --cluster-name eks-platform-lab --principal-arn $role_arn \
+     --query 'associatedAccessPolicies[].[policyArn, accessScope.type]' \
+     --output table
+   ```
+
+   The first command prints `ACTIVE` and the URL of the UI. The last
+   lists `AmazonEKSClusterAdminPolicy`, and two more that EKS associated
+   with the access entry when it created the capability.
+
+4. Sign in to the UI of Argo CD. Open the URL that the first command
+   printed, and sign in as the administrator through the AWS access portal.
+   The UI shows no applications yet.
