@@ -774,3 +774,22 @@ To tear down the GitOps part:
    ```
 
    The fifth command fails with `NotFound`, and the others print nothing.
+
+## Cost
+
+This part is charged for the following resources while the capability
+and the sample workload run.
+
+| Resource | Name | Per day | Per month |
+| --- | --- | --- | --- |
+| Argo CD capability | `argocd` | 0.90 USD | 27.36 USD |
+| Application managed by the capability | `team-a-nginx-gitops` | 0.044 USD | 1.35 USD |
+| EC2 instance for the node | `c5a.large`\* | 2.30 USD | 70.08 USD |
+| EKS Auto Mode management of the node | | 0.28 USD | 8.41 USD |
+| Application Load Balancer | `k8s-teama-nginxgit-<hash>` | 0.58 USD | 17.74 USD |
+| Capacity used by the load balancer | | 0.008 USD per LCU-hour | 0.008 USD per LCU-hour |
+| Public IPv4 addresses of the load balancer, one per Availability Zone | | 0.24 USD | 7.30 USD |
+| Data processed by the NAT gateway, such as the image pulled by the node | | 0.062 USD per GB | 0.062 USD per GB |
+
+\* The type that the cluster picked as the cheapest that satisfies the
+NodePool. It may pick another type of the same size.
