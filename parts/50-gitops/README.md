@@ -596,3 +596,56 @@ To sync the sample workload:
    ```
 
    The scale succeeds, and the second command shows `2/2` again.
+
+## Deploying and rolling back the sample workload
+
+With GitOps, a deployment is a commit to the Git repository that Argo CD
+reads, and a rollback is a commit that reverts it. Argo CD reads the
+repository every few minutes, or right away on a refresh of the
+Application.
+
+To deploy and roll back the sample workload:
+
+1. Deploy a new version. In the workloads repository, change the image
+   of the sample workload to the latest release of the mainline line of
+   nginx, and push the change. Replace `<mainline-version>` with that
+   release, such as `1.31.6`:
+
+   ```bash
+   sed -i 's#nginx-unprivileged:.*#nginx-unprivileged:<mainline-version>#' \
+     ~/eks-platform-lab-workloads/nginx-gitops/nginx-gitops.yaml
+
+   git -C ~/eks-platform-lab-workloads commit -am "Update the image of nginx-gitops to nginx <mainline-version>"
+   git -C ~/eks-platform-lab-workloads push
+   ```
+
+   Argo CD picks up the change within about 10 minutes. To skip the wait,
+   refresh the Application:
+
+   ```bash
+   kubectl annotate application team-a-nginx-gitops -n argocd \
+     argocd.argoproj.io/refresh=normal
+   ```
+
+2. Check the deployment. The Application is synced at the new commit,
+   and the sample workload answers with the new version of nginx.
+
+   ```bash
+   kubectl get application team-a-nginx-gitops -n argocd
+
+   curl -sI http://<alb-dns-name>/ | grep -i '^server'
+   ```
+
+   The first command shows `Synced` and `Healthy`. The `curl` prints the
+   new version of nginx in the header `Server`.
+
+3. Roll back. Revert the commit in the workloads repository and push it,
+   then wait for Argo CD, or refresh the Application as in the deployment:
+
+   ```bash
+   git -C ~/eks-platform-lab-workloads revert --no-edit HEAD
+   git -C ~/eks-platform-lab-workloads push
+   ```
+
+   The same commands as in the check of the deployment show `Synced` and
+   `Healthy` again, and the version of nginx back where it was.
