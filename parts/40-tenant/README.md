@@ -849,13 +849,17 @@ To grant the developer access:
    Or run the commands yourself:
 
    ```bash
-   kubectl --context <account-name>-team-a-dev auth whoami
+   kubectl --context <account-name>-team-a-dev \
+     auth whoami
 
-   kubectl --context <account-name>-team-a-dev get pods
+   kubectl --context <account-name>-team-a-dev \
+     get pods
 
-   kubectl --context <account-name>-team-a-dev get pods -n default
+   kubectl --context <account-name>-team-a-dev \
+     get pods -n default
 
-   kubectl --context <account-name>-team-a-dev get nodes
+   kubectl --context <account-name>-team-a-dev \
+     get nodes
    ```
 
    The first command prints the ARN of the IAM role, with the name of the
@@ -947,7 +951,8 @@ To create the sample workload:
    Or run the command yourself:
 
    ```bash
-   kubectl --context <account-name>-team-a-dev apply -f parts/40-tenant/manifests/nginx.yaml
+   kubectl --context <account-name>-team-a-dev \
+     apply -f parts/40-tenant/manifests/nginx.yaml
    ```
 
    From now on, the node and the ALB are charged (see [Cost](#cost)), so
@@ -957,7 +962,8 @@ To create the sample workload:
    happen, run:
 
    ```bash
-   watch -n 2 kubectl --context <account-name>-team-a-dev get pods,ingress
+   watch -n 2 kubectl --context <account-name>-team-a-dev \
+     get pods,ingress
    ```
 
 3. Check the workload. The checks come in two groups, each covering
@@ -978,9 +984,11 @@ To create the sample workload:
    Or run the commands yourself:
 
    ```bash
-   kubectl --context <account-name>-team-a-dev get pods
+   kubectl --context <account-name>-team-a-dev \
+     get pods
 
-   kubectl --context <account-name>-team-a-dev exec deployment/nginx -- id
+   kubectl --context <account-name>-team-a-dev \
+     exec deployment/nginx -- id
    ```
 
    **The traffic.** The ALB reaches the pods, and a pod in the namespace
