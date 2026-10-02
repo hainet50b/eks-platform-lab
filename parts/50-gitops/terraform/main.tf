@@ -15,6 +15,15 @@ resource "aws_iam_role" "argocd" {
   assume_role_policy = data.aws_iam_policy_document.eks_capabilities_assume_role.json
 }
 
+# EKS rejects the trust policy of a role that IAM has not propagated yet.
+resource "time_sleep" "argocd_role_propagation" {
+  create_duration = "60s"
+
+  triggers = {
+    role_arn = aws_iam_role.argocd.arn
+  }
+}
+
 data "aws_caller_identity" "current" {}
 
 data "terraform_remote_state" "eks_cluster" {
@@ -44,7 +53,7 @@ resource "aws_eks_capability" "argocd" {
   cluster_name              = data.terraform_remote_state.eks_cluster.outputs.cluster_name
   capability_name           = "argocd"
   type                      = "ARGOCD"
-  role_arn                  = aws_iam_role.argocd.arn
+  role_arn                  = time_sleep.argocd_role_propagation.triggers["role_arn"]
   delete_propagation_policy = "RETAIN"
 
   configuration {
