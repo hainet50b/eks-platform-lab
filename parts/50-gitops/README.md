@@ -392,3 +392,92 @@ To register the cluster:
 
    The first command lists `in-cluster`. The second prints the ARN of
    the cluster.
+
+## Creating the workloads repository
+
+Argo CD syncs the manifests that it reads from a Git repository. The
+sample workload goes into a new public repository on GitHub, which Argo
+CD reads without credentials. Its manifest is written in this repository
+first, and copied to the new one.
+
+To create the workloads repository:
+
+1. Ask the agent to write the manifest. Start a Claude Code session at the
+   repository root and paste the following prompt.
+
+   ```text
+   /aws-containers
+
+   # Summary
+   Create a manifest for the Deployment, Service, and Ingress of a sample workload in a tenant on an EKS Auto Mode cluster.
+
+   ## Prerequisites
+   - None.
+
+   ## Working environment
+   - Create the manifest at parts/50-gitops/workloads/nginx-gitops/nginx-gitops.yaml.
+
+   ## Kubernetes resource settings
+
+   ### Common
+   - Use the namespace team-a.
+   - Use the label app.kubernetes.io/name: nginx-gitops.
+
+   ### Kubernetes resource list
+   - Deployment: 1
+   - Service: 1
+   - Ingress: 1
+
+   ### Deployment
+   - Name it nginx-gitops.
+   - Run 2 replicas.
+   - Use the following container image.
+     - Image: public.ecr.aws/nginx/nginx-unprivileged
+     - Tag: the latest release of the stable line
+   - Make the pods meet the restricted level of Pod Security Standards.
+   - Request the following resources.
+     - CPU: 100m
+     - Memory: 128Mi
+   - Limit the memory only, to 128Mi.
+
+   ### Service
+   - Name it nginx-gitops.
+   - Make it reachable only from inside the cluster.
+   - Send to the pods of the Deployment nginx-gitops.
+   - Receive on port 80 and send to port 8080 of the pods.
+
+   ### Ingress
+   - Name it nginx-gitops.
+   - Use the IngressClass alb.
+   - Make the IP addresses of the pods the targets of the ALB.
+   - Set no host, and send every request under the path / to port 80 of the Service nginx-gitops.
+
+   ## Style
+   - Keep the manifest, and especially the comments, to the minimum.
+   ```
+
+   The agent writes the manifest. Before you go on, read it against the
+   prompt. In particular, check that it differs from the manifest of the
+   sample workload of the tenant part only in its names and labels, and
+   that nothing was added that the prompt did not ask for. The file
+   [workloads/nginx-gitops/nginx-gitops.yaml](workloads/nginx-gitops/nginx-gitops.yaml)
+   is the result of this step.
+
+2. Create a public repository named `eks-platform-lab-workloads` on
+   GitHub, and push the directory of the sample workload to it. Replace
+   `<owner>` with your GitHub user or organization:
+
+   ```bash
+   gh repo create <owner>/eks-platform-lab-workloads --public
+
+   git init -b main ~/eks-platform-lab-workloads
+   cp -r parts/50-gitops/workloads/nginx-gitops ~/eks-platform-lab-workloads/
+   git -C ~/eks-platform-lab-workloads add nginx-gitops
+   git -C ~/eks-platform-lab-workloads commit -m "Add the sample workload that Argo CD syncs"
+
+   git -C ~/eks-platform-lab-workloads remote add origin https://github.com/<owner>/eks-platform-lab-workloads.git
+   git -C ~/eks-platform-lab-workloads push -u origin main
+   ```
+
+   Then open the repository on GitHub, and see that it is public and holds
+   `nginx-gitops/nginx-gitops.yaml`.
