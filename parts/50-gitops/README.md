@@ -298,3 +298,97 @@ To create the Argo CD capability:
 4. Sign in to the UI of Argo CD. Open the URL that the first command
    printed, and sign in as the administrator through the AWS access portal.
    The UI shows no applications yet.
+
+## Registering the cluster with a Kubernetes manifest
+
+Argo CD deploys to the clusters
+[registered](https://docs.aws.amazon.com/eks/latest/userguide/argocd-register-clusters.html)
+with it. A cluster is registered with a Secret in the namespace of Argo
+CD, labeled as a cluster. An Argo CD capability does not register its
+own cluster, and identifies a cluster by its ARN.
+
+To register the cluster:
+
+1. Ask the agent to write the manifest. Start a Claude Code session at the
+   repository root and paste the following prompt.
+
+   ```text
+   /aws-containers
+
+   # Summary
+   Create a manifest that registers the EKS cluster itself as a destination with the Argo CD capability of the cluster.
+
+   ## Prerequisites
+   - None.
+
+   ## Working environment
+   - Create the manifest at parts/50-gitops/manifests/cluster.yaml.
+
+   ## Kubernetes resource settings
+
+   ### Common
+   - Use the namespace argocd.
+
+   ### Kubernetes resource list
+   - Argo CD cluster registration: 1
+
+   ### Cluster registration
+   - Register it under the name in-cluster.
+   - Specify the cluster by its ARN.
+
+   ## Style
+   - Do not write the ARN of the cluster in the file; write <cluster-arn> instead. It is replaced when the manifest is applied.
+   - Keep the manifest, and especially the comments, to the minimum.
+   ```
+
+   The agent writes the manifest. Before you go on, read it against the
+   prompt. In particular, check that the Secret has the label
+   `argocd.argoproj.io/secret-type: cluster`, that its `server` is
+   `<cluster-arn>`, and that nothing was added that the prompt did not
+   ask for. The file [manifests/cluster.yaml](manifests/cluster.yaml) is
+   the result of this step.
+
+2. Apply the manifest, with the ARN of the cluster in place of
+   `<cluster-arn>`. Ask the agent:
+
+   ```text
+   Apply parts/50-gitops/manifests/cluster.yaml to the cluster,
+   with <cluster-arn> replaced by the ARN of the cluster eks-platform-lab,
+   taken with the profile <account-name>-admin.
+   ```
+
+   Or run the commands yourself:
+
+   ```bash
+   cluster_arn=$( \
+   aws --profile <account-name>-admin \
+     eks describe-cluster --name eks-platform-lab \
+     --query 'cluster.arn' \
+     --output text \
+   )
+
+   sed "s|<cluster-arn>|${cluster_arn}|" parts/50-gitops/manifests/cluster.yaml | kubectl apply -f -
+   ```
+
+3. Check the registration. The cluster is registered with Argo CD, with
+   its ARN as the `server` of the Secret.
+
+   To check this, ask the agent:
+
+   ```text
+   Check the Secret in-cluster in the namespace argocd of the cluster:
+
+   - It registers the cluster with Argo CD.
+   - Its server is the ARN of the cluster eks-platform-lab.
+   ```
+
+   Or run the commands yourself:
+
+   ```bash
+   kubectl get secrets -n argocd -l argocd.argoproj.io/secret-type=cluster
+
+   kubectl get secret in-cluster -n argocd -o jsonpath='{.data.server}' | base64 -d
+   ```
+
+   The first command lists `in-cluster`. The second prints the ARN of
+   the cluster.
