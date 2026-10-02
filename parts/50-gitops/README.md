@@ -649,3 +649,128 @@ To deploy and roll back the sample workload:
 
    The same commands as in the check of the deployment show `Synced` and
    `Healthy` again, and the version of nginx back where it was.
+
+## Teardown
+
+This part is torn down every night and built again the next day, because
+the Argo CD capability, its Application, and the ALB of the sample
+workload are charged by the hour. Tear it down before the tenant, in the
+reverse order of the steps. The workloads repository stays. To build the
+part again, apply the configuration and the manifests in the order of
+the steps.
+
+To tear down the GitOps part:
+
+1. Delete the Application. Ask the agent:
+
+   ```text
+   Delete parts/50-gitops/manifests/application.yaml from the cluster.
+   ```
+
+   Or run the command yourself:
+
+   ```bash
+   kubectl delete -f parts/50-gitops/manifests/application.yaml
+   ```
+
+   The command takes a little while to return, because Argo CD deletes
+   the sample workload first, and its Ingress is not gone until the
+   cluster has deleted the ALB.
+
+2. Plan and destroy. Ask the agent:
+
+   ```text
+   /terraform-skill
+   Destroy parts/50-gitops/terraform with the profile <account-name>-admin.
+   Show me the plan first, and destroy after I approve.
+   ```
+
+   Or run the commands yourself:
+
+   ```bash
+   AWS_PROFILE=<account-name>-admin \
+   terraform -chdir=parts/50-gitops/terraform \
+     plan -destroy -out=terraform.tfplan
+
+   AWS_PROFILE=<account-name>-admin \
+   terraform -chdir=parts/50-gitops/terraform \
+     apply terraform.tfplan
+   ```
+
+3. Delete what the capability leaves. EKS keeps the access entry of the
+   capability, and, in the cluster, the namespace `argocd` and the custom
+   resource definitions of Argo CD. Ask the agent:
+
+   ```text
+   With the profile <account-name>-admin, delete what the capability leaves in the cluster eks-platform-lab:
+
+   - The access entry of the IAM role eks-platform-lab-argocd.
+   - The namespace argocd.
+   - The custom resource definitions of Argo CD.
+   ```
+
+   Or run the commands yourself:
+
+   ```bash
+   principal_arn=$( \
+   aws --profile <account-name>-admin \
+     eks list-access-entries --cluster-name eks-platform-lab \
+     --query 'accessEntries[?contains(@, `eks-platform-lab-argocd`)] | [0]' \
+     --output text \
+   )
+
+   aws --profile <account-name>-admin \
+     eks delete-access-entry --cluster-name eks-platform-lab \
+     --principal-arn "${principal_arn}"
+
+   kubectl delete namespace argocd
+
+   kubectl delete crd \
+     applications.argoproj.io applicationsets.argoproj.io appprojects.argoproj.io
+   ```
+
+4. Confirm that what the three steps above deleted is gone and that
+   nothing is charged. Ask the agent:
+
+   ```text
+   Check with the profile <account-name>-admin:
+
+   - No load balancer tagged ingress.eks.amazonaws.com/stack = team-a/nginx-gitops exists.
+   - The state of parts/50-gitops/terraform has no resources.
+   - The cluster eks-platform-lab has none of these:
+     - A capability.
+     - An access entry of the IAM role eks-platform-lab-argocd.
+     - The namespace argocd.
+     - The custom resource definitions of Argo CD.
+   ```
+
+   Or run the commands yourself:
+
+   ```bash
+   aws --profile <account-name>-admin \
+     resourcegroupstaggingapi get-resources \
+     --tag-filters Key=ingress.eks.amazonaws.com/stack,Values=team-a/nginx-gitops \
+     --resource-type-filters elasticloadbalancing:loadbalancer \
+     --query 'ResourceTagMappingList[].ResourceARN' \
+     --output table
+
+   AWS_PROFILE=<account-name>-admin \
+   terraform -chdir=parts/50-gitops/terraform \
+     state list
+
+   aws --profile <account-name>-admin \
+     eks list-capabilities --cluster-name eks-platform-lab \
+     --query 'capabilities[].capabilityName' \
+     --output table
+
+   aws --profile <account-name>-admin \
+     eks list-access-entries --cluster-name eks-platform-lab \
+     --query 'accessEntries[?contains(@, `eks-platform-lab-argocd`)]' \
+     --output table
+
+   kubectl get namespace argocd
+
+   kubectl get crd -o name | grep argoproj.io
+   ```
+
+   The fifth command fails with `NotFound`, and the others print nothing.
