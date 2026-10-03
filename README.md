@@ -72,7 +72,7 @@ This repository is split into numbered parts under [`parts/`](parts/).
 │   │   │                                                  │   │   │
 │   │   └──────────────────────────────────────────────────┘   │   │
 │   │                                                          │   │
-│   │   ┌─ 50 gitops ──────────────────────────────────────┐   │   │
+│   │   ┌─ 50 argo-cd ─────────────────────────────────────┐   │   │
 │   │   │                                                  │   │   │
 │   │   │   Argo CD, which keeps the workloads             │   │   │
 │   │   │   in sync with a Git repository                  │   │   │
@@ -98,7 +98,7 @@ instructions.
 | [20 eks-cluster](parts/20-eks-cluster/README.md) | An EKS Auto Mode cluster |
 | [30 workload](parts/30-workload/README.md) | A NodePool, an IngressClass, and a sample workload |
 | [40 tenant](parts/40-tenant/README.md) | A namespace with guardrails, and a developer who may work only there |
-| [50 gitops](parts/50-gitops/README.md) | Argo CD, which keeps the workloads in sync with a Git repository |
+| [50 argo-cd](parts/50-argo-cd/README.md) | Argo CD, which keeps the workloads in sync with a Git repository |
 
 ## Tools
 
