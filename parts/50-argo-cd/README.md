@@ -415,13 +415,13 @@ To create the workloads repository:
    - None.
 
    ## Working environment
-   - Create the manifest at parts/50-argo-cd/workloads/nginx-gitops/nginx-gitops.yaml.
+   - Create the manifest at parts/50-argo-cd/workloads/nginx-argocd/nginx-argocd.yaml.
 
    ## Kubernetes resource settings
 
    ### Common
    - Use the namespace team-a.
-   - Use the label app.kubernetes.io/name: nginx-gitops.
+   - Use the label app.kubernetes.io/name: nginx-argocd.
 
    ### Kubernetes resource list
    - Deployment: 1
@@ -429,7 +429,7 @@ To create the workloads repository:
    - Ingress: 1
 
    ### Deployment
-   - Name it nginx-gitops.
+   - Name it nginx-argocd.
    - Run 2 replicas.
    - Use the following container image.
      - Image: public.ecr.aws/nginx/nginx-unprivileged
@@ -441,16 +441,16 @@ To create the workloads repository:
    - Limit the memory only, to 128Mi.
 
    ### Service
-   - Name it nginx-gitops.
+   - Name it nginx-argocd.
    - Make it reachable only from inside the cluster.
-   - Send to the pods of the Deployment nginx-gitops.
+   - Send to the pods of the Deployment nginx-argocd.
    - Receive on port 80 and send to port 8080 of the pods.
 
    ### Ingress
-   - Name it nginx-gitops.
+   - Name it nginx-argocd.
    - Use the IngressClass alb.
    - Make the IP addresses of the pods the targets of the ALB.
-   - Set no host, and send every request under the path / to port 80 of the Service nginx-gitops.
+   - Set no host, and send every request under the path / to port 80 of the Service nginx-argocd.
 
    ## Style
    - Keep the manifest, and especially the comments, to the minimum.
@@ -460,7 +460,7 @@ To create the workloads repository:
    prompt. In particular, check that it differs from the manifest of the
    sample workload of the tenant part only in its names and labels, and
    that nothing was added that the prompt did not ask for. The file
-   [workloads/nginx-gitops/nginx-gitops.yaml](workloads/nginx-gitops/nginx-gitops.yaml)
+   [workloads/nginx-argocd/nginx-argocd.yaml](workloads/nginx-argocd/nginx-argocd.yaml)
    is the result of this step.
 
 2. Create a public repository named `eks-platform-lab-workloads` on
@@ -470,17 +470,17 @@ To create the workloads repository:
    ```bash
    gh repo create <owner>/eks-platform-lab-workloads --public
 
-   git init -b main ~/eks-platform-lab-workloads
-   cp -r parts/50-argo-cd/workloads/nginx-gitops ~/eks-platform-lab-workloads/
-   git -C ~/eks-platform-lab-workloads add nginx-gitops
-   git -C ~/eks-platform-lab-workloads commit -m "Add the sample workload that Argo CD syncs"
+   git init -b main ../eks-platform-lab-workloads
+   cp -r parts/50-argo-cd/workloads/nginx-argocd ../eks-platform-lab-workloads/
+   git -C ../eks-platform-lab-workloads add nginx-argocd
+   git -C ../eks-platform-lab-workloads commit -m "Add the sample workload that Argo CD syncs"
 
-   git -C ~/eks-platform-lab-workloads remote add origin https://github.com/<owner>/eks-platform-lab-workloads.git
-   git -C ~/eks-platform-lab-workloads push -u origin main
+   git -C ../eks-platform-lab-workloads remote add origin https://github.com/<owner>/eks-platform-lab-workloads.git
+   git -C ../eks-platform-lab-workloads push -u origin main
    ```
 
    Then open the repository on GitHub, and see that it is public and holds
-   `nginx-gitops/nginx-gitops.yaml`.
+   `nginx-argocd/nginx-argocd.yaml`.
 
 ## Syncing the sample workload
 
@@ -517,12 +517,12 @@ To sync the sample workload:
    - Argo CD Application: 1
 
    ### Application
-   - Name it team-a-nginx-gitops.
+   - Name it team-a-nginx-argocd.
    - Use the Argo CD project default.
    - Sync the following directory of a public GitHub repository.
      - Repository: https://github.com/<owner>/eks-platform-lab-workloads.git
      - Branch: main
-     - Directory: nginx-gitops
+     - Directory: nginx-argocd
    - Deploy to the namespace team-a of the cluster in-cluster.
    - Sync changes in Git automatically.
      - Delete from the cluster what is removed from Git.
@@ -563,18 +563,18 @@ To sync the sample workload:
    To check this, ask the agent:
 
    ```text
-   Check the Application team-a-nginx-gitops in the namespace argocd of the cluster:
+   Check the Application team-a-nginx-argocd in the namespace argocd of the cluster:
 
    - It is synced and healthy.
-   - The ALB of the Ingress nginx-gitops in the namespace team-a answers with the nginx welcome page.
+   - The ALB of the Ingress nginx-argocd in the namespace team-a answers with the nginx welcome page.
    ```
 
    Or run the commands yourself:
 
    ```bash
-   kubectl get application team-a-nginx-gitops -n argocd
+   kubectl get application team-a-nginx-argocd -n argocd
 
-   kubectl get ingress nginx-gitops -n team-a
+   kubectl get ingress nginx-argocd -n team-a
 
    curl http://<alb-dns-name>/
    ```
@@ -589,10 +589,10 @@ To sync the sample workload:
 
    ```bash
    kubectl --context <account-name>-team-a-dev \
-     scale deployment nginx-gitops --replicas=5
+     scale deployment nginx-argocd --replicas=5
 
    kubectl --context <account-name>-team-a-dev \
-     get deployment nginx-gitops
+     get deployment nginx-argocd
    ```
 
    The scale succeeds, and the second command shows `2/2` again.
@@ -613,17 +613,18 @@ To deploy and roll back the sample workload:
 
    ```bash
    sed -i 's#nginx-unprivileged:.*#nginx-unprivileged:<mainline-version>#' \
-     ~/eks-platform-lab-workloads/nginx-gitops/nginx-gitops.yaml
+     ../eks-platform-lab-workloads/nginx-argocd/nginx-argocd.yaml
 
-   git -C ~/eks-platform-lab-workloads commit -am "Update the image of nginx-gitops to nginx <mainline-version>"
-   git -C ~/eks-platform-lab-workloads push
+   git -C ../eks-platform-lab-workloads add nginx-argocd/nginx-argocd.yaml
+   git -C ../eks-platform-lab-workloads commit -m "Update the image of nginx-argocd to nginx <mainline-version>"
+   git -C ../eks-platform-lab-workloads push
    ```
 
    Argo CD picks up the change within about 10 minutes. To skip the wait,
    refresh the Application:
 
    ```bash
-   kubectl annotate application team-a-nginx-gitops -n argocd \
+   kubectl annotate application team-a-nginx-argocd -n argocd \
      argocd.argoproj.io/refresh=normal
    ```
 
@@ -631,7 +632,7 @@ To deploy and roll back the sample workload:
    and the sample workload answers with the new version of nginx.
 
    ```bash
-   kubectl get application team-a-nginx-gitops -n argocd
+   kubectl get application team-a-nginx-argocd -n argocd
 
    curl -sI http://<alb-dns-name>/ | grep -i '^server'
    ```
@@ -643,8 +644,8 @@ To deploy and roll back the sample workload:
    then wait for Argo CD, or refresh the Application as in the deployment:
 
    ```bash
-   git -C ~/eks-platform-lab-workloads revert --no-edit HEAD
-   git -C ~/eks-platform-lab-workloads push
+   git -C ../eks-platform-lab-workloads revert --no-edit HEAD
+   git -C ../eks-platform-lab-workloads push
    ```
 
    The same commands as in the check of the deployment show `Synced` and
@@ -735,7 +736,7 @@ To tear down the Argo CD part:
    ```text
    Check with the profile <account-name>-admin:
 
-   - No load balancer tagged ingress.eks.amazonaws.com/stack = team-a/nginx-gitops exists.
+   - No load balancer tagged ingress.eks.amazonaws.com/stack = team-a/nginx-argocd exists.
    - The state of parts/50-argo-cd/terraform has no resources.
    - The cluster eks-platform-lab has none of these:
      - A capability.
@@ -749,7 +750,7 @@ To tear down the Argo CD part:
    ```bash
    aws --profile <account-name>-admin \
      resourcegroupstaggingapi get-resources \
-     --tag-filters Key=ingress.eks.amazonaws.com/stack,Values=team-a/nginx-gitops \
+     --tag-filters Key=ingress.eks.amazonaws.com/stack,Values=team-a/nginx-argocd \
      --resource-type-filters elasticloadbalancing:loadbalancer \
      --query 'ResourceTagMappingList[].ResourceARN' \
      --output table
@@ -783,7 +784,7 @@ and the sample workload run.
 | Resource | Name | Per day | Per month |
 | --- | --- | --- | --- |
 | Argo CD capability | `argocd` | 0.90 USD | 27.36 USD |
-| Application managed by the capability | `team-a-nginx-gitops` | 0.044 USD | 1.35 USD |
+| Application managed by the capability | `team-a-nginx-argocd` | 0.044 USD | 1.35 USD |
 | EC2 instance for the node | `c5a.large`\* | 2.30 USD | 70.08 USD |
 | EKS Auto Mode management of the node | | 0.28 USD | 8.41 USD |
 | Application Load Balancer | `k8s-teama-nginxgit-<hash>` | 0.58 USD | 17.74 USD |

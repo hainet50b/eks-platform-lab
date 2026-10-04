@@ -1,26 +1,26 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: nginx-gitops
+  name: nginx-argocd
   namespace: team-a
   labels:
-    app.kubernetes.io/name: nginx-gitops
+    app.kubernetes.io/name: nginx-argocd
 spec:
   replicas: 2
   selector:
     matchLabels:
-      app.kubernetes.io/name: nginx-gitops
+      app.kubernetes.io/name: nginx-argocd
   template:
     metadata:
       labels:
-        app.kubernetes.io/name: nginx-gitops
+        app.kubernetes.io/name: nginx-argocd
     spec:
       securityContext:
         runAsNonRoot: true
         seccompProfile:
           type: RuntimeDefault
       containers:
-        - name: nginx-gitops
+        - name: nginx-argocd
           image: public.ecr.aws/nginx/nginx-unprivileged:1.30.5
           ports:
             - containerPort: 8080
@@ -39,14 +39,14 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: nginx-gitops
+  name: nginx-argocd
   namespace: team-a
   labels:
-    app.kubernetes.io/name: nginx-gitops
+    app.kubernetes.io/name: nginx-argocd
 spec:
   type: ClusterIP
   selector:
-    app.kubernetes.io/name: nginx-gitops
+    app.kubernetes.io/name: nginx-argocd
   ports:
     - port: 80
       targetPort: 8080
@@ -54,10 +54,10 @@ spec:
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: nginx-gitops
+  name: nginx-argocd
   namespace: team-a
   labels:
-    app.kubernetes.io/name: nginx-gitops
+    app.kubernetes.io/name: nginx-argocd
   annotations:
     alb.ingress.kubernetes.io/target-type: ip
 spec:
@@ -69,6 +69,6 @@ spec:
             pathType: Prefix
             backend:
               service:
-                name: nginx-gitops
+                name: nginx-argocd
                 port:
                   number: 80
