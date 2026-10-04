@@ -4,7 +4,7 @@ provider "aws" {
   default_tags {
     tags = {
       Project = "eks-platform-lab"
-      Part    = "50-gitops"
+      Part    = "50-argo-cd"
     }
   }
 }

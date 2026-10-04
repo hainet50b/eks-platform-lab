@@ -1,11 +1,11 @@
-# 50 gitops
+# 50 argo-cd
 
 Argo CD, which keeps the workloads in sync with a Git repository.
 
 ## Overview
 
 ```
-┌─ 50 gitops ──────────────────────────────────────────────────────────────────┐
+┌─ 50 argo-cd ─────────────────────────────────────────────────────────────────┐
 │                                                                              │
 │  you ──────▶ coding agent                                                    │
 │   │            │                                                             │
@@ -17,7 +17,7 @@ Argo CD, which keeps the workloads in sync with a Git repository.
 │   │            │  └──────────────────────────────────────────┘               │
 │   │            │ reviews, writes, runs, and applies                          │
 │   │            │  ┌─ 1. ─────────────────────────────────────┐               │
-│   │            ├─▶│  the GitOps design                       │               │
+│   │            ├─▶│  the Argo CD design                      │               │
 │   │            │  └──────────────────────────────────────────┘               │
 │   │            │                                                             │
 │   │            │  ┌─ this repository ────────────────────────┐               │
@@ -56,14 +56,14 @@ Argo CD, which keeps the workloads in sync with a Git repository.
 
 | Step | Does |
 | --- | --- |
-| [1. Reviewing the GitOps design](#reviewing-the-gitops-design) | Reviews the design of the Argo CD capability, the cluster registration, the Application, and the sample workload |
+| [1. Reviewing the Argo CD design](#reviewing-the-argo-cd-design) | Reviews the design of the Argo CD capability, the cluster registration, the Application, and the sample workload |
 | [2. Creating the Argo CD capability with Terraform](#creating-the-argo-cd-capability-with-terraform) | Creates the Argo CD capability, with its IAM role and the access that lets it apply manifests to the cluster |
 | [3. Registering the cluster with a Kubernetes manifest](#registering-the-cluster-with-a-kubernetes-manifest) | Registers the cluster with Argo CD as the destination for workloads |
 | [4. Creating the workloads repository](#creating-the-workloads-repository) | Writes the manifest of the sample workload and copies it to a new Git repository that Argo CD reads |
 | [5. Syncing the sample workload](#syncing-the-sample-workload) | Creates the Application, and Argo CD syncs the sample workload from the workloads repository into the tenant namespace |
 | [6. Deploying and rolling back the sample workload](#deploying-and-rolling-back-the-sample-workload) | Changes the image of the sample workload with a push to the workloads repository, then reverts the change |
 
-## Reviewing the GitOps design
+## Reviewing the Argo CD design
 
 The steps that follow write the Argo CD capability as a Terraform
 configuration, and the cluster registration, the sample workload, and
@@ -150,7 +150,7 @@ To create the Argo CD capability:
        - cluster_name: the name of the EKS cluster
 
    ## Working environment
-   - Create the Terraform configuration in parts/50-gitops/terraform.
+   - Create the Terraform configuration in parts/50-argo-cd/terraform.
    - Put a .gitignore that excludes generated files in the same directory.
 
    ## AWS resource settings
@@ -158,7 +158,7 @@ To create the Argo CD capability:
    ### Common
    - Tag every resource with the following tags.
      - Project = eks-platform-lab
-     - Part = 50-gitops
+     - Part = 50-argo-cd
    - Use the Region ap-northeast-1.
 
    ### AWS resource list
@@ -191,7 +191,7 @@ To create the Argo CD capability:
 
    ### State
    - Use the S3 backend.
-   - Use parts/50-gitops/terraform.tfstate as the state key.
+   - Use parts/50-argo-cd/terraform.tfstate as the state key.
    - Lock with S3 native locking.
    - Do not include the bucket name in the backend configuration;
      pass it with -backend-config on terraform init.
@@ -222,7 +222,7 @@ To create the Argo CD capability:
 
    ```text
    /terraform-skill
-   Initialize parts/50-gitops/terraform with the profile <account-name>-admin.
+   Initialize parts/50-argo-cd/terraform with the profile <account-name>-admin.
    Take the bucket name from the output bucket_name of parts/05-terraform-state/terraform,
    and pass it as -backend-config.
    Then show me the plan, and apply it after I approve.
@@ -242,15 +242,15 @@ To create the Argo CD capability:
    )
 
    AWS_PROFILE=<account-name>-admin \
-   terraform -chdir=parts/50-gitops/terraform \
+   terraform -chdir=parts/50-argo-cd/terraform \
      init -backend-config="bucket=${bucket_name}"
 
    AWS_PROFILE=<account-name>-admin \
-   terraform -chdir=parts/50-gitops/terraform \
+   terraform -chdir=parts/50-argo-cd/terraform \
      plan -out=terraform.tfplan
 
    AWS_PROFILE=<account-name>-admin \
-   terraform -chdir=parts/50-gitops/terraform \
+   terraform -chdir=parts/50-argo-cd/terraform \
      apply terraform.tfplan
    ```
 
@@ -322,7 +322,7 @@ To register the cluster:
    - None.
 
    ## Working environment
-   - Create the manifest at parts/50-gitops/manifests/cluster.yaml.
+   - Create the manifest at parts/50-argo-cd/manifests/cluster.yaml.
 
    ## Kubernetes resource settings
 
@@ -352,7 +352,7 @@ To register the cluster:
    `<cluster-arn>`. Ask the agent:
 
    ```text
-   Apply parts/50-gitops/manifests/cluster.yaml to the cluster,
+   Apply parts/50-argo-cd/manifests/cluster.yaml to the cluster,
    with <cluster-arn> replaced by the ARN of the cluster eks-platform-lab,
    taken with the profile <account-name>-admin.
    ```
@@ -367,7 +367,7 @@ To register the cluster:
      --output text \
    )
 
-   sed "s|<cluster-arn>|${cluster_arn}|" parts/50-gitops/manifests/cluster.yaml | kubectl apply -f -
+   sed "s|<cluster-arn>|${cluster_arn}|" parts/50-argo-cd/manifests/cluster.yaml | kubectl apply -f -
    ```
 
 3. Check the registration. The cluster is registered with Argo CD, with
@@ -415,7 +415,7 @@ To create the workloads repository:
    - None.
 
    ## Working environment
-   - Create the manifest at parts/50-gitops/workloads/nginx-gitops/nginx-gitops.yaml.
+   - Create the manifest at parts/50-argo-cd/workloads/nginx-gitops/nginx-gitops.yaml.
 
    ## Kubernetes resource settings
 
@@ -471,7 +471,7 @@ To create the workloads repository:
    gh repo create <owner>/eks-platform-lab-workloads --public
 
    git init -b main ~/eks-platform-lab-workloads
-   cp -r parts/50-gitops/workloads/nginx-gitops ~/eks-platform-lab-workloads/
+   cp -r parts/50-argo-cd/workloads/nginx-gitops ~/eks-platform-lab-workloads/
    git -C ~/eks-platform-lab-workloads add nginx-gitops
    git -C ~/eks-platform-lab-workloads commit -m "Add the sample workload that Argo CD syncs"
 
@@ -506,7 +506,7 @@ To sync the sample workload:
    - None.
 
    ## Working environment
-   - Create the manifest at parts/50-gitops/manifests/application.yaml.
+   - Create the manifest at parts/50-argo-cd/manifests/application.yaml.
 
    ## Kubernetes resource settings
 
@@ -543,13 +543,13 @@ To sync the sample workload:
 2. Apply the manifest. Ask the agent:
 
    ```text
-   Apply parts/50-gitops/manifests/application.yaml to the cluster.
+   Apply parts/50-argo-cd/manifests/application.yaml to the cluster.
    ```
 
    Or run the command yourself:
 
    ```bash
-   kubectl apply -f parts/50-gitops/manifests/application.yaml
+   kubectl apply -f parts/50-argo-cd/manifests/application.yaml
    ```
 
    `kubectl` warns that the name of the finalizer has no path. Kubernetes
@@ -659,18 +659,18 @@ reverse order of the steps. The workloads repository stays. To build the
 part again, apply the configuration and the manifests in the order of
 the steps.
 
-To tear down the GitOps part:
+To tear down the Argo CD part:
 
 1. Delete the Application. Ask the agent:
 
    ```text
-   Delete parts/50-gitops/manifests/application.yaml from the cluster.
+   Delete parts/50-argo-cd/manifests/application.yaml from the cluster.
    ```
 
    Or run the command yourself:
 
    ```bash
-   kubectl delete -f parts/50-gitops/manifests/application.yaml
+   kubectl delete -f parts/50-argo-cd/manifests/application.yaml
    ```
 
    The command takes a little while to return, because Argo CD deletes
@@ -681,7 +681,7 @@ To tear down the GitOps part:
 
    ```text
    /terraform-skill
-   Destroy parts/50-gitops/terraform with the profile <account-name>-admin.
+   Destroy parts/50-argo-cd/terraform with the profile <account-name>-admin.
    Show me the plan first, and destroy after I approve.
    ```
 
@@ -689,11 +689,11 @@ To tear down the GitOps part:
 
    ```bash
    AWS_PROFILE=<account-name>-admin \
-   terraform -chdir=parts/50-gitops/terraform \
+   terraform -chdir=parts/50-argo-cd/terraform \
      plan -destroy -out=terraform.tfplan
 
    AWS_PROFILE=<account-name>-admin \
-   terraform -chdir=parts/50-gitops/terraform \
+   terraform -chdir=parts/50-argo-cd/terraform \
      apply terraform.tfplan
    ```
 
@@ -736,7 +736,7 @@ To tear down the GitOps part:
    Check with the profile <account-name>-admin:
 
    - No load balancer tagged ingress.eks.amazonaws.com/stack = team-a/nginx-gitops exists.
-   - The state of parts/50-gitops/terraform has no resources.
+   - The state of parts/50-argo-cd/terraform has no resources.
    - The cluster eks-platform-lab has none of these:
      - A capability.
      - An access entry of the IAM role eks-platform-lab-argocd.
@@ -755,7 +755,7 @@ To tear down the GitOps part:
      --output table
 
    AWS_PROFILE=<account-name>-admin \
-   terraform -chdir=parts/50-gitops/terraform \
+   terraform -chdir=parts/50-argo-cd/terraform \
      state list
 
    aws --profile <account-name>-admin \

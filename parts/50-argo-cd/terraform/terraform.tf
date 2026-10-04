@@ -13,7 +13,7 @@ terraform {
   }
 
   backend "s3" {
-    key          = "parts/50-gitops/terraform.tfstate"
+    key          = "parts/50-argo-cd/terraform.tfstate"
     region       = "ap-northeast-1"
     encrypt      = true
     use_lockfile = true
