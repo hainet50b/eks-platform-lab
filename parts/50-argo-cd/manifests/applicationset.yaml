@@ -1,0 +1,32 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: team-a
+  namespace: argocd
+spec:
+  goTemplate: true
+  goTemplateOptions: ["missingkey=error"]
+  generators:
+    - git:
+        repoURL: https://github.com/hainet50b/eks-platform-lab-workloads.git
+        revision: main
+        directories:
+          - path: team-a/*
+  template:
+    metadata:
+      name: team-a-{{ .path.basename }}
+      finalizers:
+        - resources-finalizer.argocd.argoproj.io
+    spec:
+      project: team-a
+      source:
+        repoURL: https://github.com/hainet50b/eks-platform-lab-workloads.git
+        targetRevision: main
+        path: "{{ .path.path }}"
+      destination:
+        name: in-cluster
+        namespace: team-a
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
