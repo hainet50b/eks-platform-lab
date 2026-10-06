@@ -11,23 +11,13 @@ data "terraform_remote_state" "eks_cluster" {
 }
 
 # IAM Identity Center creates this role for the EKSDeveloperTeamA permission set.
-data "aws_iam_roles" "eks_developer" {
+data "aws_iam_roles" "eks_developer_team_a" {
   name_regex  = "^AWSReservedSSO_EKSDeveloperTeamA_[0-9a-f]+$"
   path_prefix = "/aws-reserved/sso.amazonaws.com/"
 }
 
-resource "aws_eks_access_entry" "eks_developer" {
-  cluster_name  = data.terraform_remote_state.eks_cluster.outputs.cluster_name
-  principal_arn = one(data.aws_iam_roles.eks_developer.arns)
-}
-
-resource "aws_eks_access_policy_association" "eks_developer" {
-  cluster_name  = aws_eks_access_entry.eks_developer.cluster_name
-  principal_arn = aws_eks_access_entry.eks_developer.principal_arn
-  policy_arn    = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSEditPolicy"
-
-  access_scope {
-    type       = "namespace"
-    namespaces = ["team-a"]
-  }
+resource "aws_eks_access_entry" "eks_developer_team_a" {
+  cluster_name      = data.terraform_remote_state.eks_cluster.outputs.cluster_name
+  principal_arn     = one(data.aws_iam_roles.eks_developer_team_a.arns)
+  kubernetes_groups = ["team-a-dev"]
 }
