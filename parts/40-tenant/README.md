@@ -34,7 +34,7 @@ A namespace with guardrails, and a developer who may work only there.
 │  │  ┌─ 2. ───────────────────────────────┐     ┌─ 7. ────────────────────────────────┐ │           │  │
 │  │  │  ConfigMap that enables            │     │  access entry                       │ │           │  │
 │  │  │  the network policy controller     │     └────────┬────────────────────────────┘ │           │  │
-│  │  └────────────────────────────────────┘              │ grants edit access           │           │  │
+│  │  └────────────────────────────────────┘              │ associates a group           │           │  │
 │  │                                                      │                              │ works in  │  │
 │  │                                                      ▼                              │           │  │
 │  │  ┌─ 3. ────────────────────────────────────────────────────────────────────────┐    │           │  │
@@ -49,6 +49,10 @@ A namespace with guardrails, and a developer who may work only there.
 │  │  │  │  caps and defaults for the resources of the pods                      │  │    │           │  │
 │  │  │  └───────────────────────────────────────────────────────────────────────┘  │    │           │  │
 │  │  │  ┌─ 8. ──────────────────────────────────────────────────────────────────┐  │    │           │  │
+│  │  │  │  Role and RoleBindings                                                │  │    │           │  │
+│  │  │  │  permissions of the group                                             │  │    │           │  │
+│  │  │  └───────────────────────────────────────────────────────────────────────┘  │    │           │  │
+│  │  │  ┌─ 9. ──────────────────────────────────────────────────────────────────┐  │    │           │  │
 │  │  │  │  sample workload                                                      │  │    │           │  │
 │  │  │  └───────────────────────────────────────────────────────────────────────┘  │    │           │  │
 │  │  │                                    ╳                                        │    │           │  │
@@ -74,8 +78,9 @@ A namespace with guardrails, and a developer who may work only there.
 | [4. Creating the NetworkPolicies with a Kubernetes manifest](#creating-the-networkpolicies-with-a-kubernetes-manifest) | Creates the NetworkPolicies that restrict the traffic of the pods |
 | [5. Limiting the resources of the namespace with a Kubernetes manifest](#limiting-the-resources-of-the-namespace-with-a-kubernetes-manifest) | Creates the ResourceQuota and the LimitRange that cap the resources of the namespace and fill in defaults |
 | [6. Creating the developer with IAM Identity Center](#creating-the-developer-with-iam-identity-center) | Creates the user, the group, and the permission set of the developer |
-| [7. Granting the developer access with Terraform](#granting-the-developer-access-with-terraform) | Creates the access entry that gives the developer access to the namespace |
-| [8. Creating the sample workload as the developer with a Kubernetes manifest](#creating-the-sample-workload-as-the-developer-with-a-kubernetes-manifest) | Creates the Deployment, Service, and Ingress of the sample workload, as the developer |
+| [7. Granting the developer access with Terraform](#granting-the-developer-access-with-terraform) | Creates the access entry that lets the developer into the cluster as a member of a Kubernetes group |
+| [8. Granting the developer permissions with a Kubernetes manifest](#granting-the-developer-permissions-with-a-kubernetes-manifest) | Creates the Role and the RoleBindings that decide what the developer may do in the namespace |
+| [9. Creating the sample workload as the developer with a Kubernetes manifest](#creating-the-sample-workload-as-the-developer-with-a-kubernetes-manifest) | Creates the Deployment, Service, and Ingress of the sample workload, as the developer |
 
 ## The tenant design
 
@@ -89,29 +94,9 @@ rules set on it as guardrails, and only its own team may enter.
 This part builds one tenant for a team of developers. Its guardrails are
 of three kinds:
 
-- The access of the developers: what they may do, and where.
 - The traffic of the pods: what they may talk to.
 - The resources of the pods: how much they may use.
-
-**The access of the developers.** The developers should touch only the
-workloads of their own tenant. In this lab, that comes out as follows:
-
-| | | Administrator | | Developers | |
-| --- | --- | :---: | :---: | :---: | :---: |
-| | | read | write | read | write |
-| In AWS | The cluster | ✅ | ✅ | ✅\* | ❌ |
-| | Other resources | ✅ | ✅ | ❌ | ❌ |
-| In the cluster | Nodes, NodePools, IngressClasses | ✅ | ✅ | ❌ | ❌ |
-| | The list of namespaces | ✅ | ✅ | ❌ | ❌ |
-| In the namespace `team-a` | The namespace itself | ✅ | ✅ | ✅ | ❌ |
-| | ResourceQuota, LimitRange | ✅ | ✅ | ✅ | ❌ |
-| | NetworkPolicies | ✅ | ✅ | ✅ | ✅\*\* |
-| | Workloads | ✅ | ✅ | ✅ | ✅ |
-| In other namespaces | Everything | ✅ | ✅ | ❌ | ❌ |
-
-\* Needed to connect to the EKS cluster.
-
-\*\* Allowed to keep the implementation simple. Restrict it in production.
+- The access of the developers: what they may do, and where.
 
 **The traffic of the pods.** Pods should talk only to the pods of the
 same tenant, and they also have to reach the load balancer and the DNS
@@ -136,11 +121,33 @@ NodePool launches. In this lab, they are set as follows:
 | Memory request | 128 MiB | — | 4 GiB |
 | Memory limit | 128 MiB | 2 GiB | 4 GiB |
 | Pods | | | 10 |
+| Storage request | | | 20 GiB |
+| PersistentVolumeClaims | | | 4 |
 | Ingresses | | | 2 |
 | Services of type LoadBalancer or NodePort | | | 0 |
 
 \* No CPU limit anywhere: a CPU limit throttles a container while its
 node has CPU to spare.
+
+**The access of the developers.** The developers should touch only the
+workloads of their own tenant. In this lab, that comes out as follows:
+
+| | | Administrator | | Developers | |
+| --- | --- | :---: | :---: | :---: | :---: |
+| | | read | write | read | write |
+| In AWS | The cluster | ✅ | ✅ | ✅\* | ❌ |
+| | Other resources | ✅ | ✅ | ❌ | ❌ |
+| In the cluster | Nodes, NodePools, IngressClasses | ✅ | ✅ | ❌ | ❌ |
+| | The list of namespaces | ✅ | ✅ | ❌ | ❌ |
+| In the namespace `team-a` | The namespace itself | ✅ | ✅ | ✅ | ❌ |
+| | NetworkPolicies | ✅ | ✅ | ✅ | ❌ |
+| | ResourceQuota, LimitRange | ✅ | ✅ | ✅ | ❌ |
+| | Roles, RoleBindings | ✅ | ✅ | ❌ | ❌ |
+| | Secrets | ✅ | ✅ | ✅ | ❌ |
+| | Workloads | ✅ | ✅ | ✅ | ✅ |
+| In other namespaces | Everything | ✅ | ✅ | ❌ | ❌ |
+
+\* Needed to connect to the EKS cluster.
 
 ## Reviewing the tenant design
 
@@ -156,7 +163,7 @@ section with the following sections of the prompts, in this order:
 
 - The "Kubernetes resource settings" sections of steps 2 to 5
 - The "AWS resource settings" section of step 7
-- The "Kubernetes resource settings" section of step 8
+- The "Kubernetes resource settings" sections of steps 8 and 9
 
 ````text
 /apex:eks-design
@@ -168,7 +175,8 @@ The design below consists of the following.
 - The namespace of the tenant and its Pod Security labels
 - NetworkPolicies
 - A ResourceQuota and a LimitRange
-- The access entry and the access policy of the developers
+- The access entry of the developers
+- The Role and the RoleBindings of the developers
 - The Deployment, Service, and Ingress of a sample workload in the tenant
 Review the design with the context in mind.
 
@@ -184,14 +192,14 @@ Review the design with the context in mind.
 
 ## Design
 ```
-(the sections of the prompts of steps 2 to 5, 7, and 8)
+(the sections of the prompts of steps 2 to 5, and 7 to 9)
 ```
 ````
 
 The command answers with a table of findings ranked by severity and the
 details of each finding. Fix the design according to the findings, and
 review it again until nothing new comes up. The prompts of steps 2 to 5,
-7, and 8 are the result of a few rounds.
+and 7 to 9, are the result of a few rounds.
 
 ## Enabling the network policy controller with a Kubernetes manifest
 
@@ -546,6 +554,8 @@ To limit the resources of the namespace:
      - Memory requests: 4Gi
      - Memory limits: 4Gi
      - Number of pods: 10
+     - Storage requests: 20Gi
+     - Number of PersistentVolumeClaims: 4
      - Number of Ingresses: 2
    - Allow no Service of the following types.
      - LoadBalancer
@@ -716,10 +726,10 @@ In this lab, the steps created these objects:
 The developers may work only in the namespace of the tenant. The
 cluster lets them in through an
 [access entry](https://docs.aws.amazon.com/eks/latest/userguide/access-entries.html)
-for the IAM role of their permission set. The access policy of the entry
-decides what the role may do, and the scope of the policy decides where.
-The developers get `AmazonEKSEditPolicy`, with the namespace `team-a` as
-its scope.
+for the IAM role of their permission set. The entry associates the role
+with the Kubernetes group `team-a-dev` and associates no access policy,
+so the entry alone lets the developers in but allows them nothing. A Role
+and RoleBindings in the namespace decide what the group may do.
 
 To grant the developer access:
 
@@ -759,8 +769,9 @@ To grant the developer access:
 
    ### EKS access entry
    - Create it for the IAM role of the IAM Identity Center permission set EKSDeveloperTeamA.
-   - Set no user name and no Kubernetes groups.
-   - Associate the access policy AmazonEKSEditPolicy with the namespace team-a only.
+   - Set no user name.
+   - Associate the role with the Kubernetes group team-a-dev.
+   - Associate no access policy.
 
    ## Terraform settings
 
@@ -807,8 +818,7 @@ To grant the developer access:
    Then show me the plan, and apply it after I approve.
    ```
 
-   The plan adds 2 resources: the access entry and its policy
-   association.
+   The plan adds 1 resource: the access entry.
 
    Or run the commands yourself:
 
@@ -833,8 +843,8 @@ To grant the developer access:
    ```
 
 3. Check the access of the developer. The cluster lets the developer in
-   as the IAM role of the permission set, and the developer may list the
-   pods of `team-a` but not those of `default`, nor the nodes.
+   as the IAM role of the permission set, as a member of the Kubernetes
+   group `team-a-dev`.
 
    To check this, ask the agent:
 
@@ -842,7 +852,123 @@ To grant the developer access:
    Check the access of the developer, with the kubectl context <account-name>-team-a-dev:
 
    - The cluster authenticates the developer as the IAM role of the permission set EKSDeveloperTeamA.
-   - The developer can list the pods of the namespace team-a.
+   - The developer is a member of the Kubernetes group team-a-dev.
+   ```
+
+   Or run the command yourself:
+
+   ```bash
+   kubectl --context <account-name>-team-a-dev \
+     auth whoami
+   ```
+
+   The command prints the ARN of the IAM role, with the name of the user
+   at its end, and the groups of the developer: `team-a-dev`, and
+   `system:authenticated`, which every signed-in user has.
+
+## Granting the developer permissions with a Kubernetes manifest
+
+Inside a namespace, a
+[Role](https://kubernetes.io/docs/reference/access-authn-authz/rbac/)
+lists what may be done there, and a RoleBinding grants it to a group.
+The developers get two RoleBindings. One grants the built-in ClusterRole
+`view`, which reads most resources of the namespace. The other grants the
+Role `developer`, which adds the permissions to deploy and operate their
+workloads.
+
+To grant the developer permissions:
+
+1. Ask the agent to write the manifest. Start a Claude Code session at the
+   repository root and paste the following prompt.
+
+   ```text
+   /aws-containers
+
+   # Summary
+   Create a manifest for the Role and the RoleBindings of the developers of a tenant on an EKS cluster.
+
+   ## Prerequisites
+   - None.
+
+   ## Working environment
+   - Create the manifest at parts/40-tenant/manifests/rbac.yaml.
+
+   ## Kubernetes resource settings
+
+   ### Common
+   - Use the namespace team-a.
+
+   ### Kubernetes resource list
+   - Role: 1
+   - RoleBinding: 2
+
+   ### Role
+   - Name it developer.
+   - Leave reading to the RoleBinding that grants the ClusterRole view, and in addition allow reading Secrets.
+   - Allow creating, updating, and deleting the following resources.
+     - Workloads
+       - Deployment, StatefulSet, DaemonSet, ReplicaSet
+       - Job, CronJob
+     - Scaling and availability
+       - HorizontalPodAutoscaler
+       - PodDisruptionBudget
+     - Networking
+       - Service
+       - Ingress
+     - Configuration and storage
+       - ConfigMap
+       - PersistentVolumeClaim
+     - Identity of pods
+       - ServiceAccount
+   - Allow changing the number of replicas of Deployments, StatefulSets, and ReplicaSets.
+   - Allow the following operations on pods.
+     - Deleting them
+     - Debugging them
+       - exec
+       - attach
+       - port-forward
+       - Adding ephemeral containers
+
+   ### RoleBinding that grants the Role developer
+   - Name it developer.
+   - Grant the permissions of the Role developer to the group team-a-dev.
+
+   ### RoleBinding that grants the ClusterRole view
+   - Name it developer-view.
+   - Grant the permissions of the built-in ClusterRole view to the group team-a-dev.
+
+   ## Style
+   - Keep the manifest, and especially the comments, to the minimum.
+   ```
+
+   The agent writes the manifest. Before you go on, read it against the
+   prompt. In particular, check that the Role writes none of the
+   guardrails of the namespace, and that nothing was added that the
+   prompt did not ask for. The file
+   [manifests/rbac.yaml](manifests/rbac.yaml) is the result of this step.
+
+2. Apply the manifest. Ask the agent:
+
+   ```text
+   Apply parts/40-tenant/manifests/rbac.yaml to the cluster.
+   ```
+
+   Or run the command yourself:
+
+   ```bash
+   kubectl apply -f parts/40-tenant/manifests/rbac.yaml
+   ```
+
+3. Check the permissions of the developer. In `team-a`, the developer may
+   read most resources and write the workloads, but not the guardrails of
+   the namespace. Outside `team-a`, the developer may do nothing.
+
+   To check this, ask the agent:
+
+   ```text
+   Check the permissions of the developer, with the kubectl context <account-name>-team-a-dev:
+
+   - In the namespace team-a, the developer can read most resources and write the workloads, but cannot write the guardrails of the namespace.
    - The developer cannot list the pods of the namespace default, nor the nodes of the cluster.
    ```
 
@@ -850,10 +976,7 @@ To grant the developer access:
 
    ```bash
    kubectl --context <account-name>-team-a-dev \
-     auth whoami
-
-   kubectl --context <account-name>-team-a-dev \
-     get pods
+     auth can-i --list
 
    kubectl --context <account-name>-team-a-dev \
      get pods -n default
@@ -862,10 +985,12 @@ To grant the developer access:
      get nodes
    ```
 
-   The first command prints the ARN of the IAM role, with the name of the
-   user at its end. The second finds no pods in `team-a` yet. The third
-   and the fourth are forbidden, with a message that names the developer,
-   the resource, and the namespace or the cluster scope.
+   The first command prints what the developer may do in `team-a`, one
+   resource per line, with its verbs. Look for the verbs that write, such
+   as `create` and `delete`: they appear on the workloads, and never on
+   the guardrails. The second and the third are forbidden, with a message
+   that names the developer, the resource, and the namespace or the
+   cluster scope.
 
 ## Creating the sample workload as the developer with a Kubernetes manifest
 
@@ -1083,7 +1208,8 @@ To tear down the tenant:
    ```
 
    Deleting the namespace deletes everything in it, including the
-   ResourceQuota, the LimitRange, and the NetworkPolicies.
+   NetworkPolicies, the ResourceQuota, the LimitRange, the Role, and the
+   RoleBindings.
 
 4. Confirm that nothing of this part is left and nothing is charged: the
    state has no resources, no load balancer, target group, or security
