@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: argocd-cm
+  namespace: argocd
+  labels:
+    # The capability reads the ConfigMap only with this label.
+    app.kubernetes.io/part-of: argocd
+data:
+  resource.respectRBAC: normal
