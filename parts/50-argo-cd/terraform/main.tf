@@ -49,6 +49,17 @@ data "aws_identitystore_group" "admins" {
   }
 }
 
+data "aws_identitystore_group" "team_a" {
+  identity_store_id = one(data.aws_ssoadmin_instances.identity_center.identity_store_ids)
+
+  alternate_identifier {
+    unique_attribute {
+      attribute_path  = "DisplayName"
+      attribute_value = "eks-platform-lab-team-a"
+    }
+  }
+}
+
 resource "aws_eks_capability" "argocd" {
   cluster_name              = data.terraform_remote_state.eks_cluster.outputs.cluster_name
   capability_name           = "argocd"
@@ -72,17 +83,15 @@ resource "aws_eks_capability" "argocd" {
           type = "SSO_GROUP"
         }
       }
+
+      rbac_role_mapping {
+        role = "VIEWER"
+
+        identity {
+          id   = data.aws_identitystore_group.team_a.group_id
+          type = "SSO_GROUP"
+        }
+      }
     }
-  }
-}
-
-# The capability creates the access entry for its role.
-resource "aws_eks_access_policy_association" "argocd" {
-  cluster_name  = aws_eks_capability.argocd.cluster_name
-  principal_arn = aws_eks_capability.argocd.role_arn
-  policy_arn    = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
-
-  access_scope {
-    type = "cluster"
   }
 }
