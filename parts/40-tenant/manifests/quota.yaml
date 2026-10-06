@@ -9,6 +9,8 @@ spec:
     requests.memory: 4Gi
     limits.memory: 4Gi
     pods: "10"
+    requests.storage: 20Gi
+    persistentvolumeclaims: "4"
     count/ingresses.networking.k8s.io: "2"
     # Disallow LoadBalancer and NodePort Services.
     services.loadbalancers: "0"
