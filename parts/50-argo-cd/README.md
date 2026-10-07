@@ -542,6 +542,233 @@ To limit what Argo CD watches:
    The first command lists `argocd-cm` with the label. The second prints
    `normal`.
 
+## Granting Argo CD permissions with Terraform and a Kubernetes manifest
+
+Kubernetes [RBAC](https://kubernetes.io/docs/reference/access-authn-authz/rbac/)
+grants permissions to Kubernetes users and groups, and in EKS, the access
+entry maps an IAM role to them. The access entry that the Argo CD
+capability creates has no Kubernetes group, and its user name changes
+with each session, so RBAC has no name to grant permissions to. To solve
+this, the steps below add the group `argocd` to the access entry of Argo
+CD, and bind roles that fit Argo CD to the group.
+
+To grant Argo CD permissions:
+
+1. Ask the agent to write the Terraform configuration. Start a Claude Code
+   session at the repository root and paste the following prompt.
+
+   ```text
+   /terraform-skill
+   /terraform-style-guide
+
+   # Summary
+   Create a Terraform configuration that adds a Kubernetes group to the EKS access entry of the Argo CD capability.
+
+   ## Prerequisites
+   - AWS credentials are passed at run time through AWS_PROFILE.
+   - The EKS cluster already exists.
+     - Its state is in the following S3 location.
+       - Bucket: eks-platform-lab-terraform-state-<account ID>
+       - Key: parts/20-eks-cluster/terraform.tfstate
+     - The state has the following output.
+       - cluster_name: the name of the EKS cluster
+   - The Argo CD capability of EKS has already created the EKS access entry of the IAM role eks-platform-lab-argocd.
+
+   ## Working environment
+   - Create the Terraform configuration in parts/50-argo-cd/terraform-access-entry.
+   - Put a .gitignore that excludes generated files in the same directory.
+
+   ## AWS resource settings
+
+   ### Common
+   - Tag every resource with the following tags.
+     - Project = eks-platform-lab
+     - Part = 50-argo-cd
+   - Use the Region ap-northeast-1.
+
+   ### AWS resource list
+   - EKS access entry: 1
+
+   ### EKS access entry
+   - Manage the access entry that the EKS capability created with this Terraform configuration.
+   - Add the Kubernetes group argocd.
+
+   ## Terraform settings
+
+   ### Versions
+   - Constrain the Terraform version to ~> 1.10, which supports S3 native locking.
+   - Constrain the AWS provider version to ~> 6.0.
+
+   ### State
+   - Use the S3 backend.
+   - Use parts/50-argo-cd/terraform-access-entry.tfstate as the state key.
+   - Lock with S3 native locking.
+   - Do not include the bucket name in the backend configuration;
+     pass it with -backend-config on terraform init.
+
+   ### Output
+   - None.
+
+   ### Style
+   - Place each data source right before the resource that references it.
+   - Name each data source label after its content.
+   - Do not add unnecessary depends_on.
+   - Keep the configuration, and especially the comments, to the minimum.
+   ```
+
+   The agent writes the configuration files and a `.gitignore` under
+   [terraform-access-entry/](terraform-access-entry/). Before you go on,
+   read the result against the prompt. In particular, check that the
+   configuration imports the access entry instead of creating one, that
+   it finds the cluster and the IAM role without an account ID in the
+   configuration, and that the `backend "s3"` block has no `bucket` line.
+   The files in [terraform-access-entry/](terraform-access-entry/) are the
+   result of this step.
+
+2. Plan and apply. Ask the agent:
+
+   ```text
+   /terraform-skill
+   Initialize parts/50-argo-cd/terraform-access-entry with the profile <account-name>-admin.
+   Take the bucket name from the output bucket_name of parts/05-terraform-state/terraform,
+   and pass it as -backend-config.
+   Then show me the plan, and apply it after I approve.
+   ```
+
+   The plan imports the access entry that the capability created, and
+   changes it: 1 to import, 0 to add, 1 to change. The change adds the
+   group and the tags.
+
+   Or run the commands yourself:
+
+   ```bash
+   bucket_name=$( \
+   AWS_PROFILE=<account-name>-admin \
+   terraform -chdir=parts/05-terraform-state/terraform \
+     output -raw bucket_name \
+   )
+
+   AWS_PROFILE=<account-name>-admin \
+   terraform -chdir=parts/50-argo-cd/terraform-access-entry \
+     init -backend-config="bucket=${bucket_name}"
+
+   AWS_PROFILE=<account-name>-admin \
+   terraform -chdir=parts/50-argo-cd/terraform-access-entry \
+     plan -out=terraform.tfplan
+
+   AWS_PROFILE=<account-name>-admin \
+   terraform -chdir=parts/50-argo-cd/terraform-access-entry \
+     apply terraform.tfplan
+   ```
+
+3. Ask the agent to write the manifest. Start a Claude Code session at the
+   repository root and paste the following prompt.
+
+   ```text
+   /aws-containers
+
+   # Summary
+   Create a manifest for the ClusterRoleBinding, the Role, and the RoleBinding of the Argo CD capability of an EKS cluster.
+
+   ## Prerequisites
+   - None.
+
+   ## Working environment
+   - Create the manifest at parts/50-argo-cd/manifests/rbac.yaml.
+
+   ## Kubernetes resource settings
+
+   ### Kubernetes resource list
+   - ClusterRoleBinding: 1
+   - Role: 1
+   - RoleBinding: 1
+
+   ### ClusterRoleBinding
+   - Name it argocd-view.
+   - Grant the permissions of the built-in ClusterRole view to the group argocd.
+
+   ### Role
+   - Name it argocd.
+   - Use the namespace team-a.
+   - Allow creating, updating, and deleting the following resources.
+     - Workloads
+       - Deployment, StatefulSet, DaemonSet, ReplicaSet
+       - Job, CronJob
+     - Scaling and availability
+       - HorizontalPodAutoscaler
+       - PodDisruptionBudget
+     - Networking
+       - Service
+       - Ingress
+     - Configuration and storage
+       - ConfigMap
+       - PersistentVolumeClaim
+     - Identity of pods
+       - ServiceAccount
+   - Allow deleting pods.
+
+   ### RoleBinding
+   - Name it argocd.
+   - Use the namespace team-a.
+   - Grant the permissions of the Role argocd to the group argocd.
+
+   ## Style
+   - Keep the manifest, and especially the comments, to the minimum.
+   ```
+
+   The agent writes the manifest. Before you go on, read it against the
+   prompt. In particular, check that both bindings grant to the group
+   `argocd`, and that nothing was added that the prompt did not ask for.
+   The file [manifests/rbac.yaml](manifests/rbac.yaml) is the result of
+   this step.
+
+4. Apply the manifest. Ask the agent:
+
+   ```text
+   Apply parts/50-argo-cd/manifests/rbac.yaml to the cluster.
+   ```
+
+   Or run the command yourself:
+
+   ```bash
+   kubectl apply -f parts/50-argo-cd/manifests/rbac.yaml
+   ```
+
+5. Check the permissions of Argo CD. The access entry of Argo CD has the
+   group `argocd`, and the group may write the workloads in `team-a` but
+   not in other namespaces.
+
+   To check this, ask the agent:
+
+   ```text
+   Check the permissions of Argo CD on the cluster eks-platform-lab, with the profile <account-name>-admin:
+
+   - The access entry of the IAM role eks-platform-lab-argocd has the Kubernetes group argocd.
+   - The group argocd can write the workloads in the namespace team-a, but cannot write in the namespace default.
+   ```
+
+   Or run the commands yourself:
+
+   ```bash
+   role_arn=$( \
+   aws --profile <account-name>-admin \
+     iam get-role --role-name eks-platform-lab-argocd \
+     --query 'Role.Arn' \
+     --output text \
+   )
+
+   aws --profile <account-name>-admin \
+     eks describe-access-entry --cluster-name eks-platform-lab --principal-arn $role_arn \
+     --query 'accessEntry.kubernetesGroups' \
+     --output text
+
+   kubectl auth can-i create deployments -n team-a --as=argocd-check --as-group=argocd
+
+   kubectl auth can-i create deployments -n default --as=argocd-check --as-group=argocd
+   ```
+
+   The second command prints `argocd`. The last two print `yes` and `no`.
+
 ## Creating the workloads repository
 
 Argo CD syncs the manifests that it reads from a Git repository. The
