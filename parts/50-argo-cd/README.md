@@ -57,48 +57,49 @@ The components of this part and how they work together:
 How the developers and Argo CD get their permissions:
 
 ```
-┌─ 50 argo-cd permissions ────────────────────────────────────────────────────────────┐
-│                                                                                     │
-│      ┌─ IAM Identity Center (part 40) ──┐     ┌─ 2. ────────────────────────────┐   │
-│      │  developers                      │   ┌▶│  IAM role                       │   │
-│      │  IdC group:                      │   │ │  name: eks-platform-lab-argocd  │   │
-│      │    eks-platform-lab-team-a (1)   │   │ └────────────────┬────────────────┘   │
-│      └─────────────────┬────────────────┘   │                  │                    │
-│                        │ sign in            │ assumes          │ is mapped by       │
-│ ┌─ EKS Auto Mode cluster (part 20) ─────────┼──────────────────┼──────────────────┐ │
-│ │                      ▼                    │                  ▼                  │ │
-│ │    ┌─ 2. ─────────────────────────────┐   │ ┌─ 5. ────────────────────────────┐ │ │
-│ │    │  Argo CD capability              ├───┘ │  access entry                   │ │ │
-│ │    │  name: argocd                    │     │  Kubernetes group: argocd       │ │ │
-│ │    │  global role: VIEWER             │     └─────────────────────────┬───────┘ │ │
-│ │    │    IdC group:                    │                               │         │ │
-│ │    │      eks-platform-lab-team-a (1) │                               │         │ │
-│ │    └─────────────────┬────────────────┘                   is bound to │         │ │
-│ │                      │ reads roles of                                 │         │ │
-│ │ ┌─ namespace ────────┼───────────────────┐  ┌─ namespace (part 40) ───┼───────┐ │ │
-│ │ │  name: argocd      │                   │  │  name: team-a (2)       │       │ │ │
-│ │ │                    ▼                   │  │                         ▼       │ │ │
-│ │ │  ┌─ 6. ─────────────────────────────┐  │  │  ┌─ 5. ──────────────────────┐  │ │ │
-│ │ │  │  AppProject                      │  │  │  │  Role: argocd             │  │ │ │
-│ │ │  │  name: team-a (3)                │  │  │  └───────────────────────────┘  │ │ │
-│ │ │  │  destination: team-a (2)         │  │  │  sample workload                │ │ │
-│ │ │  │  project role: developer         │  │  └─────────────────────────────────┘ │ │
-│ │ │  │    IdC group:                    │  │                                      │ │
-│ │ │  │      eks-platform-lab-team-a (1) │  │                                      │ │
-│ │ │  └──────────────────────────────────┘  │                                      │ │
-│ │ │                                        │                                      │ │
-│ │ │  ┌─ 8. ─────────────────────────────┐  │                                      │ │
-│ │ │  │  Application                     │  │                                      │ │
-│ │ │  │  project: team-a (3)             │  │                                      │ │
-│ │ │  │  destination: team-a (2)         │  │                                      │ │
-│ │ │  └──────────────────────────────────┘  │                                      │ │
-│ │ │                                        │                                      │ │
-│ │ └────────────────────────────────────────┘                                      │ │
-│ │                                                                                 │ │
-│ └─────────────────────────────────────────────────────────────────────────────────┘ │
-│                                                                                     │
-│   (1) the same IdC group  (2) the same namespace  (3) the same AppProject           │
-└─────────────────────────────────────────────────────────────────────────────────────┘
+┌─ 50 argo-cd permissions ───────────────────────────────────────────────────────────┐
+│                                                                                    │
+│      ┌─ IAM Identity Center (part 40) ──┐     ┌─ 2. ───────────────────────────┐   │
+│      │  developers                      │   ┌▶│  IAM role                      │   │
+│      │  IdC group:                      │   │ │  name: eks-platform-lab-argocd │   │
+│      │    eks-platform-lab-team-a (1)   │   │ └────────────────┬───────────────┘   │
+│      └─────────────────┬────────────────┘   │                  │                   │
+│                        │ sign in            │ assumes          │ is mapped by      │
+│ ┌─ EKS Auto Mode cluster (part 20) ─────────┼──────────────────┼─────────────────┐ │
+│ │                      ▼                    │                  ▼                 │ │
+│ │    ┌─ 2. ─────────────────────────────┐   │ ┌─ 5. ───────────────────────────┐ │ │
+│ │    │  Argo CD capability              ├───┘ │  access entry                  │ │ │
+│ │    │  name: argocd                    │     │  Kubernetes group: argocd (2)  │ │ │
+│ │    │  global role: VIEWER             │     └─────────────────────────┬──────┘ │ │
+│ │    │    IdC group:                    │                               │        │ │
+│ │    │      eks-platform-lab-team-a (1) │                               │        │ │
+│ │    └─────────────────┬────────────────┘                   is bound to │        │ │
+│ │                      │ reads roles of                                 │        │ │
+│ │ ┌─ namespace ────────┼───────────────────┐  ┌─ namespace (part 40) ───┼──────┐ │ │
+│ │ │  name: argocd      │                   │  │  name: team-a (3)       │      │ │ │
+│ │ │                    ▼                   │  │                         ▼      │ │ │
+│ │ │  ┌─ 6. ─────────────────────────────┐  │  │  ┌─ 5. ─────────────────────┐  │ │ │
+│ │ │  │  AppProject                      │  │  │  │  Role                    │  │ │ │
+│ │ │  │  name: team-a (4)                │  │  │  │  name: argocd            │  │ │ │
+│ │ │  │  destination: team-a (3)         │  │  │  │  bound by RoleBinding:   │  │ │ │
+│ │ │  │  project role: developer         │  │  │  │    name: argocd          │  │ │ │
+│ │ │  │    IdC group:                    │  │  │  │    subject: argocd (2)   │  │ │ │
+│ │ │  │      eks-platform-lab-team-a (1) │  │  │  └──────────────────────────┘  │ │ │
+│ │ │  └──────────────────────────────────┘  │  │  sample workload               │ │ │
+│ │ │                                        │  └────────────────────────────────┘ │ │
+│ │ │  ┌─ 8. ─────────────────────────────┐  │                                     │ │
+│ │ │  │  Application                     │  │                                     │ │
+│ │ │  │  project: team-a (4)             │  │                                     │ │
+│ │ │  │  destination: team-a (3)         │  │                                     │ │
+│ │ │  └──────────────────────────────────┘  │                                     │ │
+│ │ │                                        │                                     │ │
+│ │ └────────────────────────────────────────┘                                     │ │
+│ │                                                                                │ │
+│ └────────────────────────────────────────────────────────────────────────────────┘ │
+│                                                                                    │
+│   (1) the same IdC group  (2) the same Kubernetes group                            │
+│   (3) the same namespace  (4) the same AppProject                                  │
+└────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ## Steps
