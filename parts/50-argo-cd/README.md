@@ -1202,28 +1202,64 @@ This part is torn down every night and built again the next day, because
 the Argo CD capability, its Application, and the ALB of the sample
 workload are charged by the hour. Tear it down before the tenant, in the
 reverse order of the steps. The workloads repository stays. To build the
-part again, apply the configuration and the manifests in the order of
+part again, apply the configurations and the manifests in the order of
 the steps.
 
 To tear down the Argo CD part:
 
-1. Delete the Application. Ask the agent:
+1. Delete the ApplicationSet, together with the Application that it
+   created. Ask the agent:
 
    ```text
-   Delete parts/50-argo-cd/manifests/application.yaml from the cluster.
+   Delete parts/50-argo-cd/manifests/applicationset.yaml from the cluster,
+   with the foreground cascading deletion.
    ```
 
    Or run the command yourself:
 
    ```bash
-   kubectl delete -f parts/50-argo-cd/manifests/application.yaml
+   kubectl delete -f parts/50-argo-cd/manifests/applicationset.yaml --cascade=foreground
    ```
 
-   The command takes a little while to return, because Argo CD deletes
-   the sample workload first, and its Ingress is not gone until the
-   cluster has deleted the ALB.
+   With `--cascade=foreground`, the command returns after the Application
+   is gone. Argo CD deletes the sample workload first, and its Ingress is
+   not gone until the cluster has deleted the ALB, so the command takes a
+   little while.
 
-2. Plan and destroy. Ask the agent:
+2. Delete the permissions of Argo CD. Ask the agent:
+
+   ```text
+   Delete parts/50-argo-cd/manifests/rbac.yaml from the cluster.
+   ```
+
+   Or run the command yourself:
+
+   ```bash
+   kubectl delete -f parts/50-argo-cd/manifests/rbac.yaml
+   ```
+
+3. Plan and destroy the configuration of the access entry. The destroy
+   deletes the access entry of Argo CD. Ask the agent:
+
+   ```text
+   /terraform-skill
+   Destroy parts/50-argo-cd/terraform-access-entry with the profile <account-name>-admin.
+   Show me the plan first, and destroy after I approve.
+   ```
+
+   Or run the commands yourself:
+
+   ```bash
+   AWS_PROFILE=<account-name>-admin \
+   terraform -chdir=parts/50-argo-cd/terraform-access-entry \
+     plan -destroy -out=terraform.tfplan
+
+   AWS_PROFILE=<account-name>-admin \
+   terraform -chdir=parts/50-argo-cd/terraform-access-entry \
+     apply terraform.tfplan
+   ```
+
+4. Plan and destroy the configuration of the capability. Ask the agent:
 
    ```text
    /terraform-skill
@@ -1243,14 +1279,14 @@ To tear down the Argo CD part:
      apply terraform.tfplan
    ```
 
-3. Delete what the capability leaves. EKS keeps the access entry of the
-   capability, and, in the cluster, the namespace `argocd` and the custom
-   resource definitions of Argo CD. Ask the agent:
+5. Delete what the capability leaves. EKS keeps, in the cluster, the
+   namespace `argocd` and the custom resource definitions of Argo CD.
+   Deleting the namespace also deletes the AppProjects, the ConfigMap,
+   and the cluster registration in it. Ask the agent:
 
    ```text
-   With the profile <account-name>-admin, delete what the capability leaves in the cluster eks-platform-lab:
+   Delete what the Argo CD capability leaves in the cluster:
 
-   - The access entry of the IAM role eks-platform-lab-argocd.
    - The namespace argocd.
    - The custom resource definitions of Argo CD.
    ```
@@ -1258,34 +1294,24 @@ To tear down the Argo CD part:
    Or run the commands yourself:
 
    ```bash
-   principal_arn=$( \
-   aws --profile <account-name>-admin \
-     eks list-access-entries --cluster-name eks-platform-lab \
-     --query 'accessEntries[?contains(@, `eks-platform-lab-argocd`)] | [0]' \
-     --output text \
-   )
-
-   aws --profile <account-name>-admin \
-     eks delete-access-entry --cluster-name eks-platform-lab \
-     --principal-arn "${principal_arn}"
-
    kubectl delete namespace argocd
 
    kubectl delete crd \
      applications.argoproj.io applicationsets.argoproj.io appprojects.argoproj.io
    ```
 
-4. Confirm that what the three steps above deleted is gone and that
-   nothing is charged. Ask the agent:
+6. Confirm that what the steps above deleted is gone and that nothing is
+   charged. Ask the agent:
 
    ```text
    Check with the profile <account-name>-admin:
 
    - No load balancer tagged ingress.eks.amazonaws.com/stack = team-a/nginx-argocd exists.
-   - The state of parts/50-argo-cd/terraform has no resources.
+   - The states of parts/50-argo-cd/terraform-access-entry and parts/50-argo-cd/terraform have no resources.
    - The cluster eks-platform-lab has none of these:
      - A capability.
      - An access entry of the IAM role eks-platform-lab-argocd.
+     - The ClusterRoleBinding argocd-view, and the Role and the RoleBinding argocd in the namespace team-a.
      - The namespace argocd.
      - The custom resource definitions of Argo CD.
    ```
@@ -1301,6 +1327,10 @@ To tear down the Argo CD part:
      --output table
 
    AWS_PROFILE=<account-name>-admin \
+   terraform -chdir=parts/50-argo-cd/terraform-access-entry \
+     state list
+
+   AWS_PROFILE=<account-name>-admin \
    terraform -chdir=parts/50-argo-cd/terraform \
      state list
 
@@ -1314,12 +1344,17 @@ To tear down the Argo CD part:
      --query 'accessEntries[?contains(@, `eks-platform-lab-argocd`)]' \
      --output table
 
+   kubectl get clusterrolebinding argocd-view
+
+   kubectl get role,rolebinding argocd -n team-a
+
    kubectl get namespace argocd
 
    kubectl get crd -o name | grep argoproj.io
    ```
 
-   The fifth command fails with `NotFound`, and the others print nothing.
+   The three `kubectl get` commands for the RBAC and the namespace fail
+   with `NotFound`, and the others print nothing.
 
 ## Cost
 
