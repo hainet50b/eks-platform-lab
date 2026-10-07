@@ -4,7 +4,7 @@ metadata:
   name: argocd-view
 subjects:
   - kind: Group
-    name: eks-access-entry:<argocd-role-arn>
+    name: argocd
     apiGroup: rbac.authorization.k8s.io
 roleRef:
   kind: ClusterRole
@@ -46,7 +46,7 @@ metadata:
   namespace: team-a
 subjects:
   - kind: Group
-    name: eks-access-entry:<argocd-role-arn>
+    name: argocd
     apiGroup: rbac.authorization.k8s.io
 roleRef:
   kind: Role
