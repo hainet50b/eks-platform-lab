@@ -1158,9 +1158,9 @@ To deploy and roll back the sample workload:
 
    ```bash
    sed -i 's#nginx-unprivileged:.*#nginx-unprivileged:<mainline-version>#' \
-     ../eks-platform-lab-workloads/nginx-argocd/nginx-argocd.yaml
+     ../eks-platform-lab-workloads/team-a/nginx-argocd/nginx-argocd.yaml
 
-   git -C ../eks-platform-lab-workloads add nginx-argocd/nginx-argocd.yaml
+   git -C ../eks-platform-lab-workloads add team-a/nginx-argocd/nginx-argocd.yaml
    git -C ../eks-platform-lab-workloads commit -m "Update the image of nginx-argocd to nginx <mainline-version>"
    git -C ../eks-platform-lab-workloads push
    ```
