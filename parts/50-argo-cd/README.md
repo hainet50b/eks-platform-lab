@@ -118,10 +118,10 @@ How the developers and Argo CD get their permissions:
 
 ## Reviewing the Argo CD design
 
-The steps that follow write the Argo CD capability as a Terraform
-configuration, and the cluster registration, the sample workload, and
-the Application as Kubernetes manifests. Before you ask the agent to
-write them, review the design with the
+The steps that follow set up the Argo CD capability to sync a sample
+workload from Git into the tenant namespace. Before you ask the agent to
+write the Terraform configurations and the Kubernetes manifests, review
+their design with the
 [`/apex:eks-design`](https://aws-samples.github.io/sample-apex-skills/docs/steering/commands/apex/eks-design)
 command.
 
@@ -130,7 +130,9 @@ and paste the following review request. Fill its "Design" section with
 the following sections of the prompts, in this order:
 
 - The "AWS resource settings" section of step 2
-- The "Kubernetes resource settings" sections of steps 3 to 5
+- The "Kubernetes resource settings" sections of steps 3 and 4
+- The "AWS resource settings" and "Kubernetes resource settings" sections of step 5
+- The "Kubernetes resource settings" sections of steps 6 to 8
 
 ````text
 /apex:eks-design
@@ -138,10 +140,14 @@ the following sections of the prompts, in this order:
 # Review request
 On an EKS Auto Mode cluster, I am deploying a sample application to a tenant with GitOps, using the Argo CD capability of EKS.
 The design below consists of the following.
-- The Argo CD capability, its IAM role, and its access to the cluster
+- The Argo CD capability and its IAM role
 - The registration of the cluster with Argo CD
+- The ConfigMap that makes Argo CD watch only the resources that it may read
+- The Terraform configuration that adds a Kubernetes group to the access entry of Argo CD
+- The ClusterRoleBinding, Role, and RoleBinding that give Argo CD its permissions in the cluster
+- The AppProject of the tenant
 - The Deployment, Service, and Ingress of the sample application, kept in a Git repository
-- The Argo CD Application that syncs the sample application
+- The ApplicationSet that creates the Applications of the tenant
 Review the design with the context in mind.
 
 ## Context
@@ -151,19 +157,18 @@ Review the design with the context in mind.
   - The EKS Auto Mode cluster
   - The namespace of the tenant and its guardrails
 - The Git repository is a public repository on GitHub.
-- Only the administrators of the cluster create Applications.
 - The following concern is out of scope here.
   - Scaling and availability
 
 ## Design
 ```
-(the sections of the prompts of steps 2 to 5)
+(the sections of the prompts of steps 2 to 8)
 ```
 ````
 
 The command answers with a table of findings ranked by severity and the
 details of each finding. Fix the design according to the findings, and
-review it again until nothing new comes up. The prompts of steps 2 to 5
+review it again until nothing new comes up. The prompts of steps 2 to 8
 are the result of a few rounds.
 
 ## Creating the Argo CD capability with Terraform
