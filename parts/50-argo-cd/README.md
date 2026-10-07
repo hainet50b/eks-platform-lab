@@ -456,6 +456,92 @@ To register the cluster:
    The first command lists `in-cluster`. The second prints the ARN of
    the cluster.
 
+## Limiting what Argo CD watches with a Kubernetes manifest
+
+The controller of Argo CD watches every kind of resource in the clusters
+that Argo CD deploys to, so that the controller can compare the live
+state with Git. By default, the controller expects to read every kind.
+With the setting
+[`resource.respectRBAC`](https://argo-cd.readthedocs.io/en/stable/operator-manual/declarative-setup/#auto-respect-rbac-for-controller)
+in the ConfigMap `argocd-cm`, the controller watches only the kinds that
+Argo CD has permission to read. The Argo CD capability
+[reads `argocd-cm`](https://docs.aws.amazon.com/eks/latest/userguide/argocd-configure-settings.html#_configure_the_argocd_cm_configmap)
+only when the ConfigMap has the label `app.kubernetes.io/part-of: argocd`.
+
+To limit what Argo CD watches:
+
+1. Ask the agent to write the manifest. Start a Claude Code session at the
+   repository root and paste the following prompt.
+
+   ```text
+   /aws-containers
+
+   # Summary
+   Create a manifest that makes the Argo CD capability of an EKS cluster watch only the resources that it has permission to read.
+
+   ## Prerequisites
+   - None.
+
+   ## Working environment
+   - Create the manifest at parts/50-argo-cd/manifests/argocd-cm.yaml.
+
+   ## Kubernetes resource settings
+
+   ### Common
+   - Use the namespace argocd.
+
+   ### Kubernetes resource list
+   - ConfigMap: 1
+
+   ### ConfigMap
+   - Make Argo CD watch only the resources that it has permission to read.
+
+   ## Style
+   - Keep the manifest, and especially the comments, to the minimum.
+   ```
+
+   The agent writes the manifest. Before you go on, read it against the
+   prompt. In particular, check that the ConfigMap is `argocd-cm` with the
+   label `app.kubernetes.io/part-of: argocd`, and that nothing was added
+   that the prompt did not ask for. The file
+   [manifests/argocd-cm.yaml](manifests/argocd-cm.yaml) is the result of
+   this step.
+
+2. Apply the manifest. Ask the agent:
+
+   ```text
+   Apply parts/50-argo-cd/manifests/argocd-cm.yaml to the cluster.
+   ```
+
+   Or run the command yourself:
+
+   ```bash
+   kubectl apply -f parts/50-argo-cd/manifests/argocd-cm.yaml
+   ```
+
+3. Check the ConfigMap. It has the label that the capability looks for,
+   and sets `resource.respectRBAC`.
+
+   To check this, ask the agent:
+
+   ```text
+   Check the ConfigMap argocd-cm in the namespace argocd of the cluster:
+
+   - It has the label app.kubernetes.io/part-of: argocd.
+   - It sets resource.respectRBAC.
+   ```
+
+   Or run the commands yourself:
+
+   ```bash
+   kubectl get configmap argocd-cm -n argocd --show-labels
+
+   kubectl get configmap argocd-cm -n argocd -o jsonpath='{.data.resource\.respectRBAC}'
+   ```
+
+   The first command lists `argocd-cm` with the label. The second prints
+   `normal`.
+
 ## Creating the workloads repository
 
 Argo CD syncs the manifests that it reads from a Git repository. The
