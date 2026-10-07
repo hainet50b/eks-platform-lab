@@ -56,12 +56,15 @@ Argo CD, which keeps the workloads in sync with a Git repository.
 
 | Step | Does |
 | --- | --- |
-| [1. Reviewing the Argo CD design](#reviewing-the-argo-cd-design) | Reviews the design of the Argo CD capability, the cluster registration, the Application, and the sample workload |
-| [2. Creating the Argo CD capability with Terraform](#creating-the-argo-cd-capability-with-terraform) | Creates the Argo CD capability, with its IAM role and the access that lets it apply manifests to the cluster |
+| [1. Reviewing the Argo CD design](#reviewing-the-argo-cd-design) | Reviews the design of the Argo CD capability, the cluster registration, the permissions of Argo CD, the AppProject and the ApplicationSet of the tenant, and the sample workload |
+| [2. Creating the Argo CD capability with Terraform](#creating-the-argo-cd-capability-with-terraform) | Creates the Argo CD capability and its IAM role, and lets the developers sign in to Argo CD |
 | [3. Registering the cluster with a Kubernetes manifest](#registering-the-cluster-with-a-kubernetes-manifest) | Registers the cluster with Argo CD as the destination for workloads |
-| [4. Creating the workloads repository](#creating-the-workloads-repository) | Writes the manifest of the sample workload and copies it to a new Git repository that Argo CD reads |
-| [5. Syncing the sample workload](#syncing-the-sample-workload) | Creates the Application, and Argo CD syncs the sample workload from the workloads repository into the tenant namespace |
-| [6. Deploying and rolling back the sample workload](#deploying-and-rolling-back-the-sample-workload) | Changes the image of the sample workload with a push to the workloads repository, then reverts the change |
+| [4. Limiting what Argo CD watches with a Kubernetes manifest](#limiting-what-argo-cd-watches-with-a-kubernetes-manifest) | Creates the ConfigMap that makes Argo CD watch only the resources that it may read |
+| [5. Granting Argo CD permissions with Terraform and a Kubernetes manifest](#granting-argo-cd-permissions-with-terraform-and-a-kubernetes-manifest) | Adds a Kubernetes group to the access entry of Argo CD with Terraform, and creates the ClusterRoleBinding, the Role, and the RoleBinding that let the group read the cluster and write the workloads of the tenant |
+| [6. Creating the AppProject of the tenant with Kubernetes manifests](#creating-the-appproject-of-the-tenant-with-kubernetes-manifests) | Creates the AppProject that limits what the Applications of the tenant sync and lets the developers operate them |
+| [7. Creating the workloads repository](#creating-the-workloads-repository) | Writes the manifest of the sample workload and copies it to a new Git repository that Argo CD reads |
+| [8. Syncing the sample workload](#syncing-the-sample-workload) | Creates the ApplicationSet, which creates an Application for each workload in the repository, and Argo CD syncs the sample workload into the tenant namespace |
+| [9. Deploying and rolling back the sample workload](#deploying-and-rolling-back-the-sample-workload) | Changes the image of the sample workload with a push to the workloads repository, then reverts the change |
 
 ## Reviewing the Argo CD design
 
