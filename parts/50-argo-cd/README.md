@@ -359,8 +359,8 @@ To create the Argo CD capability:
    EKS associated with the access entry when it created the capability.
 
 4. Sign in to the UI of Argo CD. Open the URL that the first command
-   printed, and sign in as the administrator through the AWS access portal.
-   The UI shows no applications yet.
+   printed, and sign in as the administrator. The UI shows no applications
+   yet.
 
 ## Registering the cluster with a Kubernetes manifest
 
@@ -1016,7 +1016,13 @@ An [Application](https://argo-cd.readthedocs.io/en/stable/user-guide/application
 tells Argo CD what to sync and where to deploy it: a directory of a Git
 repository, and a cluster and a namespace. With automated sync, Argo CD
 applies a change in Git, deletes what is removed from Git, and reverts a
-change made directly in the cluster.
+change made directly in the cluster. An
+[ApplicationSet](https://argo-cd.readthedocs.io/en/stable/operator-manual/applicationset/)
+creates Applications from a template. With the
+[Git directory generator](https://argo-cd.readthedocs.io/en/stable/operator-manual/applicationset/Generators-Git/#git-generator-directories),
+it creates an Application for each directory of the tenant in the
+workloads repository, so a developer adds a workload by adding a
+directory.
 
 To sync the sample workload:
 
@@ -1028,87 +1034,95 @@ To sync the sample workload:
    /aws-containers
 
    # Summary
-   Create a manifest for an Application that syncs a sample application with the Argo CD capability of an EKS cluster.
+   Create a manifest for an ApplicationSet that creates the Applications of a tenant, for the Argo CD capability of an EKS cluster.
 
    ## Prerequisites
    - None.
 
    ## Working environment
-   - Create the manifest at parts/50-argo-cd/manifests/application.yaml.
+   - Create the manifest at parts/50-argo-cd/manifests/applicationset.yaml.
 
    ## Kubernetes resource settings
 
    ### Common
-   - Put the Application in the namespace argocd.
+   - Put the ApplicationSet in the namespace argocd.
 
    ### Kubernetes resource list
-   - Argo CD Application: 1
+   - ApplicationSet: 1
 
-   ### Application
-   - Name it team-a-nginx-argocd.
-   - Use the Argo CD project default.
-   - Sync the following directory of a public GitHub repository.
+   ### ApplicationSet
+   - Name it team-a.
+   - Create an Application for each directory right under the following directory.
      - Repository: https://github.com/<owner>/eks-platform-lab-workloads.git
      - Branch: main
-     - Directory: nginx-argocd
-   - Deploy to the namespace team-a of the cluster in-cluster.
-   - Sync changes in Git automatically.
-     - Delete from the cluster what is removed from Git.
-     - Revert changes made in the cluster to the state in Git.
-   - When the Application is deleted, delete the resources that it synced.
+     - Directory: team-a
+   - Make the Applications as follows.
+     - Name each team-a-<name of the directory>.
+     - Use the Argo CD project team-a.
+     - Sync the directory.
+     - Deploy to the namespace team-a of the cluster in-cluster.
+     - Sync changes in Git automatically.
+       - Delete from the cluster what is removed from Git.
+       - Revert changes made in the cluster to the state in Git.
+     - When an Application is deleted, delete the resources that it synced.
 
    ## Style
    - Keep the manifest, and especially the comments, to the minimum.
    ```
 
    The agent writes the manifest. Before you go on, read it against the
-   prompt. In particular, check that it has the finalizer
-   `resources-finalizer.argocd.argoproj.io`, and that nothing was added
-   that the prompt did not ask for. The file
-   [manifests/application.yaml](manifests/application.yaml) is the result
-   of this step.
+   prompt. In particular, check that the template of the Applications has
+   the finalizer `resources-finalizer.argocd.argoproj.io`, and that
+   nothing was added that the prompt did not ask for. The file
+   [manifests/applicationset.yaml](manifests/applicationset.yaml) is the
+   result of this step.
 
 2. Apply the manifest. Ask the agent:
 
    ```text
-   Apply parts/50-argo-cd/manifests/application.yaml to the cluster.
+   Apply parts/50-argo-cd/manifests/applicationset.yaml to the cluster.
    ```
 
    Or run the command yourself:
 
    ```bash
-   kubectl apply -f parts/50-argo-cd/manifests/application.yaml
+   kubectl apply -f parts/50-argo-cd/manifests/applicationset.yaml
    ```
 
-   `kubectl` warns that the name of the finalizer has no path. Kubernetes
-   now prefers finalizer names with a path, such as `example.com/cleanup`,
-   while Argo CD keeps the name that it has used from before. The warning
-   does no harm.
-
-3. Check the sync. The Application is `Synced` and `Healthy`, and the
-   sample workload answers through its ALB.
+3. Check the sync. The ApplicationSet creates the Application
+   `team-a-nginx-argocd` in the AppProject `team-a`, the Application is
+   `Synced` and `Healthy`, and the sample workload answers through its ALB.
 
    To check this, ask the agent:
 
    ```text
-   Check the Application team-a-nginx-argocd in the namespace argocd of the cluster:
+   Check the sync of the sample workload on the cluster:
 
-   - It is synced and healthy.
+   - The ApplicationSet team-a in the namespace argocd created the Application team-a-nginx-argocd in the AppProject team-a.
+   - The Application team-a-nginx-argocd is synced and healthy.
    - The ALB of the Ingress nginx-argocd in the namespace team-a answers with the nginx welcome page.
    ```
 
    Or run the commands yourself:
 
    ```bash
-   kubectl get application team-a-nginx-argocd -n argocd
+   kubectl get applications -n argocd \
+     -o custom-columns=NAME:.metadata.name,PROJECT:.spec.project,SYNC:.status.sync.status,HEALTH:.status.health.status
 
    kubectl get ingress nginx-argocd -n team-a
 
    curl http://<alb-dns-name>/
    ```
 
-   The first command shows `Synced` and `Healthy`. The `curl` gets the
-   welcome page.
+   The first command lists `team-a-nginx-argocd` with the project
+   `team-a`, `Synced`, and `Healthy`. The `curl` gets the welcome page.
+
+   > [!NOTE]
+   > If the first sync fails because Argo CD lacks permissions, the group
+   > `argocd` on the access entry may not be in effect yet. It can take up
+   > to about 15 minutes. Argo CD does not retry a failed automated sync
+   > of the same commit, so wait, then sync the Application again in the
+   > UI of Argo CD.
 
 4. See Argo CD revert a change made in the cluster. As the developer,
    scale the Deployment to 5 replicas. The developer may do this in the
@@ -1124,6 +1138,9 @@ To sync the sample workload:
    ```
 
    The scale succeeds, and the second command shows `2/2` again.
+
+5. Sign in to the UI of Argo CD as the developer. The developer sees only
+   the Application `team-a-nginx-argocd`, and can sync it.
 
 ## Deploying and rolling back the sample workload
 
