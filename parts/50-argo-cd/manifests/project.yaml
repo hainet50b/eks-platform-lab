@@ -12,6 +12,8 @@ spec:
     - name: in-cluster
       namespace: team-a
   namespaceResourceWhitelist:
+    - group: ""
+      kind: Pod
     - group: apps
       kind: Deployment
     - group: apps
@@ -49,4 +51,3 @@ spec:
         - p, proj:team-a:developer, applications, delete/*/Pod/*/*, team-a/*, allow
         - p, proj:team-a:developer, applicationsets, get, team-a/*, allow
         - p, proj:team-a:developer, logs, get, team-a/*, allow
-        - p, proj:team-a:developer, clusters, get, *, allow
