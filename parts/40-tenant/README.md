@@ -4,6 +4,8 @@ A namespace with guardrails, and a developer who may work only there.
 
 ## Overview
 
+The components of this part and how they work together:
+
 ```
 ┌─ 40 tenant ───────────────────────────────────────────────────────────────────────────────────────────┐
 │                                                                                                       │
@@ -66,6 +68,47 @@ A namespace with guardrails, and a developer who may work only there.
 │  └─────────────────────────────────────────────────────────────────────────────────────────────────┘  │
 │                                                                                                       │
 └───────────────────────────────────────────────────────────────────────────────────────────────────────┘
+```
+
+How the developers get their permissions:
+
+```
+┌─ 40 tenant permissions ──────────────────────────────────────────────────────────────────────┐
+│                                                                                              │
+│   ┌─ IAM Identity Center (part 00) ─┐             ┌─ 6. ──────────────────────────────┐      │
+│   │  developers                     ├────────────▶│  IAM role                         │      │
+│   │  IdC group:                     │  assumes    │  name:                            │      │
+│   │    eks-platform-lab-team-a      │             │    AWSReservedSSO_                │      │
+│   │  permission set:                │             │    EKSDeveloperTeamA_<random> (1) │      │
+│   │    EKSDeveloperTeamA (1)        │             └─────────────────┬─────────────────┘      │
+│   └─────────────────────────────────┘                               │                        │
+│                                                                     │ is mapped by           │
+│                                                                     │                        │
+│ ┌─ EKS Auto Mode cluster (part 20) ─────────────────────────────────┼──────────────────────┐ │
+│ │                                                                   ▼                      │ │
+│ │ ┌─────────────────────────────────┐ is bound to ┌─ 7. ──────────────────────────────┐    │ │
+│ │ │  ClusterRole (built-in)         │◀────────────┤  access entry                     │    │ │
+│ │ │  name: view                     │             │  Kubernetes group: team-a-dev (2) │    │ │
+│ │ │  bound by RoleBinding:          │             └─────────────────┬─────────────────┘    │ │
+│ │ │    name: developer-view         │                               │ is bound to          │ │
+│ │ │    subject: team-a-dev (2)      │          ┌─ 3. ───────────────┼────────────────────┐ │ │
+│ │ └─────────────────────────────────┘          │  namespace         │                    │ │ │
+│ │                                              │  name: team-a      │                    │ │ │
+│ │                                              │                    ▼                    │ │ │
+│ │                                              │  ┌─ 8. ──────────────────────────────┐  │ │ │
+│ │                                              │  │  Role                             │  │ │ │
+│ │                                              │  │  name: developer                  │  │ │ │
+│ │                                              │  │  bound by RoleBinding:            │  │ │ │
+│ │                                              │  │    name: developer                │  │ │ │
+│ │                                              │  │    subject: team-a-dev (2)        │  │ │ │
+│ │                                              │  └───────────────────────────────────┘  │ │ │
+│ │                                              │                                         │ │ │
+│ │                                              └─────────────────────────────────────────┘ │ │
+│ │                                                                                          │ │
+│ └──────────────────────────────────────────────────────────────────────────────────────────┘ │
+│                                                                                              │
+│   (1) the same permission set  (2) the same Kubernetes group                                 │
+└──────────────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ## Steps
