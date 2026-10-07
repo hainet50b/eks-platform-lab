@@ -181,10 +181,9 @@ outside the nodes of the cluster. An Argo CD capability comes with three things:
 - An IAM role that the capability assumes. The role needs permissions only
   when Argo CD reads the sources of the manifests from AWS services.
 - Sign-in through IAM Identity Center. Its users and groups are mapped to
-  the roles of Argo CD.
-- Access to the cluster. EKS creates an access entry for the IAM role, but
-  the entry does not let Argo CD apply manifests until an access policy is
-  associated with it.
+  the global roles of Argo CD.
+- Access to the cluster. EKS creates an access entry for the IAM role,
+  with access policies that let Argo CD manage only its own resources.
 
 To create the Argo CD capability:
 
@@ -222,7 +221,6 @@ To create the Argo CD capability:
    ### AWS resource list
    - IAM role: 1
    - EKS capability: 1
-   - EKS access policy association: 1
 
    ### IAM role
    - Name it eks-platform-lab-argocd.
@@ -234,12 +232,10 @@ To create the Argo CD capability:
    - Name it argocd.
    - Put the resources of Argo CD in the namespace argocd.
    - Authenticate with IAM Identity Center.
-   - Map the IAM Identity Center group eks-platform-lab-admins to the Argo CD role ADMIN.
+   - Map the IAM Identity Center groups to the Argo CD roles as follows.
+     - eks-platform-lab-admins: ADMIN
+     - eks-platform-lab-team-a: VIEWER
    - Create it after the IAM role has propagated, so that EKS accepts the trust policy of the role.
-
-   ### EKS access policy association
-   - Associate the access policy AmazonEKSClusterAdminPolicy, scoped to the whole cluster,
-     with the access entry that the EKS capability creates.
 
    ## Terraform settings
 
@@ -270,9 +266,10 @@ To create the Argo CD capability:
 
    Before you go on, read the result against the prompt. In particular,
    check that the capability is the resource `aws_eks_capability` of the
-   AWS provider, that the instance of IAM Identity Center and the group
-   are found by name, with no IDs in the configuration, and that the
-   `backend "s3"` block has no `bucket` line. The files in
+   AWS provider, that the instance of IAM Identity Center and the groups
+   are found by name, with no IDs in the configuration, that the
+   configuration associates no access policy, and that the `backend "s3"`
+   block has no `bucket` line. The files in
    [terraform/](terraform/) are the result of this step.
 
 2. Plan and apply. Make sure that the AWS CLI is signed in to the profile
@@ -286,9 +283,9 @@ To create the Argo CD capability:
    Then show me the plan, and apply it after I approve.
    ```
 
-   The plan adds 4 resources: the IAM role, a wait for the role to
-   propagate, the capability, and the access policy association. The
-   capability takes several minutes to become active.
+   The plan adds 3 resources: the IAM role, a wait for the role to
+   propagate, and the capability. The capability takes several minutes
+   to become active.
 
    Or run the commands yourself:
 
@@ -312,9 +309,10 @@ To create the Argo CD capability:
      apply terraform.tfplan
    ```
 
-3. Check the capability. The capability is active, the cluster has the
-   namespace `argocd`, and the access entry of the IAM role has the access
-   policy `AmazonEKSClusterAdminPolicy`.
+3. Check the capability. The capability is active, the administrators and
+   the developers are mapped to their roles of Argo CD, the cluster has
+   the namespace `argocd`, and the access entry of the IAM role has only
+   the access policies that EKS associated with it.
 
    To check this, ask the agent:
 
@@ -322,8 +320,9 @@ To create the Argo CD capability:
    Check the Argo CD capability argocd of the cluster eks-platform-lab, with the profile <account-name>-admin:
 
    - The capability is active, and shows the URL of its UI.
+   - The group eks-platform-lab-admins is mapped to ADMIN, and the group eks-platform-lab-team-a to VIEWER.
    - The cluster has the namespace argocd.
-   - The access entry of the IAM role eks-platform-lab-argocd has the access policy AmazonEKSClusterAdminPolicy.
+   - The access entry of the IAM role eks-platform-lab-argocd has only the access policies that EKS associated with it.
    ```
 
    Or run the commands yourself:
@@ -332,6 +331,11 @@ To create the Argo CD capability:
    aws --profile <account-name>-admin \
      eks describe-capability --cluster-name eks-platform-lab --capability-name argocd \
      --query 'capability.[status, configuration.argoCd.serverUrl]' \
+     --output table
+
+   aws --profile <account-name>-admin \
+     eks describe-capability --cluster-name eks-platform-lab --capability-name argocd \
+     --query 'capability.configuration.argoCd.rbacRoleMappings[].[role, identities[0].id]' \
      --output table
 
    kubectl get namespace argocd
@@ -349,9 +353,10 @@ To create the Argo CD capability:
      --output table
    ```
 
-   The first command prints `ACTIVE` and the URL of the UI. The last
-   lists `AmazonEKSClusterAdminPolicy`, and two more that EKS associated
-   with the access entry when it created the capability.
+   The first command prints `ACTIVE` and the URL of the UI. The second
+   lists `ADMIN` and `VIEWER`, each with the ID of a group. The last lists
+   only `AmazonEKSArgoCDClusterPolicy` and `AmazonEKSArgoCDPolicy`, which
+   EKS associated with the access entry when it created the capability.
 
 4. Sign in to the UI of Argo CD. Open the URL that the first command
    printed, and sign in as the administrator through the AWS access portal.
