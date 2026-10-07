@@ -943,7 +943,7 @@ To create the workloads repository:
    - None.
 
    ## Working environment
-   - Create the manifest at parts/50-argo-cd/workloads/nginx-argocd/nginx-argocd.yaml.
+   - Create the manifest at parts/50-argo-cd/workloads/team-a/nginx-argocd/nginx-argocd.yaml.
 
    ## Kubernetes resource settings
 
@@ -988,7 +988,7 @@ To create the workloads repository:
    prompt. In particular, check that it differs from the manifest of the
    sample workload of the tenant part only in its names and labels, and
    that nothing was added that the prompt did not ask for. The file
-   [workloads/nginx-argocd/nginx-argocd.yaml](workloads/nginx-argocd/nginx-argocd.yaml)
+   [workloads/team-a/nginx-argocd/nginx-argocd.yaml](workloads/team-a/nginx-argocd/nginx-argocd.yaml)
    is the result of this step.
 
 2. Create a public repository named `eks-platform-lab-workloads` on
@@ -999,8 +999,8 @@ To create the workloads repository:
    gh repo create <owner>/eks-platform-lab-workloads --public
 
    git init -b main ../eks-platform-lab-workloads
-   cp -r parts/50-argo-cd/workloads/nginx-argocd ../eks-platform-lab-workloads/
-   git -C ../eks-platform-lab-workloads add nginx-argocd
+   cp -r parts/50-argo-cd/workloads/team-a ../eks-platform-lab-workloads/
+   git -C ../eks-platform-lab-workloads add team-a
    git -C ../eks-platform-lab-workloads commit -m "Add the sample workload that Argo CD syncs"
 
    git -C ../eks-platform-lab-workloads remote add origin https://github.com/<owner>/eks-platform-lab-workloads.git
@@ -1008,7 +1008,7 @@ To create the workloads repository:
    ```
 
    Then open the repository on GitHub, and see that it is public and holds
-   `nginx-argocd/nginx-argocd.yaml`.
+   `team-a/nginx-argocd/nginx-argocd.yaml`.
 
 ## Syncing the sample workload
 
