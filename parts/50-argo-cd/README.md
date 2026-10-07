@@ -769,6 +769,158 @@ To grant Argo CD permissions:
 
    The second command prints `argocd`. The last two print `yes` and `no`.
 
+## Creating the AppProject of the tenant with Kubernetes manifests
+
+An [AppProject](https://argo-cd.readthedocs.io/en/stable/user-guide/projects/)
+groups Applications and sets their boundary: the repositories that they
+sync from, the destinations that they sync to, and the kinds of resources
+that they sync. Its project roles decide who may do what with its
+Applications. Argo CD also comes with the AppProject `default`, which
+allows everything, so this step closes it.
+
+To create the AppProject of the tenant:
+
+1. Ask the agent to write the manifests. Start a Claude Code session at
+   the repository root and paste the following prompt.
+
+   ```text
+   /aws-containers
+
+   # Summary
+   Create manifests for the AppProject of a tenant, for the Argo CD capability of an EKS cluster.
+
+   ## Prerequisites
+   - None.
+
+   ## Working environment
+   - Create the manifest of the AppProject team-a at parts/50-argo-cd/manifests/project.yaml.
+   - Create the manifest of the AppProject default at parts/50-argo-cd/manifests/project-default.yaml.
+
+   ## Kubernetes resource settings
+
+   ### Common
+   - Use the namespace argocd.
+
+   ### Kubernetes resource list
+   - AppProject: 2
+
+   ### AppProject team-a
+   - Name it team-a.
+   - Allow the Applications and ApplicationSets of this AppProject to be created only in the namespace argocd.
+   - Allow syncing only from the following repository.
+     - https://github.com/<owner>/eks-platform-lab-workloads.git
+   - Allow syncing only to the namespace team-a of the cluster in-cluster.
+   - Allow syncing only the following kinds of resources in the namespace.
+     - Workloads
+       - Pod, Deployment, StatefulSet, DaemonSet, ReplicaSet
+       - Job, CronJob
+     - Scaling and availability
+       - HorizontalPodAutoscaler
+       - PodDisruptionBudget
+     - Networking
+       - Service
+       - Ingress
+     - Configuration and storage
+       - ConfigMap
+       - PersistentVolumeClaim
+     - Identity of pods
+       - ServiceAccount
+   - Define the following project role.
+     - Name: developer
+     - Members: the IAM Identity Center group <eks-platform-lab-team-a-group-id>
+     - Operations allowed in team-a
+       - Viewing, syncing, and running the built-in actions of Applications
+       - Deleting the pods of Applications
+       - Viewing ApplicationSets
+       - Viewing the logs of the pods of Applications
+
+   ### AppProject default
+   - Change the existing AppProject default so that it allows none of the following.
+     - Syncing from any repository
+     - Syncing to any destination
+     - Creating Applications and ApplicationSets
+     - Syncing cluster-wide resources
+     - Syncing resources in namespaces
+
+   ## Style
+   - Do not write the ID of the IAM Identity Center group eks-platform-lab-team-a in the file; write <eks-platform-lab-team-a-group-id> instead. It is replaced when the manifest is applied.
+   - Keep the manifests, and especially the comments, to the minimum.
+   ```
+
+   The agent writes the manifests. Before you go on, read them against
+   the prompt. In particular, check that the manifest of `default` writes
+   all five of its fields, and that nothing was added that the prompt did
+   not ask for. The files
+   [manifests/project.yaml](manifests/project.yaml) and
+   [manifests/project-default.yaml](manifests/project-default.yaml) are
+   the result of this step.
+
+2. Apply the manifests, with the ID of the group in place of
+   `<eks-platform-lab-team-a-group-id>`. Ask the agent:
+
+   ```text
+   Apply parts/50-argo-cd/manifests/project.yaml to the cluster,
+   with <eks-platform-lab-team-a-group-id> replaced by the ID of the IAM Identity Center group eks-platform-lab-team-a,
+   taken with the profile <account-name>-admin.
+   Then apply parts/50-argo-cd/manifests/project-default.yaml.
+   ```
+
+   Or run the commands yourself:
+
+   ```bash
+   store_id=$( \
+   aws --profile <account-name>-admin \
+     sso-admin list-instances \
+     --query 'Instances[0].IdentityStoreId' \
+     --output text \
+   )
+
+   group_id=$( \
+   aws --profile <account-name>-admin \
+     identitystore get-group-id --identity-store-id "$store_id" \
+     --alternate-identifier '{"UniqueAttribute":{"AttributePath":"DisplayName","AttributeValue":"eks-platform-lab-team-a"}}' \
+     --query 'GroupId' \
+     --output text \
+   )
+
+   sed "s|<eks-platform-lab-team-a-group-id>|${group_id}|" parts/50-argo-cd/manifests/project.yaml | kubectl apply -f -
+
+   kubectl apply -f parts/50-argo-cd/manifests/project-default.yaml
+   ```
+
+   `kubectl` warns that `default` has no record of a previous `apply`,
+   because EKS created it. The warning is expected.
+
+3. Check the AppProjects. The AppProject `team-a` syncs from only one
+   repository into only the namespace `team-a`, and maps the group of the
+   developers to its project role. The AppProject `default` allows nothing.
+
+   To check this, ask the agent:
+
+   ```text
+   Check the AppProjects in the namespace argocd of the cluster:
+
+   - The AppProject team-a
+     - allows syncing from only one repository into only the namespace team-a.
+     - maps the ID of the IAM Identity Center group eks-platform-lab-team-a to its project role developer.
+   - The AppProject default allows no repository, no destination, and no source namespace.
+   ```
+
+   Or run the commands yourself:
+
+   ```bash
+   kubectl get appproject team-a -n argocd \
+     -o jsonpath='{.spec.sourceRepos}{"\n"}{.spec.destinations}{"\n"}{.spec.roles[0].name} {.spec.roles[0].groups}{"\n"}'
+
+   kubectl get appproject default -n argocd \
+     -o jsonpath='{.spec.sourceRepos}{"\n"}{.spec.destinations}{"\n"}{.spec.sourceNamespaces}{"\n"}'
+   ```
+
+   The first command prints the URL of the repository, the
+   destination `in-cluster` and `team-a`, and the role `developer` with
+   the ID of the group, which is the `group_id` above. The second prints
+   three empty lists.
+
 ## Creating the workloads repository
 
 Argo CD syncs the manifests that it reads from a Git repository. The
