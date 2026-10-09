@@ -1,0 +1,55 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: team-a
+  namespace: argocd
+spec:
+  sourceNamespaces:
+    - argocd
+  sourceRepos:
+    - https://github.com/hainet50b/eks-platform-lab-workloads.git
+  destinations:
+    - name: in-cluster
+      namespace: team-a
+  namespaceResourceWhitelist:
+    - group: ""
+      kind: Pod
+    - group: apps
+      kind: Deployment
+    - group: apps
+      kind: StatefulSet
+    - group: apps
+      kind: DaemonSet
+    - group: apps
+      kind: ReplicaSet
+    - group: argoproj.io
+      kind: Rollout
+    - group: batch
+      kind: Job
+    - group: batch
+      kind: CronJob
+    - group: autoscaling
+      kind: HorizontalPodAutoscaler
+    - group: policy
+      kind: PodDisruptionBudget
+    - group: ""
+      kind: Service
+    - group: networking.k8s.io
+      kind: Ingress
+    - group: ""
+      kind: ConfigMap
+    - group: ""
+      kind: PersistentVolumeClaim
+    - group: ""
+      kind: ServiceAccount
+  roles:
+    - name: developer
+      groups:
+        - <eks-platform-lab-team-a-group-id>
+      policies:
+        - p, proj:team-a:developer, applications, get, team-a/*, allow
+        - p, proj:team-a:developer, applications, sync, team-a/*, allow
+        - p, proj:team-a:developer, applications, action/*, team-a/*, allow
+        - p, proj:team-a:developer, applications, delete/*/Pod/*/*, team-a/*, allow
+        - p, proj:team-a:developer, applicationsets, get, team-a/*, allow
+        - p, proj:team-a:developer, logs, get, team-a/*, allow
