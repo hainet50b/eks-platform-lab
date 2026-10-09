@@ -1,0 +1,40 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: rollouts-edit
+  namespace: team-a
+rules:
+  - apiGroups: ["argoproj.io"]
+    resources: ["rollouts"]
+    verbs: ["create", "update", "patch", "delete"]
+  - apiGroups: ["argoproj.io"]
+    resources: ["rollouts/status"]
+    verbs: ["update", "patch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: developer-rollouts
+  namespace: team-a
+subjects:
+  - kind: Group
+    name: team-a-dev
+    apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: Role
+  name: rollouts-edit
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: argocd-rollouts
+  namespace: team-a
+subjects:
+  - kind: Group
+    name: argocd
+    apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: Role
+  name: rollouts-edit
+  apiGroup: rbac.authorization.k8s.io
