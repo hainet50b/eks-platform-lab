@@ -24,6 +24,14 @@ spec:
           image: public.ecr.aws/nginx/nginx-unprivileged:1.30.5
           ports:
             - containerPort: 8080
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 8080
+          lifecycle:
+            preStop:
+              sleep:
+                seconds: 10
           securityContext:
             allowPrivilegeEscalation: false
             capabilities:
