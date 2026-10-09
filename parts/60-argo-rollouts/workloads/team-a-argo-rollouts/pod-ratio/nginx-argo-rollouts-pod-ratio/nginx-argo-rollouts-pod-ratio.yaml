@@ -1,0 +1,83 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
+metadata:
+  name: nginx-argo-rollouts-pod-ratio
+  namespace: team-a
+  labels:
+    app.kubernetes.io/name: nginx-argo-rollouts-pod-ratio
+spec:
+  replicas: 4
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: nginx-argo-rollouts-pod-ratio
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: nginx-argo-rollouts-pod-ratio
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: nginx-argo-rollouts-pod-ratio
+          image: public.ecr.aws/nginx/nginx-unprivileged:1.30.5
+          ports:
+            - containerPort: 8080
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              memory: 128Mi
+  strategy:
+    # Without a traffic router, the weight is the ratio of new Pods.
+    canary:
+      steps:
+        - setWeight: 25
+        - pause: {}
+        - setWeight: 50
+        - pause:
+            duration: 60s
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-argo-rollouts-pod-ratio
+  namespace: team-a
+  labels:
+    app.kubernetes.io/name: nginx-argo-rollouts-pod-ratio
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: nginx-argo-rollouts-pod-ratio
+  ports:
+    - port: 80
+      targetPort: 8080
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: nginx-argo-rollouts-pod-ratio
+  namespace: team-a
+  labels:
+    app.kubernetes.io/name: nginx-argo-rollouts-pod-ratio
+  annotations:
+    alb.ingress.kubernetes.io/target-type: ip
+spec:
+  ingressClassName: alb
+  rules:
+    - http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: nginx-argo-rollouts-pod-ratio
+                port:
+                  number: 80
