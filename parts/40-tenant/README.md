@@ -159,14 +159,14 @@ NodePool launches. In this lab, they are set as follows:
 
 | | Default per container | Cap per container | Cap for the tenant |
 | --- | :---: | :---: | :---: |
-| CPU request | 100m | — | 2 vCPUs |
+| CPU request | 100m | — | 6 vCPUs |
 | CPU limit\* | — | — | — |
-| Memory request | 128 MiB | — | 4 GiB |
-| Memory limit | 128 MiB | 2 GiB | 4 GiB |
-| Pods | | | 10 |
+| Memory request | 128 MiB | — | 12 GiB |
+| Memory limit | 128 MiB | 2 GiB | 12 GiB |
+| Pods | | | 30 |
 | Storage request | | | 20 GiB |
 | PersistentVolumeClaims | | | 4 |
-| Ingresses | | | 2 |
+| Ingresses | | | 6 |
 | Services of type LoadBalancer or NodePort | | | 0 |
 
 \* No CPU limit anywhere: a CPU limit throttles a container while its
@@ -593,13 +593,13 @@ To limit the resources of the namespace:
 
    ### ResourceQuota
    - Cap the namespace as follows.
-     - CPU requests: 2
-     - Memory requests: 4Gi
-     - Memory limits: 4Gi
-     - Number of pods: 10
+     - CPU requests: 6
+     - Memory requests: 12Gi
+     - Memory limits: 12Gi
+     - Number of pods: 30
      - Storage requests: 20Gi
      - Number of PersistentVolumeClaims: 4
-     - Number of Ingresses: 2
+     - Number of Ingresses: 6
    - Allow no Service of the following types.
      - LoadBalancer
      - NodePort
