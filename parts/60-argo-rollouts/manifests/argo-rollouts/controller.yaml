@@ -1,0 +1,14 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: argo-rollouts
+spec:
+  template:
+    spec:
+      nodeSelector:
+        karpenter.sh/nodepool: system
+      tolerations:
+        # The system NodePool taints its nodes with this key.
+        - key: CriticalAddonsOnly
+          operator: Exists
+          effect: NoSchedule
