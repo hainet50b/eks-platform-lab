@@ -79,6 +79,13 @@ This repository is split into numbered parts under [`parts/`](parts/).
 │   │   │                                                  │   │   │
 │   │   └──────────────────────────────────────────────────┘   │   │
 │   │                                                          │   │
+│   │   ┌─ 60 argo-rollouts ───────────────────────────────┐   │   │
+│   │   │                                                  │   │   │
+│   │   │   Argo Rollouts, which rolls out a new version   │   │   │
+│   │   │   of a workload in steps                         │   │   │
+│   │   │                                                  │   │   │
+│   │   └──────────────────────────────────────────────────┘   │   │
+│   │                                                          │   │
 │   └──────────────────────────────────────────────────────────┘   │
 │                                                                  │
 └──────────────────────────────────────────────────────────────────┘
@@ -99,6 +106,7 @@ instructions.
 | [30 workload](parts/30-workload/README.md) | A NodePool, an IngressClass, and a sample workload |
 | [40 tenant](parts/40-tenant/README.md) | A namespace with guardrails, and a developer who may work only there |
 | [50 argo-cd](parts/50-argo-cd/README.md) | Argo CD, which keeps the workloads in sync with a Git repository |
+| [60 argo-rollouts](parts/60-argo-rollouts/README.md) | Argo Rollouts, which rolls out a new version of a workload in steps |
 
 ## Tools
 
@@ -109,6 +117,7 @@ The tools that this repository uses.
 | [AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-welcome.html) | [01 aws-cli](parts/01-aws-cli/README.md#aws-cli) |
 | [Terraform](https://developer.hashicorp.com/terraform) | [05 terraform-state](parts/05-terraform-state/README.md#creating-the-bucket-with-terraform) |
 | [kubectl](https://kubernetes.io/docs/reference/kubectl/) | [20 eks-cluster](parts/20-eks-cluster/README.md#creating-the-cluster-with-terraform) |
+| [Argo Rollouts kubectl plugin](https://argo-rollouts.readthedocs.io/en/stable/installation/#kubectl-plugin-installation) | [60 argo-rollouts](parts/60-argo-rollouts/README.md) |
 
 ## Skills
 
