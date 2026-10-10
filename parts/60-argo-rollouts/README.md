@@ -20,13 +20,13 @@ The components of this part and how they work together:
 │   │            ├─▶│  the Argo Rollouts design                │                         │
 │   │            │  └──────────────────────────────────────────┘                         │
 │   │            │  ┌─ this repository ────────────────────────┐                         │
-│   │            │  │  ┌─ 4. ───────────────────────────────┐  │                         │
+│   │            │  │  ┌─ 5. ───────────────────────────────┐  │                         │
 │   │            ├──┼─▶│  manifest of the sample workload   │  │                         │
 │   │            │  │  └──────────────────┬─────────────────┘  │                         │
 │   │            │  └─────────────────────┼────────────────────┘                         │
 │   │            │                        │ is copied to                                 │
 │   │            │                        ▼                                              │
-│   │            │  ┌─ 4. ─────────────────────────────────────┐                         │
+│   │            │  ┌─ 5. ─────────────────────────────────────┐                         │
 │   ├─ pushes ───┼─▶│  workloads repository                    │                         │
 │   │            │  └─────────────────────┬────────────────────┘                         │
 │   ▼            ▼                        │ is read by                                   │
@@ -38,15 +38,15 @@ The components of this part and how they work together:
 │  │                  │ reads                               │                         │  │
 │  │                  ▼                                     ▼                         │  │
 │  │  ┌─ argocd namespace ───────────┐  ┌─ namespace (part 40) ─────────────────────┐ │  │
-│  │  │  ┌─ 3. ───────────────────┐  │  │  ┌─ 3. ────────────────────────────────┐  │ │  │
+│  │  │  ┌─ 4. ───────────────────┐  │  │  ┌─ 3. ────────────────────────────────┐  │ │  │
 │  │  │  │  AppProject            │  │  │  │  Role and RoleBindings              │  │ │  │
 │  │  │  └────────────────────────┘  │  │  └─────────────────────────────────────┘  │ │  │
-│  │  │  ┌─ 4. ───────────────────┐  │  │  ┌─ 4. ────────────────────────────────┐  │ │  │
+│  │  │  ┌─ 5. ───────────────────┐  │  │  ┌─ 5. ────────────────────────────────┐  │ │  │
 │  │  │  │  ApplicationSet        │  │  │  │  sample workload                    │  │ │  │
 │  │  │  └────────────┬───────────┘  │  │  │  ┌────────────┐   ┌───────────────┐ │  │ │  │
 │  │  │               │ creates      │  │  │  │  Rollout   │   │  ReplicaSets  │ │  │ │  │
 │  │  │               ▼              │  │  │  └────────────┘   └───────────────┘ │  │ │  │
-│  │  │  ┌─ 4. ───────────────────┐  │  │  │        ▲                 ▲          │  │ │  │
+│  │  │  ┌─ 5. ───────────────────┐  │  │  │        ▲                 ▲          │  │ │  │
 │  │  │  │  Application           │  │  │  └────────┼─────────────────┼──────────┘  │ │  │
 │  │  │  └────────────────────────┘  │  │           │                 │             │ │  │
 │  │  └──────────────────────────────┘  └───────────┼─────────────────┼─────────────┘ │  │
@@ -73,10 +73,11 @@ The components of this part and how they work together:
 | --- | --- |
 | [1. Reviewing the Argo Rollouts design](#reviewing-the-argo-rollouts-design) | Reviews the design of the Argo Rollouts controller, the permissions to write Rollouts, the AppProject of the tenant, the sample workload, and its ApplicationSet |
 | [2. Installing Argo Rollouts with Kustomize](#installing-argo-rollouts-with-kustomize) | Installs the CRDs and the controller of Argo Rollouts |
-| [3. Granting permissions to write Rollouts with Kubernetes manifests](#granting-permissions-to-write-rollouts-with-kubernetes-manifests) | Creates the Role and the RoleBindings that let the developers and Argo CD write Rollouts in the tenant namespace, and lets the AppProject of the tenant sync Rollouts |
-| [4. Creating the sample workload](#creating-the-sample-workload) | Creates a sample workload as a Rollout, and the ApplicationSet that syncs it into the tenant namespace |
-| [5. Rolling out a new version](#rolling-out-a-new-version) | Rolls out a new version of the sample workload, and promotes it |
-| [6. Aborting a rollout](#aborting-a-rollout) | Aborts a rollout of the sample workload in progress, and the previous version keeps running |
+| [3. Granting permissions to write Rollouts with a Kubernetes manifest](#granting-permissions-to-write-rollouts-with-a-kubernetes-manifest) | Creates the Role and the RoleBindings that let the developers and Argo CD write Rollouts in the tenant namespace |
+| [4. Allowing the Applications of the tenant to sync Rollouts with a Kubernetes manifest](#allowing-the-applications-of-the-tenant-to-sync-rollouts-with-a-kubernetes-manifest) | Adds Rollout to the allow list of the AppProject of the tenant |
+| [5. Creating the sample workload](#creating-the-sample-workload) | Creates a sample workload as a Rollout, and the ApplicationSet that syncs it into the tenant namespace |
+| [6. Rolling out a new version](#rolling-out-a-new-version) | Rolls out a new version of the sample workload, and promotes it |
+| [7. Aborting a rollout](#aborting-a-rollout) | Aborts a rollout of the sample workload in progress, and the previous version keeps running |
 
 ## Reviewing the Argo Rollouts design
 
@@ -89,7 +90,7 @@ command.
 To review the design, start a Claude Code session at the repository root
 and paste the following review request. Fill its "Design" section with
 the "Kubernetes resource settings" sections of the prompts of steps 2 to
-4, in this order.
+5, in this order.
 
 ````text
 /apex:eks-design
@@ -109,13 +110,13 @@ Review the design with the context in mind.
 
 ## Design
 ```
-(the "Kubernetes resource settings" sections of the prompts of steps 2 to 4)
+(the "Kubernetes resource settings" sections of the prompts of steps 2 to 5)
 ```
 ````
 
 The command answers with a table of findings ranked by severity and the
 details of each finding. Fix the design according to the findings, and
-review it again until nothing new comes up. The prompts of steps 2 to 4
+review it again until nothing new comes up. The prompts of steps 2 to 5
 are the result of a few rounds.
 
 ## Installing Argo Rollouts with Kustomize
@@ -249,3 +250,197 @@ To install Argo Rollouts:
    The pod is `Running` on a node whose NodePool is `system`. The API
    group lists Rollout. The last command prints `No resources found`, not
    `Forbidden`.
+
+## Granting permissions to write Rollouts with a Kubernetes manifest
+
+The developers and Argo CD may read Rollouts through the built-in role
+view, but writing them needs a Role that allows writing Rollouts and
+their status. This step grants the Role to the developers and Argo CD.
+
+To grant the permissions:
+
+1. Ask the agent to write the manifest. Start a Claude Code session at the
+   repository root and paste the following prompt.
+
+   ```text
+   /aws-containers
+
+   # Summary
+   Create a manifest that grants the developers and the Argo CD capability the permissions to write Rollouts of Argo Rollouts in the tenant of the EKS cluster.
+
+   ## Prerequisites
+   - None.
+
+   ## Working environment
+   - Create the manifest at parts/60-argo-rollouts/manifests/rbac.yaml.
+
+   ## Kubernetes resource settings
+
+   ### Common
+   - Use the namespace team-a.
+
+   ### Kubernetes resource list
+   - Role: 1
+   - RoleBinding: 2
+
+   ### Role
+   - Name it rollouts-edit.
+   - Allow creating, updating, and deleting Rollouts.
+   - Allow updating the status of Rollouts.
+
+   ### RoleBinding for the developers
+   - Name it developer-rollouts.
+   - Grant the permissions of the Role rollouts-edit to the group team-a-dev.
+
+   ### RoleBinding for Argo CD
+   - Name it argocd-rollouts.
+   - Grant the permissions of the Role rollouts-edit to the group argocd.
+
+   ## Style
+   - Keep the manifest, and especially the comments, to the minimum.
+   ```
+
+   The agent writes the manifest. Before you go on, read it against the
+   prompt. In particular, check that the Role allows nothing but Rollouts
+   and their status, and that nothing was added that the prompt did not
+   ask for. The file [manifests/rbac.yaml](manifests/rbac.yaml) is the
+   result of this step.
+
+2. Apply the manifest. Ask the agent:
+
+   ```text
+   Apply parts/60-argo-rollouts/manifests/rbac.yaml to the cluster.
+   ```
+
+   Or run the command yourself:
+
+   ```bash
+   kubectl apply -f parts/60-argo-rollouts/manifests/rbac.yaml
+   ```
+
+3. Check the permissions. The developers and Argo CD may create Rollouts
+   and update their status in the namespace `team-a`.
+
+   To check this, ask the agent:
+
+   ```text
+   Check the permissions on Rollouts in the cluster:
+
+   - With the context <account-name>-team-a-dev, Rollouts can be created and their status can be patched in the namespace team-a.
+   - The group argocd can create Rollouts and patch their status in the namespace team-a.
+   ```
+
+   Or run the commands yourself:
+
+   ```bash
+   kubectl --context <account-name>-team-a-dev \
+     auth can-i create rollouts.argoproj.io -n team-a
+
+   kubectl --context <account-name>-team-a-dev \
+     auth can-i patch rollouts.argoproj.io --subresource=status -n team-a
+
+   kubectl --as=argocd-check --as-group=argocd \
+     auth can-i create rollouts.argoproj.io -n team-a
+
+   kubectl --as=argocd-check --as-group=argocd \
+     auth can-i patch rollouts.argoproj.io --subresource=status -n team-a
+   ```
+
+   All four commands print `yes`.
+
+## Allowing the Applications of the tenant to sync Rollouts with a Kubernetes manifest
+
+The AppProject of the tenant lists the kinds of resources in namespaces
+that its Applications may sync. Rollout is not in the list, so Argo CD
+does not sync a Rollout of the tenant until the AppProject allows it.
+
+To allow the Applications to sync Rollouts:
+
+1. Ask the agent to write the manifest. Start a Claude Code session at the
+   repository root and paste the following prompt.
+
+   ```text
+   /aws-containers
+
+   # Summary
+   Create a manifest that adds Rollouts of Argo Rollouts to the kinds of resources that an AppProject of the Argo CD capability allows to sync.
+
+   ## Prerequisites
+   - None.
+
+   ## Working environment
+   - Create the manifest at parts/60-argo-rollouts/manifests/project.yaml.
+
+   ## Kubernetes resource settings
+
+   ### Kubernetes resource list
+   - AppProject: 1
+
+   ### AppProject
+   - The AppProject to change is in parts/50-argo-cd/manifests/project.yaml.
+   - Add Rollouts of Argo Rollouts to the kinds of resources in namespaces that it allows to sync.
+   - Keep its other settings as they are.
+
+   ## Style
+   - Keep the manifest, and especially the comments, to the minimum.
+   ```
+
+   The agent writes the manifest. Before you go on, compare it with the
+   AppProject that it changes:
+
+   ```bash
+   diff \
+     parts/50-argo-cd/manifests/project.yaml \
+     parts/60-argo-rollouts/manifests/project.yaml
+   ```
+
+   The only difference is Rollout with the group `argoproj.io`. The file
+   [manifests/project.yaml](manifests/project.yaml) is the result of this
+   step.
+
+2. Apply the manifest, with the ID of the group in place of
+   `<eks-platform-lab-team-a-group-id>`. Ask the agent:
+
+   ```text
+   Apply parts/60-argo-rollouts/manifests/project.yaml to the cluster,
+   with <eks-platform-lab-team-a-group-id> replaced by the ID of the IAM Identity Center group eks-platform-lab-team-a,
+   taken with the profile <account-name>-admin.
+   ```
+
+   Or run the commands yourself:
+
+   ```bash
+   store_id=$( \
+   aws --profile <account-name>-admin \
+     sso-admin list-instances \
+     --query 'Instances[0].IdentityStoreId' \
+     --output text \
+   )
+
+   group_id=$( \
+   aws --profile <account-name>-admin \
+     identitystore get-group-id --identity-store-id "$store_id" \
+     --alternate-identifier '{"UniqueAttribute":{"AttributePath":"DisplayName","AttributeValue":"eks-platform-lab-team-a"}}' \
+     --query 'GroupId' \
+     --output text \
+   )
+
+   sed "s|<eks-platform-lab-team-a-group-id>|${group_id}|" parts/60-argo-rollouts/manifests/project.yaml | kubectl apply -f -
+   ```
+
+3. Check the AppProject. The AppProject `team-a` allows Rollouts.
+
+   To check this, ask the agent:
+
+   ```text
+   Check that the AppProject team-a in the namespace argocd of the cluster allows Rollouts in namespaces.
+   ```
+
+   Or run the command yourself:
+
+   ```bash
+   kubectl get appproject team-a -n argocd \
+     -o jsonpath='{.spec.namespaceResourceWhitelist[?(@.kind=="Rollout")]}'
+   ```
+
+   The output is Rollout with the group `argoproj.io`.
