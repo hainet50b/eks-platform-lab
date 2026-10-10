@@ -77,3 +77,43 @@ The components of this part and how they work together:
 | [4. Creating the sample workload](#creating-the-sample-workload) | Creates a sample workload as a Rollout, and the ApplicationSet that syncs it into the tenant namespace |
 | [5. Rolling out a new version](#rolling-out-a-new-version) | Rolls out a new version of the sample workload, and promotes it |
 | [6. Aborting a rollout](#aborting-a-rollout) | Aborts a rollout of the sample workload in progress, and the previous version keeps running |
+
+## Reviewing the Argo Rollouts design
+
+The steps that follow install Argo Rollouts and deploy a sample workload
+of the tenant as a Rollout through the Argo CD capability. Before you ask
+the agent to write the Kubernetes manifests, review their design with the
+[`/apex:eks-design`](https://aws-samples.github.io/sample-apex-skills/docs/steering/commands/apex/eks-design)
+command.
+
+To review the design, start a Claude Code session at the repository root
+and paste the following review request. Fill its "Design" section with
+the "Kubernetes resource settings" sections of the prompts of steps 2 to
+4, in this order.
+
+````text
+/apex:eks-design
+
+# Review request
+On an EKS Auto Mode cluster, I am installing Argo Rollouts and rolling out a sample application of a tenant in steps with a Rollout, through the Argo CD capability.
+The design below consists of the following.
+- The installation of Argo Rollouts
+- The permissions for the developers and Argo CD to write Rollouts in the tenant
+- The AppProject of the tenant
+- The Rollout, Service, and Ingress of the sample application, kept in a Git repository
+- The ApplicationSet that creates the Applications of the workloads that use Rollouts
+Review the design with the context in mind.
+
+## Context
+- This is a personal lab. It is torn down every night to keep the cost down.
+
+## Design
+```
+(the "Kubernetes resource settings" sections of the prompts of steps 2 to 4)
+```
+````
+
+The command answers with a table of findings ranked by severity and the
+details of each finding. Fix the design according to the findings, and
+review it again until nothing new comes up. The prompts of steps 2 to 4
+are the result of a few rounds.
