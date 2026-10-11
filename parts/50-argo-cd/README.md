@@ -1233,9 +1233,9 @@ To tear down the Argo CD part:
    ```
 
    With `--cascade=foreground`, the command returns after the Application
-   is gone. Argo CD deletes the sample workload first, and its Ingress is
-   not gone until the cluster has deleted the ALB, so the command takes a
-   little while.
+   is gone. The Application waits until Argo CD has deleted the sample
+   workload, whose Ingress in turn waits until the cluster has deleted
+   the ALB. So the command takes a little while.
 
 2. Delete the permissions of Argo CD. Ask the agent:
 
