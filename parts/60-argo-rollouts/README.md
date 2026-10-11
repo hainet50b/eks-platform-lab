@@ -77,7 +77,7 @@ The components of this part and how they work together:
 | [4. Allowing the Applications of the tenant to sync Rollouts with a Kubernetes manifest](#allowing-the-applications-of-the-tenant-to-sync-rollouts-with-a-kubernetes-manifest) | Adds Rollout to the allow list of the AppProject of the tenant |
 | [5. Creating the sample workload](#creating-the-sample-workload) | Creates a sample workload as a Rollout, and the ApplicationSet that syncs it into the tenant namespace |
 | [6. Rolling out a new version](#rolling-out-a-new-version) | Rolls out a new version of the sample workload, and promotes it |
-| [7. Aborting a rollout](#aborting-a-rollout) | Aborts a rollout of the sample workload in progress, and the previous version keeps running |
+| [7. Aborting a rollout](#aborting-a-rollout) | Aborts a rollout of the sample workload in progress, and the old version keeps running |
 
 ## Reviewing the Argo Rollouts design
 
@@ -694,9 +694,9 @@ To create the sample workload:
 
 When the image of the sample workload changes in Git, the Rollout
 replaces its pods through its steps. This step rolls out a new version,
-and sees the ratio of the pods and of the requests change at each step.
+and shows the ratio of the pods and of the requests change at each step.
 At the step that waits to be promoted, the developer promotes the
-Rollout in the UI of Argo CD to go on, or promotes it fully to skip the
+Rollout in the UI of Argo CD to go on, or uses promote-full to skip the
 remaining steps.
 
 To roll out a new version:
@@ -801,10 +801,10 @@ To roll out a new version:
 ## Aborting a rollout
 
 Abort stops a rollout in progress, and gives all the pods back to the
-version that ran before it. The Rollout is then `Degraded`, because Git
-still asks for the new version. A commit that reverts the change makes
-Git ask for the running version again, and the Rollout becomes `Healthy`
-without taking the steps.
+old version. The Rollout is then `Degraded`, because Git still asks for
+the new version. A commit that reverts the change makes Git ask for the
+running version again, and the Rollout becomes `Healthy` without taking
+the steps.
 
 To abort a rollout:
 
