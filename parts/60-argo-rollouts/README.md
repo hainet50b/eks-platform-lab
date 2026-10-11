@@ -999,3 +999,25 @@ To tear down the Argo Rollouts part:
    nodes has no node of the NodePool `system`, although the node of the
    controller can take several minutes to go away. The last command
    prints nothing.
+
+## Cost
+
+This part is charged for the following resources while the controller
+and the sample workload run.
+
+| Resource | Name | Per day | Per month |
+| --- | --- | --- | --- |
+| Application managed by the capability | `team-a-nginx-argo-rollouts-pod-ratio` | 0.044 USD | 1.35 USD |
+| EC2 instance for the controller | `c6g.large`\* | 2.05 USD | 62.49 USD |
+| EKS Auto Mode management for the controller | | 0.25 USD | 7.50 USD |
+| EBS volumes for the controller | `gp3`, 4 GiB and 80 GiB | 0.27 USD | 8.06 USD |
+| EC2 instance for the sample workload | `c5a.large`\* | 2.30 USD | 70.08 USD |
+| EKS Auto Mode management for the sample workload | | 0.28 USD | 8.41 USD |
+| EBS volumes for the sample workload | `gp3`, 4 GiB and 80 GiB | 0.27 USD | 8.06 USD |
+| Application Load Balancer | `k8s-teama-nginxarg-<hash>` | 0.58 USD | 17.74 USD |
+| Capacity used by the load balancer | | 0.008 USD per LCU-hour | 0.008 USD per LCU-hour |
+| Public IPv4 addresses of the load balancer, one per Availability Zone | | 0.24 USD | 7.30 USD |
+| Data processed by the NAT gateway, such as the images pulled by the nodes | | 0.062 USD per GB | 0.062 USD per GB |
+
+\* The type that the cluster picked as the cheapest that satisfies the
+NodePool. It may pick another type of the same size.
