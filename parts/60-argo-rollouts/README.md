@@ -72,7 +72,7 @@ The components of this part and how they work together:
 | Step | Does |
 | --- | --- |
 | [1. Reviewing the Argo Rollouts design](#reviewing-the-argo-rollouts-design) | Reviews the design of the Argo Rollouts controller, the permissions to write Rollouts, the AppProject of the tenant, the sample workload, and its ApplicationSet |
-| [2. Installing Argo Rollouts with Kustomize](#installing-argo-rollouts-with-kustomize) | Installs the CRDs and the controller of Argo Rollouts |
+| [2. Installing Argo Rollouts with Kustomize](#installing-argo-rollouts-with-kustomize) | Installs the CRDs and the controller of Argo Rollouts, and invalidates the cache of Argo CD |
 | [3. Granting permissions to write Rollouts with a Kubernetes manifest](#granting-permissions-to-write-rollouts-with-a-kubernetes-manifest) | Creates the Role and the RoleBindings that let the developers and Argo CD write Rollouts in the tenant namespace |
 | [4. Allowing the Applications of the tenant to sync Rollouts with a Kubernetes manifest](#allowing-the-applications-of-the-tenant-to-sync-rollouts-with-a-kubernetes-manifest) | Adds Rollout to the allow list of the AppProject of the tenant |
 | [5. Creating the sample workload](#creating-the-sample-workload) | Creates a sample workload as a Rollout, and the ApplicationSet that syncs it into the tenant namespace |
@@ -192,29 +192,18 @@ To install Argo Rollouts:
    The directory [manifests/argo-rollouts](manifests/argo-rollouts) is
    the result of this step.
 
-2. Apply the kustomization in two passes: first the ClusterRoles that
-   add the permissions on Rollouts to the built-in roles, then the rest.
-   Argo CD checks whether it may read Rollouts when their CRD appears,
-   and leaves them out if it may not. With the ClusterRoles in place
-   first, Argo CD can read Rollouts as soon as the CRD appears.
-   Both passes use server-side apply, because the CRDs are too large for
-   the annotation that a client-side apply adds. Ask the agent:
+2. Apply the kustomization with server-side apply, because the CRDs are
+   too large for the annotation that a client-side apply adds. Ask the
+   agent:
 
    ```text
    Apply the kustomization parts/60-argo-rollouts/manifests/argo-rollouts to the cluster
-   with server-side apply, in two passes:
-
-   1. Only the ClusterRoles labeled app.kubernetes.io/component=aggregate-cluster-role
-   2. All of it
+   with server-side apply.
    ```
 
-   Or run the commands yourself:
+   Or run the command yourself:
 
    ```bash
-   kubectl apply -k parts/60-argo-rollouts/manifests/argo-rollouts \
-     --server-side \
-     -l app.kubernetes.io/component=aggregate-cluster-role
-
    kubectl apply -k parts/60-argo-rollouts/manifests/argo-rollouts \
      --server-side
    ```
@@ -250,6 +239,24 @@ To install Argo Rollouts:
    The pod is `Running` on a node whose NodePool is `system`. The API
    group lists Rollout. The last command prints `No resources found`, not
    `Forbidden`.
+
+4. Invalidate the cache of Argo CD. Argo CD looks up the kinds of
+   resources that it may read in the cluster, then builds a cache of the
+   resources of those kinds. A kind added after the cache is built, such
+   as Rollout, is not in the cache.
+
+   To rebuild the cache, sign in to the UI of Argo CD as the
+   administrator. To get the URL of the UI, run:
+
+   ```bash
+   aws --profile <account-name>-admin \
+     eks describe-capability --cluster-name eks-platform-lab --capability-name argocd \
+     --query 'capability.configuration.argoCd.serverUrl' \
+     --output text
+   ```
+
+   Then open **Settings**, then **Clusters**, then `in-cluster`, and
+   select **Invalidate Cache**.
 
 ## Granting permissions to write Rollouts with a Kubernetes manifest
 
@@ -444,3 +451,238 @@ To allow the Applications to sync Rollouts:
    ```
 
    The output is Rollout with the group `argoproj.io`.
+
+## Creating the sample workload
+
+A [Rollout](https://argo-rollouts.readthedocs.io/en/stable/features/specification/)
+has the same pod template as a Deployment, and adds a strategy that
+replaces the pods of the old version with those of the new version in
+steps. Each step of the
+[canary strategy](https://argo-rollouts.readthedocs.io/en/stable/features/canary/)
+either sets the weight of the new version or pauses. Without a traffic
+router, the weight is the ratio of the pods of the new version. The
+sample workload takes the following steps:
+
+- 25%, then pause until it is promoted
+- 50%, then pause for 60 seconds
+- 100%
+
+Its pods also have a readiness probe and wait 10 seconds before they
+stop, so that the ALB sends requests only to the pods that can answer
+them while the pods are replaced.
+
+To create the sample workload:
+
+1. Ask the agent to write the manifest of the sample workload. Start a
+   Claude Code session at the repository root and paste the following
+   prompt.
+
+   ```text
+   /aws-containers
+
+   # Summary
+   Create a manifest for the Rollout of Argo Rollouts, Service, and Ingress of a sample workload in a tenant on an EKS Auto Mode cluster.
+
+   ## Prerequisites
+   - None.
+
+   ## Working environment
+   - Create the manifest at parts/60-argo-rollouts/workloads/team-a-argo-rollouts/pod-ratio/nginx-argo-rollouts-pod-ratio/nginx-argo-rollouts-pod-ratio.yaml.
+
+   ## Kubernetes resource settings
+
+   ### Common
+   - Use the namespace team-a.
+   - Use the label app.kubernetes.io/name: nginx-argo-rollouts-pod-ratio.
+
+   ### Kubernetes resource list
+   - Rollout: 1
+   - Service: 1
+   - Ingress: 1
+
+   ### Rollout
+   - Name it nginx-argo-rollouts-pod-ratio.
+   - Run 4 replicas.
+   - Use the following container image.
+     - Image: public.ecr.aws/nginx/nginx-unprivileged
+     - Tag: the latest release of the stable line
+   - Make the pods meet the restricted level of Pod Security Standards.
+   - Request the following resources.
+     - CPU: 100m
+     - Memory: 128Mi
+   - Limit the memory only, to 128Mi.
+   - Switch to a new version as follows.
+     - Raise the ratio of the pods of the new version to 25%, 50%, and 100%, in this order.
+     - At 25%, wait until a developer promotes it.
+     - At 50%, wait 60 seconds, then go on.
+   - Check whether a pod can take requests with an HTTP GET of the path / on port 8080.
+   - Make the container wait 10 seconds before it stops.
+
+   ### Service
+   - Name it nginx-argo-rollouts-pod-ratio.
+   - Make it reachable only from inside the cluster.
+   - Send to the pods of the Rollout nginx-argo-rollouts-pod-ratio.
+   - Receive on port 80 and send to port 8080 of the pods.
+
+   ### Ingress
+   - Name it nginx-argo-rollouts-pod-ratio.
+   - Use the IngressClass alb.
+   - Make the IP addresses of the pods the targets of the ALB.
+   - Set no host, and send every request under the path / to port 80 of the Service nginx-argo-rollouts-pod-ratio.
+
+   ## Style
+   - Keep the manifest, and especially the comments, to the minimum.
+   ```
+
+   The agent writes the manifest. Before you go on, read it against the
+   prompt, and check that nothing was added that the prompt did not ask
+   for. The file
+   [workloads/team-a-argo-rollouts/pod-ratio/nginx-argo-rollouts-pod-ratio/nginx-argo-rollouts-pod-ratio.yaml](workloads/team-a-argo-rollouts/pod-ratio/nginx-argo-rollouts-pod-ratio/nginx-argo-rollouts-pod-ratio.yaml)
+   is the result of this step.
+
+2. Push the directory of the sample workload to the workloads
+   repository:
+
+   ```bash
+   mkdir -p ../eks-platform-lab-workloads/team-a-argo-rollouts/pod-ratio
+   cp -r parts/60-argo-rollouts/workloads/team-a-argo-rollouts/pod-ratio/nginx-argo-rollouts-pod-ratio \
+     ../eks-platform-lab-workloads/team-a-argo-rollouts/pod-ratio/
+
+   git -C ../eks-platform-lab-workloads add team-a-argo-rollouts
+   git -C ../eks-platform-lab-workloads commit -m "Add the sample workload that rolls out in steps"
+
+   git -C ../eks-platform-lab-workloads push
+   ```
+
+3. Ask the agent to write the manifest of the ApplicationSet. Start a
+   Claude Code session at the repository root and paste the following
+   prompt. Replace `<owner>` with the owner of the workloads repository.
+
+   ```text
+   /aws-containers
+
+   # Summary
+   Create a manifest for an ApplicationSet that creates the Applications of a tenant that use Rollouts of Argo Rollouts, for the Argo CD capability of an EKS cluster.
+
+   ## Prerequisites
+   - None.
+
+   ## Working environment
+   - Create the manifest at parts/60-argo-rollouts/manifests/applicationset.yaml.
+
+   ## Kubernetes resource settings
+
+   ### Common
+   - Put the ApplicationSet in the namespace argocd.
+
+   ### Kubernetes resource list
+   - ApplicationSet: 1
+
+   ### ApplicationSet
+   - Name it team-a-argo-rollouts-pod-ratio.
+   - Create an Application for each directory right under the following directory.
+     - Repository: https://github.com/<owner>/eks-platform-lab-workloads.git
+     - Branch: main
+     - Directory: team-a-argo-rollouts/pod-ratio
+   - Make the Applications as follows.
+     - Name each team-a-<name of the directory>.
+     - Use the Argo CD project team-a.
+     - Sync the directory.
+     - Deploy to the namespace team-a of the cluster in-cluster.
+     - Sync changes in Git automatically.
+       - Delete from the cluster what is removed from Git.
+       - Revert changes made in the cluster to the state in Git.
+     - When an Application is deleted, delete the resources that it synced.
+
+   ## Style
+   - Keep the manifest, and especially the comments, to the minimum.
+   ```
+
+   The agent writes the manifest. Before you go on, compare it with the
+   ApplicationSet of the tenant:
+
+   ```bash
+   diff \
+     parts/50-argo-cd/manifests/applicationset.yaml \
+     parts/60-argo-rollouts/manifests/applicationset.yaml
+   ```
+
+   The only differences are the name and the directory. The file
+   [manifests/applicationset.yaml](manifests/applicationset.yaml) is the
+   result of this step.
+
+4. Apply the manifest. Ask the agent:
+
+   ```text
+   Apply parts/60-argo-rollouts/manifests/applicationset.yaml to the cluster.
+   ```
+
+   Or run the command yourself:
+
+   ```bash
+   kubectl apply -f parts/60-argo-rollouts/manifests/applicationset.yaml
+   ```
+
+5. Check the sync. The Application `team-a-nginx-argo-rollouts-pod-ratio`
+   is `Synced` and `Healthy`, the Rollout in it is `Synced`, and the
+   sample workload answers through its ALB. The ALB can take several
+   minutes to answer.
+
+   To check this, ask the agent:
+
+   ```text
+   Check the sync of the sample workload on the cluster:
+
+   - The Application team-a-nginx-argo-rollouts-pod-ratio in the namespace argocd is synced and healthy.
+   - In the Application, the Rollout nginx-argo-rollouts-pod-ratio is synced.
+   - The ALB of the Ingress nginx-argo-rollouts-pod-ratio in the namespace team-a answers, with the version of nginx in its Server header.
+   ```
+
+   Or run the commands yourself:
+
+   ```bash
+   kubectl get application team-a-nginx-argo-rollouts-pod-ratio -n argocd
+
+   kubectl get application team-a-nginx-argo-rollouts-pod-ratio -n argocd \
+     -o jsonpath='{.status.resources[?(@.kind=="Rollout")].status}'
+
+   kubectl get ingress nginx-argo-rollouts-pod-ratio -n team-a
+
+   curl -sI http://<alb-dns-name>/
+   ```
+
+   The first command shows `Synced` and `Healthy`. The second prints
+   `Synced`. The `curl` prints `Server: nginx/` followed by the version
+   of the image.
+
+6. Set up the kubectl plugin of Argo Rollouts.
+   [Install the plugin](https://argo-rollouts.readthedocs.io/en/stable/installation/#kubectl-plugin-installation),
+   which adds the command `kubectl argo rollouts` to see and operate
+   Rollouts, then check it:
+
+   ```bash
+   kubectl argo rollouts version
+   ```
+
+7. See the Rollout as the developer:
+
+   ```bash
+   kubectl argo rollouts --context <account-name>-team-a-dev \
+     get rollout nginx-argo-rollouts-pod-ratio -n team-a
+   ```
+
+   The Rollout is `Healthy`, with 4 pods of one revision, marked
+   `stable`.
+
+8. Open the Application in the UI of Argo CD as the developer. To get the
+   URL of the UI, run:
+
+   ```bash
+   aws --profile <account-name>-admin \
+     eks describe-capability --cluster-name eks-platform-lab --capability-name argocd \
+     --query 'capability.configuration.argoCd.serverUrl' \
+     --output text
+   ```
+
+   In the tree of the Application, the Rollout is `Healthy`, with its
+   ReplicaSet and pods under it.
