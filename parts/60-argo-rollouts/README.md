@@ -864,3 +864,138 @@ To abort a rollout:
 
    for i in $(seq 1 100); do curl -sI "http://${alb}/" | grep -i '^server'; done | sort | uniq -c
    ```
+
+## Teardown
+
+This part is torn down every night to keep the cost down, and built
+again the next day. Tear it down in the reverse order of the steps. The
+workloads repository stays. To build the part again, apply the manifests
+in the order of the steps.
+
+To tear down the Argo Rollouts part:
+
+1. Delete the ApplicationSet, together with the Application that it
+   created. Ask the agent:
+
+   ```text
+   Delete parts/60-argo-rollouts/manifests/applicationset.yaml from the cluster,
+   with the foreground cascading deletion.
+   ```
+
+   Or run the command yourself:
+
+   ```bash
+   kubectl delete -f parts/60-argo-rollouts/manifests/applicationset.yaml --cascade=foreground
+   ```
+
+   With `--cascade=foreground`, the command returns after the Application
+   is gone. The Application waits until Argo CD has deleted the sample
+   workload, whose Ingress in turn waits until the cluster has deleted
+   the ALB. So the command takes a little while.
+
+2. Put the AppProject of the tenant back as the Argo CD part creates it,
+   so that it no longer allows Rollouts. Apply the manifest of the Argo
+   CD part, with the ID of the group in place of
+   `<eks-platform-lab-team-a-group-id>`. Ask the agent:
+
+   ```text
+   Apply parts/50-argo-cd/manifests/project.yaml to the cluster,
+   with <eks-platform-lab-team-a-group-id> replaced by the ID of the IAM Identity Center group eks-platform-lab-team-a,
+   taken with the profile <account-name>-admin.
+   ```
+
+   Or run the commands yourself:
+
+   ```bash
+   store_id=$( \
+   aws --profile <account-name>-admin \
+     sso-admin list-instances \
+     --query 'Instances[0].IdentityStoreId' \
+     --output text \
+   )
+
+   group_id=$( \
+   aws --profile <account-name>-admin \
+     identitystore get-group-id --identity-store-id "$store_id" \
+     --alternate-identifier '{"UniqueAttribute":{"AttributePath":"DisplayName","AttributeValue":"eks-platform-lab-team-a"}}' \
+     --query 'GroupId' \
+     --output text \
+   )
+
+   sed "s|<eks-platform-lab-team-a-group-id>|${group_id}|" parts/50-argo-cd/manifests/project.yaml | kubectl apply -f -
+   ```
+
+3. Delete the permissions to write Rollouts. Ask the agent:
+
+   ```text
+   Delete parts/60-argo-rollouts/manifests/rbac.yaml from the cluster.
+   ```
+
+   Or run the command yourself:
+
+   ```bash
+   kubectl delete -f parts/60-argo-rollouts/manifests/rbac.yaml
+   ```
+
+4. Delete Argo Rollouts. Deleting the kustomization deletes the
+   controller, the CRDs, the ClusterRoles, and the namespace
+   `argo-rollouts`. Ask the agent:
+
+   ```text
+   Delete the kustomization parts/60-argo-rollouts/manifests/argo-rollouts from the cluster.
+   ```
+
+   Or run the command yourself:
+
+   ```bash
+   kubectl delete -k parts/60-argo-rollouts/manifests/argo-rollouts
+   ```
+
+5. Confirm that what the steps above deleted is gone and that nothing is
+   charged. Ask the agent:
+
+   ```text
+   Check with the profile <account-name>-admin:
+
+   - No load balancer tagged ingress.eks.amazonaws.com/stack = team-a/nginx-argo-rollouts-pod-ratio exists.
+   - The cluster eks-platform-lab has none of these:
+     - The Application team-a-nginx-argo-rollouts-pod-ratio in the namespace argocd.
+     - The Role rollouts-edit and the RoleBindings developer-rollouts and argocd-rollouts in the namespace team-a.
+     - The namespace argo-rollouts.
+     - The CRDs of Argo Rollouts.
+     - A node of the NodePool system.
+   - The AppProject team-a in the namespace argocd does not allow Rollouts.
+   ```
+
+   Or run the commands yourself:
+
+   ```bash
+   aws --profile <account-name>-admin \
+     resourcegroupstaggingapi get-resources \
+     --tag-filters Key=ingress.eks.amazonaws.com/stack,Values=team-a/nginx-argo-rollouts-pod-ratio \
+     --resource-type-filters elasticloadbalancing:loadbalancer \
+     --query 'ResourceTagMappingList[].ResourceARN' \
+     --output table
+
+   kubectl get application team-a-nginx-argo-rollouts-pod-ratio -n argocd
+
+   kubectl get role rollouts-edit -n team-a
+
+   kubectl get rolebinding developer-rollouts argocd-rollouts -n team-a
+
+   kubectl get namespace argo-rollouts
+
+   kubectl get crd -o name | grep argoproj.io
+
+   kubectl get nodes -L karpenter.sh/nodepool
+
+   kubectl get appproject team-a -n argocd \
+     -o jsonpath='{.spec.namespaceResourceWhitelist[?(@.kind=="Rollout")]}'
+   ```
+
+   The `aws` command prints nothing. The `kubectl get` commands for the
+   Application, the Role, the RoleBindings, and the namespace fail with
+   `NotFound`. The list of CRDs has only those of Argo CD. The list of
+   nodes has no node of the NodePool `system`, although the node of the
+   controller can take several minutes to go away. The last command
+   prints nothing.
