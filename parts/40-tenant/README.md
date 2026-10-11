@@ -1302,6 +1302,7 @@ workload runs.
 | --- | --- | --- | --- |
 | EC2 instance for the node | `c5a.large`\* | 2.30 USD | 70.08 USD |
 | EKS Auto Mode management of the node | | 0.28 USD | 8.41 USD |
+| EBS volumes of the node | `gp3`, 4 GiB and 80 GiB | 0.27 USD | 8.06 USD |
 | Application Load Balancer | `k8s-teama-nginx-<hash>` | 0.58 USD | 17.74 USD |
 | Capacity used by the load balancer | | 0.008 USD per LCU-hour | 0.008 USD per LCU-hour |
 | Public IPv4 addresses of the load balancer, one per Availability Zone | | 0.24 USD | 7.30 USD |
