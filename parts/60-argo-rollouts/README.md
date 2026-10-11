@@ -646,9 +646,12 @@ To create the sample workload:
    kubectl get application team-a-nginx-argo-rollouts-pod-ratio -n argocd \
      -o jsonpath='{.status.resources[?(@.kind=="Rollout")].status}'
 
-   kubectl get ingress nginx-argo-rollouts-pod-ratio -n team-a
+   alb=$( \
+   kubectl get ingress nginx-argo-rollouts-pod-ratio -n team-a \
+     -o jsonpath='{.status.loadBalancer.ingress[0].hostname}' \
+   )
 
-   curl -sI http://<alb-dns-name>/
+   curl -sI "http://${alb}/"
    ```
 
    The first command shows `Synced` and `Healthy`. The second prints
@@ -686,3 +689,178 @@ To create the sample workload:
 
    In the tree of the Application, the Rollout is `Healthy`, with its
    ReplicaSet and pods under it.
+
+## Rolling out a new version
+
+When the image of the sample workload changes in Git, the Rollout
+replaces its pods through its steps. This step rolls out a new version,
+and sees the ratio of the pods and of the requests change at each step.
+At the step that waits to be promoted, the developer promotes the
+Rollout in the UI of Argo CD to go on, or promotes it fully to skip the
+remaining steps.
+
+To roll out a new version:
+
+1. Watch the Rollout as the developer, in a separate terminal:
+
+   ```bash
+   kubectl argo rollouts --context <account-name>-team-a-dev \
+     get rollout nginx-argo-rollouts-pod-ratio -n team-a --watch
+   ```
+
+2. Roll out a new version. In the workloads repository, change the image
+   of the sample workload to the latest release of the mainline line of
+   nginx, and push the change. Replace `<mainline-version>` with that
+   release, such as `1.31.6`:
+
+   ```bash
+   sed -i 's#nginx-unprivileged:.*#nginx-unprivileged:<mainline-version>#' \
+     ../eks-platform-lab-workloads/team-a-argo-rollouts/pod-ratio/nginx-argo-rollouts-pod-ratio/nginx-argo-rollouts-pod-ratio.yaml
+
+   git -C ../eks-platform-lab-workloads add team-a-argo-rollouts
+   git -C ../eks-platform-lab-workloads commit -m "Update the image of nginx-argo-rollouts-pod-ratio to nginx <mainline-version>"
+
+   git -C ../eks-platform-lab-workloads push
+   ```
+
+   Argo CD picks up the change within about 10 minutes. To skip the wait,
+   refresh the Application:
+
+   ```bash
+   kubectl annotate application team-a-nginx-argo-rollouts-pod-ratio -n argocd \
+     argocd.argoproj.io/refresh=normal --overwrite
+   ```
+
+   The Rollout pauses at the first step, with one pod of the new version
+   and three of the old one.
+
+3. Count the versions that answer through the ALB. Without a traffic
+   router, the ALB sends requests to all the pods alike, so the ratio of
+   the requests follows the ratio of the pods. Wait a minute for the ALB
+   to start sending requests to the new pod, then run:
+
+   ```bash
+   alb=$( \
+   kubectl get ingress nginx-argo-rollouts-pod-ratio -n team-a \
+     -o jsonpath='{.status.loadBalancer.ingress[0].hostname}' \
+   )
+
+   for i in $(seq 1 100); do curl -sI "http://${alb}/" | grep -i '^server'; done | sort | uniq -c
+   ```
+
+   About 25 of the 100 requests reach the new version of nginx, and the
+   rest reach the old one.
+
+4. Promote the Rollout. Open the Application in the UI of Argo CD as the
+   developer, open the menu of the Rollout in its tree, and select
+   **Resume**, which promotes the Rollout. The Rollout goes to 50%, waits
+   60 seconds, then goes to 100%.
+
+   When the Rollout reaches 100%, check the rollout. The Application is
+   `Synced` and `Healthy`, and all the requests reach the new version.
+
+   ```bash
+   kubectl get application team-a-nginx-argo-rollouts-pod-ratio -n argocd
+
+   alb=$( \
+   kubectl get ingress nginx-argo-rollouts-pod-ratio -n team-a \
+     -o jsonpath='{.status.loadBalancer.ingress[0].hostname}' \
+   )
+
+   for i in $(seq 1 100); do curl -sI "http://${alb}/" | grep -i '^server'; done | sort | uniq -c
+   ```
+
+5. Roll back with promote-full. Revert the commit in the workloads
+   repository, push it, and refresh the Application as above:
+
+   ```bash
+   git -C ../eks-platform-lab-workloads revert --no-edit HEAD
+
+   git -C ../eks-platform-lab-workloads push
+   ```
+
+   The rollback is a rollout too, and pauses at the first step. Select
+   **Promote-Full** in the menu of the Rollout. The Rollout skips the
+   remaining steps.
+
+   When the Rollout reaches 100%, check the rollback. The Application is
+   `Synced` and `Healthy`, and all the requests reach the old version
+   again.
+
+   ```bash
+   kubectl get application team-a-nginx-argo-rollouts-pod-ratio -n argocd
+
+   alb=$( \
+   kubectl get ingress nginx-argo-rollouts-pod-ratio -n team-a \
+     -o jsonpath='{.status.loadBalancer.ingress[0].hostname}' \
+   )
+
+   for i in $(seq 1 100); do curl -sI "http://${alb}/" | grep -i '^server'; done | sort | uniq -c
+   ```
+
+## Aborting a rollout
+
+Abort stops a rollout in progress, and gives all the pods back to the
+version that ran before it. The Rollout is then `Degraded`, because Git
+still asks for the new version. A commit that reverts the change makes
+Git ask for the running version again, and the Rollout becomes `Healthy`
+without taking the steps.
+
+To abort a rollout:
+
+1. Roll out the new version again. In the workloads repository, change
+   the image of the sample workload to `<mainline-version>`, and push the
+   change:
+
+   ```bash
+   sed -i 's#nginx-unprivileged:.*#nginx-unprivileged:<mainline-version>#' \
+     ../eks-platform-lab-workloads/team-a-argo-rollouts/pod-ratio/nginx-argo-rollouts-pod-ratio/nginx-argo-rollouts-pod-ratio.yaml
+
+   git -C ../eks-platform-lab-workloads add team-a-argo-rollouts
+   git -C ../eks-platform-lab-workloads commit -m "Update the image of nginx-argo-rollouts-pod-ratio to nginx <mainline-version>"
+
+   git -C ../eks-platform-lab-workloads push
+   ```
+
+   Refresh the Application as in the previous step. The Rollout pauses at
+   the first step.
+
+2. Abort the rollout. Select **Abort** in the menu of the Rollout in the
+   UI of Argo CD.
+
+   Check the abort. The Application is `Synced` and `Degraded`, and all
+   the requests reach the old version.
+
+   ```bash
+   kubectl get application team-a-nginx-argo-rollouts-pod-ratio -n argocd
+
+   alb=$( \
+   kubectl get ingress nginx-argo-rollouts-pod-ratio -n team-a \
+     -o jsonpath='{.status.loadBalancer.ingress[0].hostname}' \
+   )
+
+   for i in $(seq 1 100); do curl -sI "http://${alb}/" | grep -i '^server'; done | sort | uniq -c
+   ```
+
+3. Revert the change. Revert the commit in the workloads repository,
+   push it, and refresh the Application:
+
+   ```bash
+   git -C ../eks-platform-lab-workloads revert --no-edit HEAD
+
+   git -C ../eks-platform-lab-workloads push
+   ```
+
+   Check the revert. The Application is `Synced` and `Healthy`, and all
+   the requests reach the old version.
+
+   ```bash
+   kubectl get application team-a-nginx-argo-rollouts-pod-ratio -n argocd
+
+   alb=$( \
+   kubectl get ingress nginx-argo-rollouts-pod-ratio -n team-a \
+     -o jsonpath='{.status.loadBalancer.ingress[0].hostname}' \
+   )
+
+   for i in $(seq 1 100); do curl -sI "http://${alb}/" | grep -i '^server'; done | sort | uniq -c
+   ```
