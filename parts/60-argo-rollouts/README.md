@@ -74,7 +74,7 @@ The components of this part and how they work together:
 | [1. Reviewing the Argo Rollouts design](#reviewing-the-argo-rollouts-design) | Reviews the design of the Argo Rollouts controller, the permissions to write Rollouts, the AppProject of the tenant, the sample workload, and its ApplicationSet |
 | [2. Installing Argo Rollouts with Kustomize](#installing-argo-rollouts-with-kustomize) | Installs the CRDs and the controller of Argo Rollouts, and invalidates the cache of Argo CD |
 | [3. Granting permissions to write Rollouts with a Kubernetes manifest](#granting-permissions-to-write-rollouts-with-a-kubernetes-manifest) | Creates the Role and the RoleBindings that let the developers and Argo CD write Rollouts in the tenant namespace |
-| [4. Allowing the Applications of the tenant to sync Rollouts with a Kubernetes manifest](#allowing-the-applications-of-the-tenant-to-sync-rollouts-with-a-kubernetes-manifest) | Adds Rollout to the allow list of the AppProject of the tenant |
+| [4. Creating an AppProject that allows Rollouts with Kustomize](#creating-an-appproject-that-allows-rollouts-with-kustomize) | Creates the AppProject that allows Rollouts |
 | [5. Creating the sample workload](#creating-the-sample-workload) | Creates a sample workload as a Rollout, and the ApplicationSet that syncs it into the tenant namespace |
 | [6. Rolling out a new version](#rolling-out-a-new-version) | Rolls out a new version of the sample workload, and promotes it |
 | [7. Aborting a rollout](#aborting-a-rollout) | Aborts a rollout of the sample workload in progress, and the old version keeps running |
@@ -355,61 +355,77 @@ To grant the permissions:
 
    All four commands print `yes`.
 
-## Allowing the Applications of the tenant to sync Rollouts with a Kubernetes manifest
+## Creating an AppProject that allows Rollouts with Kustomize
 
-The AppProject of the tenant lists the kinds of resources in namespaces
-that its Applications may sync. Rollout is not in the list, so Argo CD
-does not sync a Rollout of the tenant until the AppProject allows it.
+An AppProject lists the kinds of resources in namespaces that its
+Applications may sync. The settings that every AppProject of the tenant
+shares do not include Rollout in that list. The AppProject
+`team-a-argo-rollouts` uses the shared settings, and adds Rollout to the
+list with a Kustomize component of its own.
 
-To allow the Applications to sync Rollouts:
+To create the AppProject that allows Rollouts:
 
-1. Ask the agent to write the manifest. Start a Claude Code session at the
-   repository root and paste the following prompt.
+1. Ask the agent to write the configuration. Start a Claude Code session
+   at the repository root and paste the following prompt.
 
    ```text
    /aws-containers
 
    # Summary
-   Create a manifest that adds Rollouts of Argo Rollouts to the kinds of resources that an AppProject of the Argo CD capability allows to sync.
+   Create a Kustomize configuration for the AppProject of the Applications of a tenant that use Rollouts of Argo Rollouts, for the Argo CD capability of an EKS cluster.
 
    ## Prerequisites
-   - None.
+   - The settings shared by every AppProject are in parts/50-argo-cd/manifests/project/components/sync-allowlist/.
 
    ## Working environment
-   - Create the manifest at parts/60-argo-rollouts/manifests/project.yaml.
+   - Create the component argo-rollouts, which allows Rollouts, at parts/60-argo-rollouts/manifests/project/components/argo-rollouts/.
+   - Create the settings of the AppProject team-a-argo-rollouts at parts/60-argo-rollouts/manifests/project/overlays/team-a-argo-rollouts/.
 
    ## Kubernetes resource settings
 
    ### Kubernetes resource list
    - AppProject: 1
 
-   ### AppProject
-   - The AppProject to change is in parts/50-argo-cd/manifests/project.yaml.
-   - Add Rollouts of Argo Rollouts to the kinds of resources in namespaces that it allows to sync.
-   - Keep its other settings as they are.
+   ### Component argo-rollouts, which allows Rollouts
+   - Add Rollouts of Argo Rollouts to the kinds of resources in namespaces that an AppProject allows to sync.
+
+   ### AppProject team-a-argo-rollouts
+   - Name it team-a-argo-rollouts.
+   - Use the settings shared by every AppProject and the component argo-rollouts.
+   - Allow syncing only to the namespace team-a of the cluster in-cluster.
+   - Define the following project role.
+     - Name: developer
+     - Members: the IAM Identity Center group <eks-platform-lab-team-a-group-id>
+     - Operations allowed in team-a-argo-rollouts
+       - Viewing, syncing, and running the built-in actions of Applications
+       - Deleting the pods of Applications
+       - Viewing ApplicationSets
+       - Viewing the logs of the pods of Applications
 
    ## Style
-   - Keep the manifest, and especially the comments, to the minimum.
+   - Make the configuration applicable with kubectl apply -k.
+   - Do not write the ID of the IAM Identity Center group eks-platform-lab-team-a in the files; write <eks-platform-lab-team-a-group-id> instead. It is replaced when the configuration is applied.
+   - Keep the configuration, and especially the comments, to the minimum.
    ```
 
-   The agent writes the manifest. Before you go on, compare it with the
-   AppProject that it changes:
+   The agent writes the configuration. Before you go on, read it against
+   the prompt. In particular, check that it uses the shared settings
+   instead of copying them, and that nothing was added that the prompt
+   did not ask for. Kustomize prints the AppProject `team-a-argo-rollouts`
+   with the shared settings and Rollout in it:
 
    ```bash
-   diff \
-     parts/50-argo-cd/manifests/project.yaml \
-     parts/60-argo-rollouts/manifests/project.yaml
+   kubectl kustomize parts/60-argo-rollouts/manifests/project/overlays/team-a-argo-rollouts
    ```
 
-   The only difference is Rollout with the group `argoproj.io`. The file
-   [manifests/project.yaml](manifests/project.yaml) is the result of this
-   step.
+   The directory [manifests/project](manifests/project) is the result of
+   this step.
 
-2. Apply the manifest, with the ID of the group in place of
+2. Apply the AppProject, with the ID of the group in place of
    `<eks-platform-lab-team-a-group-id>`. Ask the agent:
 
    ```text
-   Apply parts/60-argo-rollouts/manifests/project.yaml to the cluster,
+   Apply the kustomization parts/60-argo-rollouts/manifests/project/overlays/team-a-argo-rollouts to the cluster,
    with <eks-platform-lab-team-a-group-id> replaced by the ID of the IAM Identity Center group eks-platform-lab-team-a,
    taken with the profile <account-name>-admin.
    ```
@@ -432,21 +448,24 @@ To allow the Applications to sync Rollouts:
      --output text \
    )
 
-   sed "s|<eks-platform-lab-team-a-group-id>|${group_id}|" parts/60-argo-rollouts/manifests/project.yaml | kubectl apply -f -
+   kubectl kustomize parts/60-argo-rollouts/manifests/project/overlays/team-a-argo-rollouts \
+     | sed "s|<eks-platform-lab-team-a-group-id>|${group_id}|" \
+     | kubectl apply -f -
    ```
 
-3. Check the AppProject. The AppProject `team-a` allows Rollouts.
+3. Check the AppProject. The AppProject `team-a-argo-rollouts` allows
+   Rollouts.
 
    To check this, ask the agent:
 
    ```text
-   Check that the AppProject team-a in the namespace argocd of the cluster allows Rollouts in namespaces.
+   Check that the AppProject team-a-argo-rollouts in the namespace argocd of the cluster allows Rollouts in namespaces.
    ```
 
    Or run the command yourself:
 
    ```bash
-   kubectl get appproject team-a -n argocd \
+   kubectl get appproject team-a-argo-rollouts -n argocd \
      -o jsonpath='{.spec.namespaceResourceWhitelist[?(@.kind=="Rollout")]}'
    ```
 
@@ -586,7 +605,7 @@ To create the sample workload:
      - Directory: team-a-argo-rollouts/pod-ratio
    - Make the Applications as follows.
      - Name each team-a-<name of the directory>.
-     - Use the Argo CD project team-a.
+     - Use the Argo CD project team-a-argo-rollouts.
      - Sync the directory.
      - Deploy to the namespace team-a of the cluster in-cluster.
      - Sync changes in Git automatically.
@@ -607,9 +626,9 @@ To create the sample workload:
      parts/60-argo-rollouts/manifests/applicationset.yaml
    ```
 
-   The only differences are the name and the directory. The file
-   [manifests/applicationset.yaml](manifests/applicationset.yaml) is the
-   result of this step.
+   The only differences are the name, the directory, and the project.
+   The file [manifests/applicationset.yaml](manifests/applicationset.yaml)
+   is the result of this step.
 
 4. Apply the manifest. Ask the agent:
 
@@ -893,36 +912,16 @@ To tear down the Argo Rollouts part:
    workload, whose Ingress in turn waits until the cluster has deleted
    the ALB. So the command takes a little while.
 
-2. Put the AppProject of the tenant back as the Argo CD part creates it,
-   so that it no longer allows Rollouts. Apply the manifest of the Argo
-   CD part, with the ID of the group in place of
-   `<eks-platform-lab-team-a-group-id>`. Ask the agent:
+2. Delete the AppProject `team-a-argo-rollouts`. Ask the agent:
 
    ```text
-   Apply parts/50-argo-cd/manifests/project.yaml to the cluster,
-   with <eks-platform-lab-team-a-group-id> replaced by the ID of the IAM Identity Center group eks-platform-lab-team-a,
-   taken with the profile <account-name>-admin.
+   Delete the kustomization parts/60-argo-rollouts/manifests/project/overlays/team-a-argo-rollouts from the cluster.
    ```
 
-   Or run the commands yourself:
+   Or run the command yourself:
 
    ```bash
-   store_id=$( \
-   aws --profile <account-name>-admin \
-     sso-admin list-instances \
-     --query 'Instances[0].IdentityStoreId' \
-     --output text \
-   )
-
-   group_id=$( \
-   aws --profile <account-name>-admin \
-     identitystore get-group-id --identity-store-id "$store_id" \
-     --alternate-identifier '{"UniqueAttribute":{"AttributePath":"DisplayName","AttributeValue":"eks-platform-lab-team-a"}}' \
-     --query 'GroupId' \
-     --output text \
-   )
-
-   sed "s|<eks-platform-lab-team-a-group-id>|${group_id}|" parts/50-argo-cd/manifests/project.yaml | kubectl apply -f -
+   kubectl delete -k parts/60-argo-rollouts/manifests/project/overlays/team-a-argo-rollouts
    ```
 
 3. Delete the permissions to write Rollouts. Ask the agent:
@@ -960,11 +959,11 @@ To tear down the Argo Rollouts part:
    - No load balancer tagged ingress.eks.amazonaws.com/stack = team-a/nginx-argo-rollouts-pod-ratio exists.
    - The cluster eks-platform-lab has none of these:
      - The Application team-a-nginx-argo-rollouts-pod-ratio in the namespace argocd.
+     - The AppProject team-a-argo-rollouts in the namespace argocd.
      - The Role rollouts-edit and the RoleBindings developer-rollouts and argocd-rollouts in the namespace team-a.
      - The namespace argo-rollouts.
      - The CRDs of Argo Rollouts.
      - A node of the NodePool system.
-   - The AppProject team-a in the namespace argocd does not allow Rollouts.
    ```
 
    Or run the commands yourself:
@@ -979,6 +978,8 @@ To tear down the Argo Rollouts part:
 
    kubectl get application team-a-nginx-argo-rollouts-pod-ratio -n argocd
 
+   kubectl get appproject team-a-argo-rollouts -n argocd
+
    kubectl get role rollouts-edit -n team-a
 
    kubectl get rolebinding developer-rollouts argocd-rollouts -n team-a
@@ -988,17 +989,14 @@ To tear down the Argo Rollouts part:
    kubectl get crd -o name | grep argoproj.io
 
    kubectl get nodes -L karpenter.sh/nodepool
-
-   kubectl get appproject team-a -n argocd \
-     -o jsonpath='{.spec.namespaceResourceWhitelist[?(@.kind=="Rollout")]}'
    ```
 
    The `aws` command prints nothing. The `kubectl get` commands for the
-   Application, the Role, the RoleBindings, and the namespace fail with
-   `NotFound`. The list of CRDs has only those of Argo CD. The list of
-   nodes has no node of the NodePool `system`, although the node of the
-   controller can take several minutes to go away. The last command
-   prints nothing.
+   Application, the AppProject, the Role, the RoleBindings, and the
+   namespace fail with `NotFound`. The list of CRDs has only those of
+   Argo CD. The list of nodes has no node of the NodePool `system`,
+   although the node of the controller can take several minutes to go
+   away.
 
 ## Cost
 
