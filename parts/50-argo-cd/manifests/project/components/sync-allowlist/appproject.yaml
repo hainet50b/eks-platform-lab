@@ -1,16 +1,13 @@
+# Patched into every AppProject; the name is replaced by the target's.
 apiVersion: argoproj.io/v1alpha1
 kind: AppProject
 metadata:
-  name: team-a
-  namespace: argocd
+  name: sync-allowlist
 spec:
   sourceNamespaces:
     - argocd
   sourceRepos:
     - https://github.com/hainet50b/eks-platform-lab-workloads.git
-  destinations:
-    - name: in-cluster
-      namespace: team-a
   namespaceResourceWhitelist:
     - group: ""
       kind: Pod
@@ -40,14 +37,3 @@ spec:
       kind: PersistentVolumeClaim
     - group: ""
       kind: ServiceAccount
-  roles:
-    - name: developer
-      groups:
-        - <eks-platform-lab-team-a-group-id>
-      policies:
-        - p, proj:team-a:developer, applications, get, team-a/*, allow
-        - p, proj:team-a:developer, applications, sync, team-a/*, allow
-        - p, proj:team-a:developer, applications, action/*, team-a/*, allow
-        - p, proj:team-a:developer, applications, delete/*/Pod/*/*, team-a/*, allow
-        - p, proj:team-a:developer, applicationsets, get, team-a/*, allow
-        - p, proj:team-a:developer, logs, get, team-a/*, allow
