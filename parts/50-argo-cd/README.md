@@ -122,7 +122,7 @@ How the developers and Argo CD get their permissions:
 | [3. Registering the cluster with a Kubernetes manifest](#registering-the-cluster-with-a-kubernetes-manifest) | Registers the cluster with Argo CD as the destination for workloads |
 | [4. Limiting what Argo CD watches with a Kubernetes manifest](#limiting-what-argo-cd-watches-with-a-kubernetes-manifest) | Creates the ConfigMap that makes Argo CD watch only the resources that it may read |
 | [5. Granting Argo CD permissions with Terraform and a Kubernetes manifest](#granting-argo-cd-permissions-with-terraform-and-a-kubernetes-manifest) | Adds a Kubernetes group to the access entry of Argo CD with Terraform, and creates the ClusterRoleBinding, the Role, and the RoleBinding that let the group read the cluster and write the workloads of the tenant |
-| [6. Creating the AppProject of the tenant with Kubernetes manifests](#creating-the-appproject-of-the-tenant-with-kubernetes-manifests) | Creates the AppProject that limits what the Applications of the tenant sync and lets the developers operate them |
+| [6. Creating the AppProject of the tenant with Kustomize](#creating-the-appproject-of-the-tenant-with-kustomize) | Creates the AppProject that limits what the Applications of the tenant sync and lets the developers operate them |
 | [7. Creating the workloads repository](#creating-the-workloads-repository) | Writes the manifest of the sample workload and copies it to a new Git repository that Argo CD reads |
 | [8. Syncing the sample workload](#syncing-the-sample-workload) | Creates the ApplicationSet, which creates an Application for each workload in the repository, and Argo CD syncs the sample workload into the tenant namespace |
 | [9. Deploying and rolling back the sample workload](#deploying-and-rolling-back-the-sample-workload) | Changes the image of the sample workload with a push to the workloads repository, then reverts the change |
@@ -780,7 +780,7 @@ To grant Argo CD permissions:
 
    The second command prints `argocd`. The last two print `yes` and `no`.
 
-## Creating the AppProject of the tenant with Kubernetes manifests
+## Creating the AppProject of the tenant with Kustomize
 
 An [AppProject](https://argo-cd.readthedocs.io/en/stable/user-guide/projects/)
 groups Applications and sets their boundary: the repositories that they
@@ -788,6 +788,14 @@ sync from, the destinations that they sync to, and the kinds of resources
 that they sync. Its project roles decide who may do what with its
 Applications. Argo CD also comes with the AppProject `default`, which
 allows everything, so this step closes it.
+
+A tenant can have more than one AppProject, for example one for each
+environment that it deploys to. The settings that its AppProjects share
+go into a
+[component](https://kubectl.docs.kubernetes.io/guides/config_management/components/)
+of [Kustomize](https://kubernetes.io/docs/tasks/manage-kubernetes-objects/kustomization/),
+which is built into kubectl, and each AppProject adds its name, its
+destination, and its project role.
 
 To create the AppProject of the tenant:
 
@@ -798,14 +806,15 @@ To create the AppProject of the tenant:
    /aws-containers
 
    # Summary
-   Create manifests for the AppProject of a tenant, for the Argo CD capability of an EKS cluster.
+   Create a Kustomize configuration for the AppProject of a tenant, for the Argo CD capability of an EKS cluster.
 
    ## Prerequisites
    - None.
 
    ## Working environment
-   - Create the manifest of the AppProject team-a at parts/50-argo-cd/manifests/project.yaml.
-   - Create the manifest of the AppProject default at parts/50-argo-cd/manifests/project-default.yaml.
+   - Create the settings shared by every AppProject at parts/50-argo-cd/manifests/project/components/sync-allowlist/.
+   - Create the settings of the AppProject team-a at parts/50-argo-cd/manifests/project/overlays/team-a/.
+   - Create the manifest of the AppProject default at parts/50-argo-cd/manifests/project/default.yaml.
 
    ## Kubernetes resource settings
 
@@ -815,13 +824,11 @@ To create the AppProject of the tenant:
    ### Kubernetes resource list
    - AppProject: 2
 
-   ### AppProject team-a
-   - Name it team-a.
-   - Allow the Applications and ApplicationSets of this AppProject to be created only in the namespace argocd.
+   ### Settings shared by every AppProject
+   - Allow the Applications and ApplicationSets of the AppProject to be created only in the namespace argocd.
    - Allow syncing only from the following repository.
      - https://github.com/<owner>/eks-platform-lab-workloads.git
-   - Allow syncing only to the namespace team-a of the cluster in-cluster.
-   - Allow syncing only the following kinds of resources in the namespace.
+   - Allow syncing only the following kinds of resources in namespaces.
      - Workloads
        - Pod, Deployment, StatefulSet, DaemonSet, ReplicaSet
        - Job, CronJob
@@ -836,6 +843,11 @@ To create the AppProject of the tenant:
        - PersistentVolumeClaim
      - Identity of pods
        - ServiceAccount
+
+   ### AppProject team-a
+   - Name it team-a.
+   - Use the settings shared by every AppProject.
+   - Allow syncing only to the namespace team-a of the cluster in-cluster.
    - Define the following project role.
      - Name: developer
      - Members: the IAM Identity Center group <eks-platform-lab-team-a-group-id>
@@ -854,26 +866,32 @@ To create the AppProject of the tenant:
      - Syncing resources in namespaces
 
    ## Style
-   - Do not write the ID of the IAM Identity Center group eks-platform-lab-team-a in the file; write <eks-platform-lab-team-a-group-id> instead. It is replaced when the manifest is applied.
-   - Keep the manifests, and especially the comments, to the minimum.
+   - Make the configuration applicable with kubectl apply -k.
+   - Do not write the ID of the IAM Identity Center group eks-platform-lab-team-a in the files; write <eks-platform-lab-team-a-group-id> instead. It is replaced when the configuration is applied.
+   - Keep the configuration, and especially the comments, to the minimum.
    ```
 
-   The agent writes the manifests. Before you go on, read them against
-   the prompt. In particular, check that the manifest of `default` writes
-   all five of its fields, and that nothing was added that the prompt did
-   not ask for. The files
-   [manifests/project.yaml](manifests/project.yaml) and
-   [manifests/project-default.yaml](manifests/project-default.yaml) are
-   the result of this step.
+   The agent writes the configuration. Before you go on, read it against
+   the prompt. In particular, check that the component has no destination
+   and no project role, that the manifest of `default` writes all five of
+   its fields, and that nothing was added that the prompt did not ask for.
+   Kustomize prints the AppProject `team-a` with the shared settings in it:
 
-2. Apply the manifests, with the ID of the group in place of
+   ```bash
+   kubectl kustomize parts/50-argo-cd/manifests/project/overlays/team-a
+   ```
+
+   The directory [manifests/project](manifests/project) is the result of
+   this step.
+
+2. Apply the AppProjects, with the ID of the group in place of
    `<eks-platform-lab-team-a-group-id>`. Ask the agent:
 
    ```text
-   Apply parts/50-argo-cd/manifests/project.yaml to the cluster,
+   Apply the kustomization parts/50-argo-cd/manifests/project/overlays/team-a to the cluster,
    with <eks-platform-lab-team-a-group-id> replaced by the ID of the IAM Identity Center group eks-platform-lab-team-a,
    taken with the profile <account-name>-admin.
-   Then apply parts/50-argo-cd/manifests/project-default.yaml.
+   Then apply parts/50-argo-cd/manifests/project/default.yaml.
    ```
 
    Or run the commands yourself:
@@ -894,9 +912,11 @@ To create the AppProject of the tenant:
      --output text \
    )
 
-   sed "s|<eks-platform-lab-team-a-group-id>|${group_id}|" parts/50-argo-cd/manifests/project.yaml | kubectl apply -f -
+   kubectl kustomize parts/50-argo-cd/manifests/project/overlays/team-a \
+     | sed "s|<eks-platform-lab-team-a-group-id>|${group_id}|" \
+     | kubectl apply -f -
 
-   kubectl apply -f parts/50-argo-cd/manifests/project-default.yaml
+   kubectl apply -f parts/50-argo-cd/manifests/project/default.yaml
    ```
 
    `kubectl` warns that `default` has no record of a previous `apply`,
