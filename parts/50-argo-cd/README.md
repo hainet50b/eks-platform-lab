@@ -349,7 +349,8 @@ To create the Argo CD capability:
      --query 'capability.configuration.argoCd.rbacRoleMappings[].[role, identities[0].id]' \
      --output table
 
-   kubectl get namespace argocd
+   kubectl --context <account-name>-admin \
+     get namespace argocd
 
    role_arn=$( \
    aws --profile <account-name>-admin \
@@ -441,7 +442,9 @@ To register the cluster:
      --output text \
    )
 
-   sed "s|<cluster-arn>|${cluster_arn}|" parts/50-argo-cd/manifests/cluster.yaml | kubectl apply -f -
+   sed "s|<cluster-arn>|${cluster_arn}|" parts/50-argo-cd/manifests/cluster.yaml \
+     | kubectl --context <account-name>-admin \
+       apply -f -
    ```
 
 3. Check the registration. The cluster is registered with Argo CD, with
@@ -459,9 +462,11 @@ To register the cluster:
    Or run the commands yourself:
 
    ```bash
-   kubectl get secrets -n argocd -l argocd.argoproj.io/secret-type=cluster
+   kubectl --context <account-name>-admin \
+     get secrets -n argocd -l argocd.argoproj.io/secret-type=cluster
 
-   kubectl get secret in-cluster -n argocd -o jsonpath='{.data.server}' | base64 -d
+   kubectl --context <account-name>-admin \
+     get secret in-cluster -n argocd -o jsonpath='{.data.server}' | base64 -d
    ```
 
    The first command lists `in-cluster`. The second prints the ARN of
@@ -527,7 +532,8 @@ To limit what Argo CD watches:
    Or run the command yourself:
 
    ```bash
-   kubectl apply -f parts/50-argo-cd/manifests/argocd-cm.yaml
+   kubectl --context <account-name>-admin \
+     apply -f parts/50-argo-cd/manifests/argocd-cm.yaml
    ```
 
 3. Check the ConfigMap. It has the label that the capability looks for,
@@ -545,9 +551,11 @@ To limit what Argo CD watches:
    Or run the commands yourself:
 
    ```bash
-   kubectl get configmap argocd-cm -n argocd --show-labels
+   kubectl --context <account-name>-admin \
+     get configmap argocd-cm -n argocd --show-labels
 
-   kubectl get configmap argocd-cm -n argocd -o jsonpath='{.data.resource\.respectRBAC}'
+   kubectl --context <account-name>-admin \
+     get configmap argocd-cm -n argocd -o jsonpath='{.data.resource\.respectRBAC}'
    ```
 
    The first command lists `argocd-cm` with the label. The second prints
@@ -742,7 +750,8 @@ To grant Argo CD permissions:
    Or run the command yourself:
 
    ```bash
-   kubectl apply -f parts/50-argo-cd/manifests/rbac.yaml
+   kubectl --context <account-name>-admin \
+     apply -f parts/50-argo-cd/manifests/rbac.yaml
    ```
 
 5. Check the permissions of Argo CD. The access entry of Argo CD has the
@@ -773,9 +782,11 @@ To grant Argo CD permissions:
      --query 'accessEntry.kubernetesGroups' \
      --output text
 
-   kubectl auth can-i create deployments -n team-a --as=argocd-check --as-group=argocd
+   kubectl --context <account-name>-admin \
+     auth can-i create deployments -n team-a --as=argocd-check --as-group=argocd
 
-   kubectl auth can-i create deployments -n default --as=argocd-check --as-group=argocd
+   kubectl --context <account-name>-admin \
+     auth can-i create deployments -n default --as=argocd-check --as-group=argocd
    ```
 
    The second command prints `argocd`. The last two print `yes` and `no`.
@@ -914,9 +925,11 @@ To create the AppProject of the tenant:
 
    kubectl kustomize parts/50-argo-cd/manifests/project/overlays/team-a \
      | sed "s|<eks-platform-lab-team-a-group-id>|${group_id}|" \
-     | kubectl apply -f -
+     | kubectl --context <account-name>-admin \
+       apply -f -
 
-   kubectl apply -f parts/50-argo-cd/manifests/project/default.yaml
+   kubectl --context <account-name>-admin \
+     apply -f parts/50-argo-cd/manifests/project/default.yaml
    ```
 
    `kubectl` warns that `default` has no record of a previous `apply`,
@@ -940,10 +953,12 @@ To create the AppProject of the tenant:
    Or run the commands yourself:
 
    ```bash
-   kubectl get appproject team-a -n argocd \
+   kubectl --context <account-name>-admin \
+     get appproject team-a -n argocd \
      -o jsonpath='{.spec.sourceRepos}{"\n"}{.spec.destinations}{"\n"}{.spec.roles[0].name} {.spec.roles[0].groups}{"\n"}'
 
-   kubectl get appproject default -n argocd \
+   kubectl --context <account-name>-admin \
+     get appproject default -n argocd \
      -o jsonpath='{.spec.sourceRepos}{"\n"}{.spec.destinations}{"\n"}{.spec.sourceNamespaces}{"\n"}'
    ```
 
@@ -1117,7 +1132,8 @@ To sync the sample workload:
    Or run the command yourself:
 
    ```bash
-   kubectl apply -f parts/50-argo-cd/manifests/applicationset.yaml
+   kubectl --context <account-name>-admin \
+     apply -f parts/50-argo-cd/manifests/applicationset.yaml
    ```
 
 3. Check the sync. The ApplicationSet creates the Application
@@ -1137,10 +1153,12 @@ To sync the sample workload:
    Or run the commands yourself:
 
    ```bash
-   kubectl get applications -n argocd \
+   kubectl --context <account-name>-admin \
+     get applications -n argocd \
      -o custom-columns=NAME:.metadata.name,PROJECT:.spec.project,SYNC:.status.sync.status,HEALTH:.status.health.status
 
-   kubectl get ingress nginx-argocd -n team-a
+   kubectl --context <account-name>-admin \
+     get ingress nginx-argocd -n team-a
 
    curl http://<alb-dns-name>/
    ```
@@ -1200,7 +1218,8 @@ To deploy and roll back the sample workload:
    refresh the Application:
 
    ```bash
-   kubectl annotate application team-a-nginx-argocd -n argocd \
+   kubectl --context <account-name>-admin \
+     annotate application team-a-nginx-argocd -n argocd \
      argocd.argoproj.io/refresh=normal
    ```
 
@@ -1208,7 +1227,8 @@ To deploy and roll back the sample workload:
    and the sample workload answers with the new version of nginx.
 
    ```bash
-   kubectl get application team-a-nginx-argocd -n argocd
+   kubectl --context <account-name>-admin \
+     get application team-a-nginx-argocd -n argocd
 
    curl -sI http://<alb-dns-name>/ | grep -i '^server'
    ```
@@ -1249,7 +1269,8 @@ To tear down the Argo CD part:
    Or run the command yourself:
 
    ```bash
-   kubectl delete -f parts/50-argo-cd/manifests/applicationset.yaml --cascade=foreground
+   kubectl --context <account-name>-admin \
+     delete -f parts/50-argo-cd/manifests/applicationset.yaml --cascade=foreground
    ```
 
    With `--cascade=foreground`, the command returns after the Application
@@ -1266,7 +1287,8 @@ To tear down the Argo CD part:
    Or run the command yourself:
 
    ```bash
-   kubectl delete -f parts/50-argo-cd/manifests/rbac.yaml
+   kubectl --context <account-name>-admin \
+     delete -f parts/50-argo-cd/manifests/rbac.yaml
    ```
 
 3. Plan and destroy the configuration of the access entry. The destroy
@@ -1325,9 +1347,11 @@ To tear down the Argo CD part:
    Or run the commands yourself:
 
    ```bash
-   kubectl delete namespace argocd
+   kubectl --context <account-name>-admin \
+     delete namespace argocd
 
-   kubectl delete crd \
+   kubectl --context <account-name>-admin \
+     delete crd \
      applications.argoproj.io applicationsets.argoproj.io appprojects.argoproj.io
    ```
 
@@ -1375,13 +1399,17 @@ To tear down the Argo CD part:
      --query 'accessEntries[?contains(@, `eks-platform-lab-argocd`)]' \
      --output table
 
-   kubectl get clusterrolebinding argocd-view
+   kubectl --context <account-name>-admin \
+     get clusterrolebinding argocd-view
 
-   kubectl get role,rolebinding argocd -n team-a
+   kubectl --context <account-name>-admin \
+     get role,rolebinding argocd -n team-a
 
-   kubectl get namespace argocd
+   kubectl --context <account-name>-admin \
+     get namespace argocd
 
-   kubectl get crd -o name | grep argoproj.io
+   kubectl --context <account-name>-admin \
+     get crd -o name | grep argoproj.io
    ```
 
    The three `kubectl get` commands for the RBAC and the namespace fail
