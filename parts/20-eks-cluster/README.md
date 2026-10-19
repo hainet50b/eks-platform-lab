@@ -293,7 +293,8 @@ To create the cluster:
    Then check the connection:
 
    ```bash
-   kubectl version
+   kubectl --context <account-name>-admin \
+     version
    ```
 
    With the configuration in place, the command prints the version of the
@@ -431,11 +432,14 @@ To create the cluster:
    Or run the commands yourself:
 
    ```bash
-   kubectl get nodepools
+   kubectl --context <account-name>-admin \
+     get nodepools
 
-   kubectl get nodes
+   kubectl --context <account-name>-admin \
+     get nodes
 
-   kubectl get pods --all-namespaces
+   kubectl --context <account-name>-admin \
+     get pods --all-namespaces
    ```
 
 ## Teardown
