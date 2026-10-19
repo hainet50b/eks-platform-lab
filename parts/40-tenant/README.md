@@ -303,7 +303,8 @@ To enable the network policy controller:
    Or run the command yourself:
 
    ```bash
-   kubectl apply -f parts/40-tenant/manifests/network-policy-controller.yaml
+   kubectl --context <account-name>-admin \
+     apply -f parts/40-tenant/manifests/network-policy-controller.yaml
    ```
 
 3. Check the ConfigMap. It exists in the namespace `kube-system` and
@@ -321,7 +322,8 @@ To enable the network policy controller:
    Or run the command yourself:
 
    ```bash
-   kubectl get configmap amazon-vpc-cni -n kube-system -o yaml
+   kubectl --context <account-name>-admin \
+     get configmap amazon-vpc-cni -n kube-system -o yaml
    ```
 
    The command prints the ConfigMap with
@@ -403,7 +405,8 @@ To create the namespace:
    Or run the command yourself:
 
    ```bash
-   kubectl apply -f parts/40-tenant/manifests/namespace.yaml
+   kubectl --context <account-name>-admin \
+     apply -f parts/40-tenant/manifests/namespace.yaml
    ```
 
 3. Check the namespace. It exists and applies `restricted` in the three
@@ -422,9 +425,11 @@ To create the namespace:
    Or run the commands yourself:
 
    ```bash
-   kubectl get namespace team-a -o yaml
+   kubectl --context <account-name>-admin \
+     get namespace team-a -o yaml
 
-   kubectl run check -n team-a \
+   kubectl --context <account-name>-admin \
+     run check -n team-a \
      --image=public.ecr.aws/docker/library/busybox:1.37 \
      --restart=Never \
      --dry-run=server \
@@ -522,7 +527,8 @@ To create the NetworkPolicies:
    Or run the command yourself:
 
    ```bash
-   kubectl apply -f parts/40-tenant/manifests/network-policies.yaml
+   kubectl --context <account-name>-admin \
+     apply -f parts/40-tenant/manifests/network-policies.yaml
    ```
 
 3. Check the NetworkPolicies. The namespace has the four, each applying
@@ -545,9 +551,11 @@ To create the NetworkPolicies:
    Or run the commands yourself:
 
    ```bash
-   kubectl describe networkpolicies -n team-a
+   kubectl --context <account-name>-admin \
+     describe networkpolicies -n team-a
 
-   kubectl get policyendpoints -n team-a
+   kubectl --context <account-name>-admin \
+     get policyendpoints -n team-a
    ```
 
    The first command prints each NetworkPolicy with the traffic that it
@@ -632,7 +640,8 @@ To limit the resources of the namespace:
    Or run the command yourself:
 
    ```bash
-   kubectl apply -f parts/40-tenant/manifests/quota.yaml
+   kubectl --context <account-name>-admin \
+     apply -f parts/40-tenant/manifests/quota.yaml
    ```
 
 3. Check the ResourceQuota and the LimitRange. Their caps and defaults are
@@ -649,7 +658,8 @@ To limit the resources of the namespace:
    Or run the command yourself:
 
    ```bash
-   kubectl describe resourcequota,limitrange -n team-a
+   kubectl --context <account-name>-admin \
+     describe resourcequota,limitrange -n team-a
    ```
 
    The command prints the caps of the ResourceQuota, with what the
@@ -734,8 +744,7 @@ To create the developer:
    ```
 
    The first command makes the new context the current one, so the
-   last command makes your own context current again. From now on, the
-   commands of the developer name the context with `--context`.
+   last command makes your own context current again.
 
    > [!NOTE]
    > If you set up kubectl without `--alias`, your own context has the ARN
@@ -999,7 +1008,8 @@ To grant the developer permissions:
    Or run the command yourself:
 
    ```bash
-   kubectl apply -f parts/40-tenant/manifests/rbac.yaml
+   kubectl --context <account-name>-admin \
+     apply -f parts/40-tenant/manifests/rbac.yaml
    ```
 
 3. Check the permissions of the developer. In `team-a`, the developer may
@@ -1174,11 +1184,13 @@ To create the sample workload:
    Or run the commands yourself:
 
    ```bash
-   kubectl get ingress nginx -n team-a
+   kubectl --context <account-name>-admin \
+     get ingress nginx -n team-a
 
    curl http://<alb-dns-name>/
 
-   kubectl run check -n default --rm -it --restart=Never \
+   kubectl --context <account-name>-admin \
+     run check -n default --rm -it --restart=Never \
      --image=public.ecr.aws/docker/library/busybox:1.37 \
      -- wget -T 5 -O /dev/null http://nginx.team-a
    ```
@@ -1208,7 +1220,8 @@ To tear down the tenant:
    Or run the command yourself:
 
    ```bash
-   kubectl delete -f parts/40-tenant/manifests/nginx.yaml
+   kubectl --context <account-name>-admin \
+     delete -f parts/40-tenant/manifests/nginx.yaml
    ```
 
    The command takes a little while to return, because the Ingress is
@@ -1245,9 +1258,11 @@ To tear down the tenant:
    Or run the commands yourself:
 
    ```bash
-   kubectl delete -f parts/40-tenant/manifests/namespace.yaml
+   kubectl --context <account-name>-admin \
+     delete -f parts/40-tenant/manifests/namespace.yaml
 
-   kubectl delete -f parts/40-tenant/manifests/network-policy-controller.yaml
+   kubectl --context <account-name>-admin \
+     delete -f parts/40-tenant/manifests/network-policy-controller.yaml
    ```
 
    Deleting the namespace deletes everything in it, including the
@@ -1287,7 +1302,8 @@ To tear down the tenant:
      --query 'ResourceTagMappingList[].ResourceARN' \
      --output table
 
-   kubectl get namespace team-a
+   kubectl --context <account-name>-admin \
+     get namespace team-a
    ```
 
    The first two commands print nothing, and the third fails with
