@@ -1,0 +1,130 @@
+{#- The markup of the parts of a page. build.py prepares the data and calls these macros. -#}
+
+{% macro part_link(part, rel="", before="", after="") -%}
+<a{% if rel %} rel="{{ rel }}"{% endif %} href="{{ part.href }}">{{ before }}<span class="part-number">{{ part.number }}</span> {{ part.name }}{% if not part.moved %} <span class="on-github" aria-label="on GitHub">↗</span>{% endif %}{{ after }}</a>
+{%- endmacro %}
+
+{% macro page_head(part, title, previous, following) -%}
+<header class="page-head"><p class="part-label"><span class="part-number">{{ part.number }}</span> {{ part.name }}</p><h1>{{ title }}</h1><p class="neighbors">
+{%- if previous %}{{ part_link(previous, "prev", before="← ") }}{% endif %}
+{%- if following %}{{ part_link(following, "next", after=" →") }}{% endif -%}
+</p></header>
+{%- endmacro %}
+
+{% macro stage(label, label_hidden, content) -%}
+<div class="page-stage">
+{%- if label_hidden %}<p class="stage-label" aria-hidden="true"></p>{% else %}<p class="stage-label">{{ label }}</p>{% endif -%}
+{{ content }}</div>
+{%- endmacro %}
+
+{% macro section(section_id, title) -%}
+<h2 id="{{ section_id }}">{{ title }}</h2>
+{%- endmacro %}
+
+{% macro step(number, step_id, title, beats) -%}
+<section class="step" aria-labelledby="{{ step_id }}"><header class="step-head"><span class="step-number" aria-hidden="true">{{ number }}</span><h2 id="{{ step_id }}"><span class="visually-hidden">Step {{ number }}. </span>{{ title }}</h2></header>
+{%- for beat in beats -%}
+<div class="beat"><p class="beat-label">{{ beat.label }}</p><div class="beat-body">{{ beat.body }}</div></div>
+{%- endfor -%}
+</section>
+{%- endmacro %}
+
+{% macro tree(nodes, explorer_id, selected) -%}
+{%- for node in nodes -%}
+{%- if node.kind == "folder" -%}
+<li class="folder" style="--depth:{{ node.depth }}"><span>{{ node.label }}</span></li>{{ tree(node.children, explorer_id, selected) }}
+{%- elif node.kind == "file" -%}
+<li class="file{% if node.other_part %} other-part{% endif %}" style="--depth:{{ node.depth }}"><button type="button" data-file="{{ explorer_id }}-{{ node.index }}"{% if node.index == selected %} aria-current="true"{% endif %}>{{ node.label }}</button></li>
+{%- else -%}
+<li class="link" style="--depth:{{ node.depth }}"><a href="{{ node.href }}">{{ node.label }} ↗</a></li>
+{%- endif -%}
+{%- endfor -%}
+{%- endmacro %}
+
+{% macro explorer(explorer_id, root, nodes, selected, panels) -%}
+<div class="explorer"><nav class="explorer-tree" aria-label="Files of this step">
+{%- if root %}<p class="explorer-root">{{ root }}</p>{% endif -%}
+<ol>{{ tree(nodes, explorer_id, selected) }}</ol></nav><div class="explorer-view">
+{%- for panel in panels -%}
+<div class="explorer-panel" data-file="{{ explorer_id }}-{{ loop.index0 }}"{% if loop.index0 != selected %} hidden{% endif %}>{{ panel }}</div>
+{%- endfor -%}
+</div></div>
+{%- endmacro %}
+
+{% macro file_figure(source, shown_path, github_url, lines, notes, code_label) -%}
+{%- set caption -%}
+<figcaption><a href="{{ github_url }}" title="{{ source }}">{{ shown_path }}</a><a class="github-link" href="{{ github_url }}" aria-label="Open {{ source }} on GitHub">{{ github_mark() }}<span>GitHub</span></a></figcaption>
+{%- endset -%}
+{%- set code -%}
+<pre><code>
+{%- for line in lines -%}
+<span class="row"{% if line.pins %} data-pins="{{ line.pins | join(' ') }}"{% endif %}><span class="line-number">{{ line.number }}</span><span class="line-text">{{ line.html or " " }}{% for pin in line.pins %}<span class="pin">{{ pin }}</span>{% endfor %}</span></span>
+{%- endfor -%}
+</code></pre>
+{%- endset -%}
+{%- if notes -%}
+<figure class="file-figure">{{ caption }}<div class="annotated-code"><div class="annotations"><p class="side-label">Specification</p><ol class="annotation-list">
+{%- for note in notes -%}
+<li data-pin="{{ note.number }}" tabindex="0"><span class="pin">{{ note.number }}</span><span>{{ note.spec }}{% if note.reason %}<span class="note-reason">{{ note.reason }}</span>{% endif %}</span></li>
+{%- endfor -%}
+</ol></div><div class="code-side"><p class="side-label">{{ code_label }}</p>{{ code }}</div></div></figure>
+{%- else -%}
+<figure class="file-figure">{{ caption }}{{ code }}</figure>
+{%- endif -%}
+{%- endmacro %}
+
+{% macro command_card(items, command) -%}
+<div class="command-card"><div class="annotated-code"><div class="annotations"><p class="side-label">What it does</p><ol class="annotation-list">
+{%- for item in items -%}
+<li data-pin="{{ loop.index }}" tabindex="0"><span class="pin">{{ loop.index }}</span><span>{{ item }}</span></li>
+{%- endfor -%}
+</ol></div><div class="code-side"><p class="side-label">Command</p><pre class="command"><code>{{ command }}</code></pre></div></div></div>
+{%- endmacro %}
+
+{% macro command_part(number, text) -%}
+<span class="command-part" data-pin="{{ number }}">{{ text }}<span class="pin">{{ number }}</span></span>
+{%- endmacro %}
+
+{% macro check_table(head, rows) -%}
+<div class="check-table"><div class="check-table-head"><span>{{ head }}</span><span></span></div>{{ rows | join }}</div>
+{%- endmacro %}
+
+{% macro check_row(head, number, statement, command, output) -%}
+<div class="check"><div class="check-statement"><p class="statement-label">{{ head }}</p><span class="pin">{{ number }}</span><span>{{ statement }}</span></div><div class="check-detail"><p class="detail-label">Command</p><pre class="command"><code>{{ command }}</code></pre>
+{%- if output %}<div class="check-output"><p class="detail-label">Output</p><pre><code>{{ output }}</code></pre></div>{% endif -%}
+</div></div>
+{%- endmacro %}
+
+{% macro ui_row(head, number, note, who, path, screenshot) -%}
+<div class="check ui-action"><div class="check-statement"><p class="statement-label">{{ head }}</p><span class="pin">{{ number }}</span><span>{{ note }}</span></div><div class="check-detail"><p class="detail-label">In the UI</p><p class="ui-path">In the Argo CD UI, as {{ who }}: {{ path }}</p>{{ screenshot }}</div></div>
+{%- endmacro %}
+
+{% macro ui_sentence(lead, path, note, screenshot) -%}
+<p class="ui-sentence">{{ lead }} {{ path }}. {{ note }}</p>{{ screenshot }}
+{%- endmacro %}
+
+{% macro ui_path(items) -%}
+{%- for item in items %}{% if not loop.first %} &gt; {% endif %}<b>{{ item }}</b>{% endfor -%}
+{%- endmacro %}
+
+{% macro screenshot(source, alt) -%}
+<figure class="screenshot"><img src="{{ source }}" alt="{{ alt }}"></figure>
+{%- endmacro %}
+
+{% macro outline(items) -%}
+{%- for item in items -%}
+{%- if item.kind == "stage" -%}
+<li class="outline-group">{{ item.label }}</li>
+{%- elif item.kind == "stage-section" -%}
+<li class="outline-group"><a href="#{{ item.id }}">{{ item.label }}</a></li>
+{%- elif item.kind == "step" -%}
+<li class="outline-step"><a href="#{{ item.id }}"><span class="outline-number">{{ item.number }}</span><span>{{ item.label }}</span></a></li>
+{%- else -%}
+<li><a href="#{{ item.id }}">{{ item.label }}</a></li>
+{%- endif -%}
+{%- endfor -%}
+{%- endmacro %}
+
+{% macro github_mark() -%}
+<svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path fill="currentColor" d="M8 0c4.42 0 8 3.58 8 8a8.013 8.013 0 0 1-5.45 7.59c-.4.08-.55-.17-.55-.38 0-.27.01-1.13.01-2.2 0-.75-.25-1.23-.54-1.48 1.78-.2 3.65-.88 3.65-3.95 0-.88-.31-1.59-.82-2.15.08-.2.36-1.02-.08-2.12 0 0-.67-.22-2.2.82-.64-.18-1.32-.27-2-.27-.68 0-1.36.09-2 .27-1.53-1.03-2.2-.82-2.2-.82-.44 1.1-.16 1.92-.08 2.12-.51.56-.82 1.28-.82 2.15 0 3.06 1.86 3.75 3.64 3.95-.23.2-.44.55-.51 1.07-.46.21-1.61.55-2.33-.66-.15-.24-.6-.83-1.23-.82-.67.01-.27.38.01.53.34.19.73.9.82 1.13.16.45.68 1.31 2.69.94 0 .67.01 1.3.01 1.49 0 .21-.15.45-.55.38A7.995 7.995 0 0 1 0 8c0-4.42 3.58-8 8-8Z"/></svg>
+{%- endmacro %}

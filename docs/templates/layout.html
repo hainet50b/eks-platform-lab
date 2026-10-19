@@ -1,0 +1,29 @@
+{% from "components.html" import part_link %}<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>{{ title }} | eks-platform-lab</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="assets/site.css">
+</head>
+<body>
+<div class="site">
+<aside class="rail">
+  <a class="brand" href="index.html">eks-platform-lab</a>
+  <p class="rail-label">Parts</p>
+  <details class="parts-menu">
+    <summary>{{ current }}</summary>
+    <ol>{% for part in parts %}<li{% if part == current_part %} aria-current=page{% endif %}>{{ part_link(part) }}</li>{% endfor %}</ol>
+  </details>
+  <nav class="outline" aria-label="This page">
+    <ol>{{ outline }}</ol>
+  </nav>
+</aside>
+<main class="page">
+{{ content }}
+</main>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>

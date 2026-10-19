@@ -1,0 +1,439 @@
+{{ page_head("Roll out a new version in steps") }}
+
+{% call stage("understand") %}
+{{ section("idea", "The idea") }}
+<p>A Deployment replaces its pods by a rolling update, which runs to the end without stopping. A <a href="https://argo-rollouts.readthedocs.io/en/stable/features/specification/">Rollout</a> replaces them <a href="https://argo-rollouts.readthedocs.io/en/stable/features/canary/">in steps</a>: it moves a share of the pods to the new version, pauses, and goes on.</p>
+<p>A workload moves from a Deployment to a Rollout by changing its kind and its strategy. The pod template stays as it is.</p>
+
+<div class="side-by-side" aria-label="A Deployment and a Rollout side by side">
+  <figure><figcaption>Deployment</figcaption><pre><code><span class="changed">apiVersion: apps/v1</span>
+<span class="changed">kind: Deployment</span>
+spec:
+  replicas: 4
+  selector: …
+  template: …
+<span class="changed">  strategy:
+    rollingUpdate: …</span></code></pre></figure>
+  <figure><figcaption>Rollout</figcaption><pre><code><span class="changed">apiVersion: argoproj.io/v1alpha1</span>
+<span class="changed">kind: Rollout</span>
+spec:
+  replicas: 4
+  selector: …
+  template: …
+<span class="changed">  strategy:
+    canary:
+      steps:
+      - setWeight: 25
+      - pause: {}</span></code></pre></figure>
+</div>
+
+
+{{ section("how", "How a rollout runs") }}
+<p>Select a stop to see that moment.</p>
+{% include "partials/60-argo-rollouts/rollout.html" %}
+
+{{ section("what", "What you build") }}
+<p>Select a box to go to the step that creates it.</p>
+{% include "partials/60-argo-rollouts/overview.html" %}
+{% endcall %}
+
+{% call stage("build") %}
+{% call step("argo-rollouts", "Argo Rollouts") %}
+{% call what() %}
+<p>The CRD adds the kind Rollout, and the controller turns each Rollout into ReplicaSets. The kustomization takes the <a href="https://argo-rollouts.readthedocs.io/en/stable/installation/">installation manifest</a> as published and adds two things: the namespace <code>argo-rollouts</code>, and a place for the controller on the NodePool <code>system</code>. The ClusterRoles in the installation manifest add Rollouts to the built-in role <code>view</code>.</p>
+{% endcall %}
+{% call files() %}
+{% call file("parts/60-argo-rollouts/manifests/argo-rollouts/kustomization.yaml", main=true) %}
+  {{ note("namespace: argo-rollouts", "Put every resource of the installation manifest in the namespace `argo-rollouts`.") }}
+  {% call note("install.yaml", "Use the official installation manifest, by the URL of one release.") %}An upgrade is a change of this URL.{% endcall %}
+  {{ note("path: controller.yaml", "Patch the Deployment `argo-rollouts` of the installation manifest with `controller.yaml`.") }}
+{% endcall %}
+{% call file("parts/60-argo-rollouts/manifests/argo-rollouts/controller.yaml") %}
+  {{ note("nodeSelector||key: CriticalAddonsOnly", "Place the controller on the NodePool `system`.") }}
+{% endcall %}
+{% call file("parts/60-argo-rollouts/manifests/argo-rollouts/namespace.yaml") %}
+  {{ note("name: argo-rollouts", "Create the namespace `argo-rollouts`.") }}
+{% endcall %}
+{{ external_link("parts/60-argo-rollouts/manifests/argo-rollouts/", "install.yaml (v1.10.0)", "https://github.com/argoproj/argo-rollouts/releases/download/v1.10.0/install.yaml") }}
+{% endcall %}
+{% call apply() %}
+{% call command() %}
+{% call piece("Builds the kustomization and applies the result.") %}kubectl apply -k parts/60-argo-rollouts/manifests/argo-rollouts{% endcall %} {% call piece("Applies on the API server. The CRDs are too large for a client-side apply.") %}--server-side{% endcall %}
+{% endcall %}
+<p>To let Argo CD see the kind Rollout, invalidate its cache in the Argo CD UI. Argo CD does not see a kind added after it read the cluster. Without this, the Rollout stays Unknown.</p>
+{% call command() %}
+{% call piece("Gets the URL of the Argo CD UI.") %}aws --profile <account-name>-admin \
+  eks describe-capability --cluster-name eks-platform-lab --capability-name argocd \
+  --query 'capability.configuration.argoCd.serverUrl' \
+  --output text{% endcall %}
+{% endcall %}
+{{ ui("the administrator", "Settings|Clusters|in-cluster|Invalidate Cache", opens_url=true) }}
+{% endcall %}
+{% call confirm() %}
+{% call check("The controller is Running. It stays Pending for about a minute, until a new node of the NodePool `system` is ready.") %}kubectl get pods -n argo-rollouts -o wide{% call output() %}NAME                   READY   STATUS    …   NODE
+argo-rollouts-<hash>   1/1     Running   …   <node>{% endcall %}{% endcall %}
+{% call check("Its node belongs to the NodePool `system`.") %}kubectl get nodes -L karpenter.sh/nodepool{% call output() %}NAME     STATUS   …   NODEPOOL
+<node>   Ready    …   system
+…        Ready    …   apps{% endcall %}{% endcall %}
+{% call check("The cluster has the kind Rollout.") %}kubectl api-resources --api-group=argoproj.io{% call output() %}NAME                       …   KIND
+analysisruns               …   AnalysisRun
+analysistemplates          …   AnalysisTemplate
+applications               …   Application
+applicationsets            …   ApplicationSet
+appprojects                …   AppProject
+clusteranalysistemplates   …   ClusterAnalysisTemplate
+experiments                …   Experiment
+rollouts                   …   Rollout{% endcall %}{% endcall %}
+{% call check("The developers can read Rollouts: the command prints No resources found, not Forbidden.") %}kubectl --context <account-name>-team-a-dev \
+  get rollouts -n team-a{% call output() %}No resources found in team-a namespace.{% endcall %}{% endcall %}
+{% endcall %}
+{% endcall %}
+
+{% call step("permissions", "Permissions to write Rollouts") %}
+{% call what() %}
+<p>A Role that lets the developers and Argo CD write Rollouts and their status in the namespace <code>team-a</code>.</p>
+<div class="table-wrap"><table>
+<thead><tr><th>Who</th><th>Read Rollouts</th><th>Write Rollouts and their status</th></tr></thead>
+<tbody>
+<tr><td>The developers, group <code>team-a-dev</code></td><td><code>view</code>, from part 40</td><td><code>rollouts-edit</code>, this step</td></tr>
+<tr><td>Argo CD, group <code>argocd</code></td><td><code>view</code>, from part 50</td><td><code>rollouts-edit</code>, this step</td></tr>
+</tbody></table></div>
+<p>Without it, the sync of the Rollout fails as Forbidden, and so do Resume, Promote-Full, and Abort.</p>
+{% endcall %}
+{% call files() %}
+{% call file("parts/60-argo-rollouts/manifests/rbac.yaml", main=true) %}
+  {% call note("resources: [\"rollouts\"]", "Allow creating, updating, and deleting Rollouts.") %}Argo CD applies the Rollout with these.{% endcall %}
+  {% call note("rollouts/status", "Allow updating the status of Rollouts.") %}Resume, Promote-Full, and Abort write the status.{% endcall %}
+  {{ note("name: team-a-dev||name: team-a-dev>>name: rollouts-edit", "Grant the permissions of the Role `rollouts-edit` to the group `team-a-dev`.") }}
+  {{ note("    name: argocd||    name: argocd>>name: rollouts-edit", "Grant the permissions of the Role `rollouts-edit` to the group `argocd`.") }}
+{% endcall %}
+{% endcall %}
+{% call apply() %}
+{% call command() %}
+{% call piece("Creates the Role and the two RoleBindings in the namespace `team-a`.") %}kubectl apply -f parts/60-argo-rollouts/manifests/rbac.yaml{% endcall %}
+{% endcall %}
+{% endcall %}
+{% call confirm() %}
+{% call check("The developers may create, update, patch, and delete Rollouts, and update and patch their status.") %}kubectl --context <account-name>-team-a-dev \
+  auth can-i --list -n team-a | grep -E '^Resources|rollouts'{% call output() %}Resources                     …   Verbs
+rollouts.argoproj.io          …   [get list watch create update patch delete]
+rollouts.argoproj.io/scale    …   [get list watch]
+rollouts.argoproj.io/status   …   [update patch]{% endcall %}{% endcall %}
+{% call check("Argo CD may do the same. The command asks as a member of the group `argocd`.") %}kubectl --as=argocd-check --as-group=argocd \
+  auth can-i --list -n team-a | grep -E '^Resources|rollouts'{% call output() %}Resources                     …   Verbs
+rollouts.argoproj.io          …   [get list watch create update patch delete]
+rollouts.argoproj.io/scale    …   [get list watch]
+rollouts.argoproj.io/status   …   [update patch]{% endcall %}{% endcall %}
+{% endcall %}
+{% endcall %}
+
+{% call step("appproject", "AppProject that allows Rollouts") %}
+{% call what() %}
+<p>An AppProject whose Applications may sync Rollouts into the namespace <code>team-a</code>.</p>
+<p>Kustomize builds this AppProject from the shared settings of part 50, and adds Rollout to them.</p>
+<div class="diagram kustomize">
+<svg viewBox="0 0 900 346" role="img" aria-labelledby="kustomize-title kustomize-description">
+  <title id="kustomize-title">How Kustomize builds the AppProject</title>
+  <desc id="kustomize-description">The overlay team-a-argo-rollouts takes its own appproject.yaml as the resource, then the component sync-allowlist of part 50, then the component argo-rollouts of this part, in this order. Kustomize builds from them the AppProject team-a-argo-rollouts.</desc>
+  <defs><marker id="kustomize-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z"/></marker></defs>
+
+  <rect class="frame this-part" x="20" y="20" width="400" height="234" rx="10"/>
+  <text class="frame-label" x="36" y="44">overlay team-a-argo-rollouts, kustomization.yaml</text>
+
+  <text class="muted-label" x="40" y="74">resources</text>
+  <g class="box this-part"><rect x="40" y="84" width="360" height="34"/><text x="220" y="106" text-anchor="middle">appproject.yaml</text></g>
+
+  <text class="muted-label" x="40" y="146">components, in this order</text>
+  <g class="box"><rect x="40" y="154" width="360" height="34"/><text x="220" y="176" text-anchor="middle">1 sync-allowlist</text></g>
+  <g class="box"><rect x="40" y="208" width="360" height="34"/><text x="220" y="230" text-anchor="middle">2 argo-rollouts</text></g>
+
+  <g class="box"><rect x="500" y="149" width="380" height="44"/><text x="690" y="167" text-anchor="middle">component sync-allowlist, kustomization.yaml</text><text class="subtitle" x="690" y="184" text-anchor="middle">part 50: the allow list that every AppProject shares</text></g>
+  <g class="box this-part"><rect x="500" y="203" width="380" height="44"/><text x="690" y="221" text-anchor="middle">component argo-rollouts, kustomization.yaml</text><text class="subtitle" x="690" y="238" text-anchor="middle">this part: adds Rollout to the list</text></g>
+  <path class="kustomize-edge" d="M400,171 H496"/>
+  <path class="kustomize-edge" d="M400,225 H496"/>
+
+  <path class="kustomize-edge" d="M220,254 V288"/><text class="edge-label" x="228" y="276">kubectl kustomize builds</text>
+  <g class="box this-part"><rect x="40" y="292" width="360" height="44"/><text x="220" y="310" text-anchor="middle">AppProject</text><text class="subtitle" x="220" y="327" text-anchor="middle">team-a-argo-rollouts</text></g>
+</svg>
+</div>
+{% endcall %}
+{% call files() %}
+{% call file("parts/60-argo-rollouts/manifests/project/overlays/team-a-argo-rollouts/kustomization.yaml", main=true) %}
+  {{ note("components/sync-allowlist", "Add the component `sync-allowlist` of part 50, which holds the settings that every AppProject shares.") }}
+  {{ note("components/argo-rollouts", "Add the component `argo-rollouts`, which adds Rollout to the allow list.") }}
+{% endcall %}
+{% call file("parts/60-argo-rollouts/manifests/project/overlays/team-a-argo-rollouts/appproject.yaml") %}
+  {{ note("namespace: team-a", "Allow syncing only to the namespace `team-a` of the cluster `in-cluster`.") }}
+  {% call note("group-id", "Grant the project role `developer` to the IAM Identity Center group `<eks-platform-lab-team-a-group-id>`.") %}The ID is put in place when the AppProject is applied.{% endcall %}
+  {% call note("action/*", "Allow the developers to run the built-in actions of Applications.") %}The built-in actions of a Rollout include Resume, Promote-Full, and Abort.{% endcall %}
+{% endcall %}
+{% call file("parts/60-argo-rollouts/manifests/project/components/argo-rollouts/kustomization.yaml") %}
+  {{ note("op: add", "Add Rollout to the allow list.") }}
+{% endcall %}
+{{ file("parts/50-argo-cd/manifests/project/components/sync-allowlist/appproject.yaml") }}
+{{ file("parts/50-argo-cd/manifests/project/components/sync-allowlist/kustomization.yaml") }}
+{% endcall %}
+{% call apply() %}
+{% call command() %}
+{% call piece("Gets the ID of the IAM Identity Center identity store.") %}store_id=$( \
+aws --profile <account-name>-admin \
+  sso-admin list-instances \
+  --query 'Instances[0].IdentityStoreId' \
+  --output text \
+){% endcall %}
+
+{% call piece("Looks up the ID of the group `eks-platform-lab-team-a` in that identity store.") %}group_id=$( \
+aws --profile <account-name>-admin \
+  identitystore get-group-id --identity-store-id "$store_id" \
+  --alternate-identifier '{"UniqueAttribute":{"AttributePath":"DisplayName","AttributeValue":"eks-platform-lab-team-a"}}' \
+  --query 'GroupId' \
+  --output text \
+){% endcall %}
+
+{% call piece("Builds the AppProject from the overlay and its components, without applying it.") %}kubectl kustomize parts/60-argo-rollouts/manifests/project/overlays/team-a-argo-rollouts{% endcall %} \
+  | {% call piece("Replaces the placeholder with the ID of the group.") %}sed "s|<eks-platform-lab-team-a-group-id>|${group_id}|"{% endcall %} \
+  | {% call piece("Applies the AppProject that it reads from standard input.") %}kubectl apply -f -{% endcall %}
+{% endcall %}
+{% endcall %}
+{% call confirm() %}
+{% call check("The allow list has Rollout.") %}kubectl get appproject team-a-argo-rollouts -n argocd \
+  -o jsonpath='{.spec.namespaceResourceWhitelist[?(@.kind=="Rollout")]}{"\n"}'{% call output() %}{"group":"argoproj.io","kind":"Rollout"}{% endcall %}{% endcall %}
+{% endcall %}
+{% endcall %}
+
+{% call step("sample-workload", "Sample workload") %}
+{% call what() %}
+<p>The workload to roll out: a Rollout of nginx with four pods, and a Service and an Ingress in front of it. A developer delivers it by pushing its manifest to the workloads repository, which Argo CD reads.</p>
+{% endcall %}
+{% call files() %}
+{% call file("parts/60-argo-rollouts/workloads/team-a-argo-rollouts/pod-ratio/nginx-argo-rollouts-pod-ratio/nginx-argo-rollouts-pod-ratio.yaml", main=true) %}
+  {% call note("readinessProbe", "Check whether a pod can take requests with an HTTP GET of the path `/` on port 8080.") %}Keeps the ALB from sending requests to a new pod until the pod answers.{% endcall %}
+  {% call note("preStop", "Make the container wait 10 seconds before it stops.") %}Lets the ALB stop sending requests to the pod before it stops.{% endcall %}
+  {{ note("setWeight: 25", "Raise the share of new pods to 25%, 50%, and 100%.") }}
+  {{ note("pause: {}", "At 25%, wait until a developer selects Resume.") }}
+  {{ note("duration: 60s", "At 50%, wait 60 seconds, then go on.") }}
+{% endcall %}
+{% endcall %}
+{% call apply() %}
+{% call command() %}
+{% call piece("Copies the sample workload into the workloads repository.") %}cp -r parts/60-argo-rollouts/workloads/team-a-argo-rollouts ../eks-platform-lab-workloads/{% endcall %}
+
+{% call piece("Stages only the directory of the sample workload.") %}git -C ../eks-platform-lab-workloads add team-a-argo-rollouts{% endcall %}
+{% call piece("Commits it.") %}git -C ../eks-platform-lab-workloads commit -m "Add the sample workload of Argo Rollouts"{% endcall %}
+{% call piece("Pushes it to the repository that Argo CD reads.") %}git -C ../eks-platform-lab-workloads push{% endcall %}
+{% endcall %}
+{% endcall %}
+{% call confirm() %}
+{% call check("The workloads repository has the sample workload.") %}git -C ../eks-platform-lab-workloads log origin/HEAD --oneline -1 -- team-a-argo-rollouts{% call output() %}<hash> Add the sample workload of Argo Rollouts{% endcall %}{% endcall %}
+{% endcall %}
+{% endcall %}
+
+{% call step("applicationset", "ApplicationSet") %}
+{% call what() %}
+<p>An ApplicationSet that turns each directory under <code>team-a-argo-rollouts/pod-ratio/</code> of the workloads repository into an Application.</p>
+{% endcall %}
+{% call files() %}
+{% call file("parts/60-argo-rollouts/manifests/applicationset.yaml", main=true) %}
+  {{ note("path: team-a-argo-rollouts/pod-ratio/*", "Create an Application for each directory right under `team-a-argo-rollouts/pod-ratio`.") }}
+  {{ note("name: team-a-{{", "Name each `team-a-<name of the directory>`.") }}
+  {{ note("resources-finalizer", "When an Application is deleted, delete the resources that it synced.") }}
+  {{ note("project: team-a-argo-rollouts", "Use the AppProject `team-a-argo-rollouts`.") }}
+  {{ note("automated", "Sync changes in Git automatically.") }}
+{% endcall %}
+{% endcall %}
+{% call apply() %}
+{% call command() %}
+{% call piece("Creates the ApplicationSet, which creates the Application.") %}kubectl apply -f parts/60-argo-rollouts/manifests/applicationset.yaml{% endcall %}
+{% endcall %}
+{% endcall %}
+{% call confirm() %}
+{% call check("The Application is Synced and Healthy.") %}kubectl get application team-a-nginx-argo-rollouts-pod-ratio -n argocd{% call output() %}NAME                                   SYNC STATUS   HEALTH STATUS
+team-a-nginx-argo-rollouts-pod-ratio   Synced        Healthy{% endcall %}{% endcall %}
+{% call check("The Rollout is Synced along with the Service and the Ingress. If the AppProject does not allow Rollout, the sync fails as not permitted in the project.") %}kubectl get application team-a-nginx-argo-rollouts-pod-ratio -n argocd \
+  -o jsonpath='{range .status.resources[*]}{.kind}{"\t"}{.name}{"\t"}{.status}{"\n"}{end}'{% call output() %}Service   nginx-argo-rollouts-pod-ratio   Synced
+Rollout   nginx-argo-rollouts-pod-ratio   Synced
+Ingress   nginx-argo-rollouts-pod-ratio   Synced{% endcall %}{% endcall %}
+{% call check("The sample workload answers through its ALB. The ALB can take several minutes to answer.") %}alb=$( \
+kubectl get ingress nginx-argo-rollouts-pod-ratio -n team-a \
+  -o jsonpath='{.status.loadBalancer.ingress[0].hostname}' \
+)
+
+curl -sI "http://${alb}/"{% call output() %}HTTP/1.1 200 OK
+…
+Server: nginx/1.30.5{% endcall %}{% endcall %}
+{% endcall %}
+{% endcall %}
+
+{% endcall %}
+
+{% call stage("use") %}
+{{ section("plugin", "Install the Argo Rollouts kubectl plugin") }}
+<p>The plugin operates Rollouts. <a href="https://argo-rollouts.readthedocs.io/en/stable/installation/#kubectl-plugin-installation">Install the plugin</a>, then check it.</p>
+{% call confirm() %}
+{% call check("The plugin is installed.") %}kubectl argo rollouts version{% call output() %}kubectl-argo-rollouts: v1.10.0+…
+…{% endcall %}{% endcall %}
+{% endcall %}
+
+{{ section("run", "Run a rollout") }}
+<p>A rollout starts with a push to the workloads repository, and runs as shown in <a href="#how">How a rollout runs</a>.</p>
+{% call run() %}
+{% call check("Before you start, the Rollout is Healthy, and every pod runs `1.30.5`.") %}kubectl argo rollouts --context <account-name>-team-a-dev \
+  get rollout nginx-argo-rollouts-pod-ratio -n team-a{% call output() %}Status:          ✔ Healthy
+Strategy:        Canary
+  Step:          4/4
+  SetWeight:     100
+  ActualWeight:  100
+Images:          public.ecr.aws/nginx/nginx-unprivileged:1.30.5 (stable){% endcall %}{% endcall %}
+{% call check("Change the image tag of the sample workload to a newer one, such as `1.31.6`, push, and refresh the Application. Without the refresh, Argo CD picks up the push within about 10 minutes.") %}f=team-a-argo-rollouts/pod-ratio/nginx-argo-rollouts-pod-ratio/nginx-argo-rollouts-pod-ratio.yaml
+sed -i 's/nginx-unprivileged:1.30.5/nginx-unprivileged:<new tag>/' ../eks-platform-lab-workloads/$f
+
+git -C ../eks-platform-lab-workloads add $f
+git -C ../eks-platform-lab-workloads commit -m "Roll out <new tag>"
+git -C ../eks-platform-lab-workloads push
+
+kubectl annotate application team-a-nginx-argo-rollouts-pod-ratio -n argocd \
+  argocd.argoproj.io/refresh=normal --overwrite{% endcall %}
+{% call check("The Rollout pauses at the first step: one pod of four runs the new version.") %}kubectl argo rollouts --context <account-name>-team-a-dev \
+  get rollout nginx-argo-rollouts-pod-ratio -n team-a{% call output() %}Status:          ॥ Paused
+Message:         CanaryPauseStep
+Strategy:        Canary
+  Step:          1/4
+  SetWeight:     25
+  ActualWeight:  25{% endcall %}{% endcall %}
+{% call check("About a quarter of the requests reach the new version. Wait a minute first, until the ALB sends requests to the new pod.") %}alb=$( \
+kubectl get ingress nginx-argo-rollouts-pod-ratio -n team-a \
+  -o jsonpath='{.status.loadBalancer.ingress[0].hostname}' \
+)
+
+for i in $(seq 100); do curl -sI "http://${alb}/" | grep -i '^server:'; done \
+  | sort | uniq -c{% call output() %}     75 Server: nginx/1.30.5
+     25 Server: nginx/<new tag>{% endcall %}{% endcall %}
+{% call ui("a developer", "Applications|team-a-nginx-argo-rollouts-pod-ratio|the menu of the Rollout|Resume") %}Resume: the Rollout moves to 50%, waits 60 seconds, and goes to 100% by itself.{% endcall %}
+{% call check("At 100%, the Application is Synced and Healthy, and every request reaches the new version.") %}kubectl get application team-a-nginx-argo-rollouts-pod-ratio -n argocd
+
+for i in $(seq 100); do curl -sI "http://${alb}/" | grep -i '^server:'; done \
+  | sort | uniq -c{% call output() %}NAME                                   SYNC STATUS   HEALTH STATUS
+team-a-nginx-argo-rollouts-pod-ratio   Synced        Healthy
+    100 Server: nginx/<new tag>{% endcall %}{% endcall %}
+{% call check("Revert the commit, push, and refresh the Application. The rollback is a rollout too, and pauses at the first step.") %}git -C ../eks-platform-lab-workloads revert --no-edit HEAD
+git -C ../eks-platform-lab-workloads push
+
+kubectl annotate application team-a-nginx-argo-rollouts-pod-ratio -n argocd \
+  argocd.argoproj.io/refresh=normal --overwrite{% endcall %}
+{% call check("The rollback pauses at the first step: one pod of four runs the old version.") %}kubectl argo rollouts --context <account-name>-team-a-dev \
+  get rollout nginx-argo-rollouts-pod-ratio -n team-a{% call output() %}Status:          ॥ Paused
+Message:         CanaryPauseStep
+Strategy:        Canary
+  Step:          1/4
+  SetWeight:     25
+  ActualWeight:  25{% endcall %}{% endcall %}
+{% call ui("a developer", "Applications|team-a-nginx-argo-rollouts-pod-ratio|the menu of the Rollout|Promote-Full") %}Promote-Full: the Rollout skips the remaining steps and goes to 100% at once.{% endcall %}
+{% call check("The Application is Synced and Healthy, and every request reaches the old version again.") %}kubectl get application team-a-nginx-argo-rollouts-pod-ratio -n argocd
+
+for i in $(seq 100); do curl -sI "http://${alb}/" | grep -i '^server:'; done \
+  | sort | uniq -c{% call output() %}NAME                                   SYNC STATUS   HEALTH STATUS
+team-a-nginx-argo-rollouts-pod-ratio   Synced        Healthy
+    100 Server: nginx/1.30.5{% endcall %}{% endcall %}
+{% endcall %}
+
+{{ section("abort", "Abort a rollout") }}
+<p>Abort stops a rollout in progress, and gives every pod back to the old version. Git still asks for the new version, so the Rollout is Degraded until a revert.</p>
+{% call run() %}
+{% call check("Roll out the new version again, as in Run a rollout.") %}f=team-a-argo-rollouts/pod-ratio/nginx-argo-rollouts-pod-ratio/nginx-argo-rollouts-pod-ratio.yaml
+sed -i 's/nginx-unprivileged:1.30.5/nginx-unprivileged:<new tag>/' ../eks-platform-lab-workloads/$f
+
+git -C ../eks-platform-lab-workloads add $f
+git -C ../eks-platform-lab-workloads commit -m "Roll out <new tag>"
+git -C ../eks-platform-lab-workloads push
+
+kubectl annotate application team-a-nginx-argo-rollouts-pod-ratio -n argocd \
+  argocd.argoproj.io/refresh=normal --overwrite{% endcall %}
+{% call check("The Rollout pauses at the first step: one pod of four runs the new version.") %}kubectl argo rollouts --context <account-name>-team-a-dev \
+  get rollout nginx-argo-rollouts-pod-ratio -n team-a{% call output() %}Status:          ॥ Paused
+Message:         CanaryPauseStep
+Strategy:        Canary
+  Step:          1/4
+  SetWeight:     25
+  ActualWeight:  25{% endcall %}{% endcall %}
+{% call ui("a developer", "Applications|team-a-nginx-argo-rollouts-pod-ratio|the menu of the Rollout|Abort") %}Abort: every pod goes back to the old version at once.{% endcall %}
+{% call check("The Application is Synced but Degraded, and every request reaches the old version.") %}kubectl get application team-a-nginx-argo-rollouts-pod-ratio -n argocd
+
+for i in $(seq 100); do curl -sI "http://${alb}/" | grep -i '^server:'; done \
+  | sort | uniq -c{% call output() %}NAME                                   SYNC STATUS   HEALTH STATUS
+team-a-nginx-argo-rollouts-pod-ratio   Synced        Degraded
+    100 Server: nginx/1.30.5{% endcall %}{% endcall %}
+{% call check("Revert the commit, push, and refresh the Application. Git asks for `1.30.5` again, and the Rollout becomes Healthy at once.") %}git -C ../eks-platform-lab-workloads revert --no-edit HEAD
+git -C ../eks-platform-lab-workloads push
+
+kubectl annotate application team-a-nginx-argo-rollouts-pod-ratio -n argocd \
+  argocd.argoproj.io/refresh=normal --overwrite{% endcall %}
+{% call check("The Application is Synced and Healthy, and every request reaches the old version.") %}kubectl get application team-a-nginx-argo-rollouts-pod-ratio -n argocd
+
+for i in $(seq 100); do curl -sI "http://${alb}/" | grep -i '^server:'; done \
+  | sort | uniq -c{% call output() %}NAME                                   SYNC STATUS   HEALTH STATUS
+team-a-nginx-argo-rollouts-pod-ratio   Synced        Healthy
+    100 Server: nginx/1.30.5{% endcall %}{% endcall %}
+{% endcall %}
+
+{% endcall %}
+
+{% call stage("wrapup") %}
+{{ section("teardown", "Teardown") }}
+<p>Tear down in the reverse order of the steps. The workloads repository stays.</p>
+{% call apply() %}
+{% call command() %}
+{% call piece("Deletes the ApplicationSet, and with it the Application.") %}kubectl delete -f parts/60-argo-rollouts/manifests/applicationset.yaml{% endcall %} {% call piece("Returns only after the Application, the sample workload, and the ALB are gone.") %}--cascade=foreground{% endcall %}
+
+{% call piece("Deletes the AppProject.") %}kubectl delete -k parts/60-argo-rollouts/manifests/project/overlays/team-a-argo-rollouts{% endcall %}
+
+{% call piece("Deletes the Role and the RoleBindings.") %}kubectl delete -f parts/60-argo-rollouts/manifests/rbac.yaml{% endcall %}
+
+{% call piece("Deletes the controller, the CRDs, the ClusterRoles, and the namespace.") %}kubectl delete -k parts/60-argo-rollouts/manifests/argo-rollouts{% endcall %}
+{% endcall %}
+{% endcall %}
+{% call confirm() %}
+{% call check("The ApplicationSet and its Application are gone.") %}kubectl get applicationset team-a-argo-rollouts-pod-ratio -n argocd
+
+kubectl get application team-a-nginx-argo-rollouts-pod-ratio -n argocd{% call output() %}Error from server (NotFound): applicationsets.argoproj.io "team-a-argo-rollouts-pod-ratio" not found
+Error from server (NotFound): applications.argoproj.io "team-a-nginx-argo-rollouts-pod-ratio" not found{% endcall %}{% endcall %}
+{% call check("No load balancer of the sample workload is left, so nothing is charged for it.") %}aws --profile <account-name>-admin \
+  resourcegroupstaggingapi get-resources \
+  --tag-filters Key=ingress.eks.amazonaws.com/stack,Values=team-a/nginx-argo-rollouts-pod-ratio \
+  --resource-type-filters elasticloadbalancing:loadbalancer \
+  --query 'ResourceTagMappingList[].ResourceARN' \
+  --output text{% call output() %}(nothing){% endcall %}{% endcall %}
+{% call check("The AppProject is gone.") %}kubectl get appproject team-a-argo-rollouts -n argocd{% call output() %}Error from server (NotFound): appprojects.argoproj.io "team-a-argo-rollouts" not found{% endcall %}{% endcall %}
+{% call check("The Role and the RoleBindings are gone.") %}kubectl get role rollouts-edit -n team-a
+
+kubectl get rolebinding developer-rollouts argocd-rollouts -n team-a{% call output() %}Error from server (NotFound): roles.rbac.authorization.k8s.io "rollouts-edit" not found
+Error from server (NotFound): rolebindings.rbac.authorization.k8s.io "developer-rollouts" not found
+Error from server (NotFound): rolebindings.rbac.authorization.k8s.io "argocd-rollouts" not found{% endcall %}{% endcall %}
+{% call check("The namespace `argo-rollouts` is gone, and only the CRDs of Argo CD are left.") %}kubectl get namespace argo-rollouts
+
+kubectl get crd -o name | grep argoproj.io{% call output() %}Error from server (NotFound): namespaces "argo-rollouts" not found
+customresourcedefinition.apiextensions.k8s.io/applications.argoproj.io
+customresourcedefinition.apiextensions.k8s.io/applicationsets.argoproj.io
+customresourcedefinition.apiextensions.k8s.io/appprojects.argoproj.io{% endcall %}{% endcall %}
+{% call check("No node of the NodePool `system` is left. The node of the controller can take about a minute to go away.") %}kubectl get nodes -L karpenter.sh/nodepool{% call output() %}NAME     STATUS   …   NODEPOOL
+<node>   Ready    …   apps{% endcall %}{% endcall %}
+{% endcall %}
+
+{{ section("cost", "Cost") }}
+<div class="cost-total"><p class="cost-sum"><b id="cost-sum"></b> USD a day</p><div class="cost-bar" id="cost-bar" aria-hidden="true"></div></div>
+<svg class="cost-chart" id="cost-chart" role="img" aria-label="Daily cost by resource"></svg>
+<p class="caption">Also charged by use: the capacity of the load balancer (0.008 USD per LCU-hour) and the data that the NAT gateway processes (0.062 USD per GB).</p>
+
+<script type="application/json" id="cost-items">
+[
+  ["EC2 instance for the workload", 2.3, "{{ icon("aws/ec2") }}"],
+  ["EC2 instance for the controller", 2.05, "{{ icon("aws/ec2") }}"],
+  ["Application Load Balancer", 0.58, "{{ icon("aws/elb") }}"],
+  ["EKS Auto Mode management, workload", 0.28, "{{ icon("aws/eks") }}"],
+  ["EBS volumes, workload node", 0.27, "{{ icon("aws/ebs") }}"],
+  ["EBS volumes, controller node", 0.27, "{{ icon("aws/ebs") }}"],
+  ["EKS Auto Mode management, controller", 0.25, "{{ icon("aws/eks") }}"],
+  ["Public IPv4 addresses of the ALB", 0.24, "{{ icon("aws/vpc") }}"],
+  ["Application of the capability", 0.044, "{{ icon("aws/eks") }}"]
+]
+</script>
+{% endcall %}

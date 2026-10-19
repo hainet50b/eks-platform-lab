@@ -1,0 +1,111 @@
+<div class="rollout-walkthrough" id="rollout-walkthrough">
+  <div class="moment-line-scroll">
+  <svg class="moment-line" viewBox="0 0 800 168" role="group" aria-label="Moments of a rollout">
+    <path class="track" data-segment="main-1" d="M60,50 H280"/>
+    <path class="track" data-segment="main-2" d="M280,50 H500"/>
+    <path class="track" data-segment="main-3" d="M500,50 H720"/>
+    <path class="track branch" data-segment="branch-1" d="M280,50 C280,105 300,122 350,122 H420"/>
+    <path class="track branch" data-segment="branch-2" d="M420,122 H620"/>
+    <text class="segment-label" x="170" y="72" text-anchor="middle">push a new version</text>
+    <text class="segment-label" x="400" y="72" text-anchor="middle">Resume</text>
+    <text class="segment-label" x="610" y="72" text-anchor="middle">after 60 seconds</text>
+    <text class="segment-label" x="292" y="112" text-anchor="end">Abort</text>
+    <text class="segment-label" x="520" y="114" text-anchor="middle">revert in Git</text>
+    <g class="moment" data-moment="before" tabindex="0" role="button" aria-label="Before"><circle cx="60" cy="50" r="11"/><text x="60" y="26" text-anchor="middle">Before</text><text class="subtitle" x="60" y="94" text-anchor="middle">all old</text></g>
+    <g class="moment" data-moment="push" tabindex="0" role="button" aria-label="25 percent, paused"><circle cx="280" cy="50" r="11"/><text x="280" y="26" text-anchor="middle">25%, paused</text></g>
+    <g class="moment" data-moment="resume" tabindex="0" role="button" aria-label="50 percent, paused for 60 seconds"><circle cx="500" cy="50" r="11"/><text x="500" y="26" text-anchor="middle">50%, 60 s</text></g>
+    <g class="moment" data-moment="done" tabindex="0" role="button" aria-label="100 percent"><circle cx="720" cy="50" r="11"/><text x="720" y="26" text-anchor="middle">100%</text><text class="subtitle" x="720" y="94" text-anchor="middle">all new</text></g>
+    <g class="moment branch" data-moment="abort" tabindex="0" role="button" aria-label="Aborted"><circle cx="420" cy="122" r="11"/><text x="420" y="152" text-anchor="middle">Aborted</text><text class="subtitle" x="420" y="166" text-anchor="middle">Degraded</text></g>
+    <g class="moment branch" data-moment="revert" tabindex="0" role="button" aria-label="Reverted"><circle cx="620" cy="122" r="11"/><text x="620" y="152" text-anchor="middle">Reverted</text><text class="subtitle" x="620" y="166" text-anchor="middle">Healthy, old version</text></g>
+  </svg>
+  </div>
+  <div class="moment-state" aria-live="polite">
+    <div class="replicaset-box"><h4>ReplicaSets and their pods</h4><div id="replicasets"></div></div>
+    <div><h4>Requests through the ALB</h4><div class="request-split" id="request-split"><div class="old-share"></div><div class="new-share"></div></div></div>
+    <div><h4>Status in Argo CD</h4><table class="argo-status"><thead><tr><th></th><th>Sync</th><th>Health</th></tr></thead><tbody><tr><th>Rollout</th><td id="rollout-sync"></td><td id="rollout-health"></td></tr><tr><th>Application</th><td id="application-sync"></td><td id="application-health"></td></tr></tbody></table></div>
+    <p class="moment-text" id="moment-text"></p>
+  </div>
+</div>
+<script>
+(function () {
+  // What each moment shows. replicaSets: [role, version, number of pods].
+  // requestsToNew: the share of the requests that reach the new version, in percent.
+  const moments = {
+    before: { segments: [], replicaSets: [["stable", "old", 4]], requestsToNew: 0, health: ["Healthy", "Healthy"],
+      text: "" },
+    push: { segments: ["main-1"], replicaSets: [["stable", "old", 3], ["canary", "new", 1]], requestsToNew: 25,
+      health: ["Suspended", "Suspended"],
+      text: "A push of a new image tag starts a rollout. The Rollout pauses until a developer selects Resume." },
+    resume: { segments: ["main-1", "main-2"], replicaSets: [["stable", "old", 2], ["canary", "new", 2]], requestsToNew: 50,
+      health: ["Suspended", "Suspended"],
+      text: "This pause has a duration: after 60 seconds, the Rollout goes on by itself." },
+    done: { segments: ["main-1", "main-2", "main-3"], replicaSets: [["stable", "new", 4], ["", "old", 0]], requestsToNew: 100,
+      health: ["Healthy", "Healthy"], text: "" },
+    abort: { segments: ["main-1", "branch-1"], replicaSets: [["stable", "old", 4], ["canary", "new", 0]], requestsToNew: 0,
+      health: ["Degraded", "Degraded"],
+      text: "Git still asks for the new version, so the Rollout is Degraded." },
+    revert: { segments: ["main-1", "branch-1", "branch-2"], replicaSets: [["stable", "old", 4], ["", "new", 0]], requestsToNew: 0,
+      health: ["Healthy", "Healthy"],
+      text: "Git asks for the running version again, so the Rollout is Healthy without taking any step." },
+  };
+  const mainLine = ["before", "push", "resume", "done"];
+  const chipClass = { Healthy: "good", Synced: "good", Suspended: "wait", Degraded: "bad" };
+  const walkthrough = document.getElementById("rollout-walkthrough");
+
+  function isPassed(marker, current) {
+    if (marker.classList.contains("branch")) return current === "revert" && marker.dataset.moment === "abort";
+    const name = marker.dataset.moment;
+    if (current === "abort" || current === "revert") return name === "before" || name === "push";
+    return mainLine.indexOf(name) < mainLine.indexOf(current);
+  }
+
+  function replicaSetRow(version, moment) {
+    const replicaSet = moment.replicaSets.find((entry) => entry[1] === version);
+    const pods = replicaSet ? replicaSet[2] : 0;
+    const role = replicaSet ? (replicaSet[0] || "scaled down") : "not created yet";
+    const slots = Array.from({ length: 4 }, (_, i) =>
+      i < pods ? `<div class="pod ${version}">pod</div>` : '<div class="pod empty"></div>').join("");
+    return `<div class="replicaset ${version}${replicaSet ? "" : " absent"}"><div class="replicaset-label">`
+      + `<b>ReplicaSet</b><span>${version} version</span><span class="tag ${role.replace(/ /g, "-")}">${role}</span>`
+      + `</div><div class="pods">${slots}</div></div>`;
+  }
+
+  function show(name) {
+    const moment = moments[name];
+    walkthrough.querySelectorAll(".track").forEach((track) =>
+      track.classList.toggle("done", moment.segments.includes(track.dataset.segment)));
+    walkthrough.querySelectorAll(".moment").forEach((marker) => {
+      marker.classList.toggle("here", marker.dataset.moment === name);
+      marker.classList.toggle("passed", isPassed(marker, name));
+      marker.setAttribute("aria-pressed", String(marker.dataset.moment === name));
+    });
+    document.getElementById("replicasets").innerHTML = ["old", "new"].map((version) => replicaSetRow(version, moment)).join("");
+
+    const [toOld, toNew] = document.getElementById("request-split").children;
+    toOld.style.flexGrow = 100 - moment.requestsToNew;
+    toNew.style.flexGrow = moment.requestsToNew;
+    toOld.textContent = moment.requestsToNew < 100 ? `old ${100 - moment.requestsToNew}%` : "";
+    toNew.textContent = moment.requestsToNew > 0 ? `new ${moment.requestsToNew}%` : "";
+
+    const status = { "rollout-sync": "Synced", "application-sync": "Synced",
+      "rollout-health": moment.health[0], "application-health": moment.health[1] };
+    for (const [id, value] of Object.entries(status)) {
+      document.getElementById(id).innerHTML = `<span class="chip ${chipClass[value]}">${value}</span>`;
+    }
+    const text = document.getElementById("moment-text");
+    text.textContent = moment.text;
+    text.hidden = !moment.text;
+  }
+
+  walkthrough.querySelectorAll(".moment").forEach((marker) => {
+    marker.addEventListener("click", () => show(marker.dataset.moment));
+    marker.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        show(marker.dataset.moment);
+      }
+    });
+  });
+  show("before");
+})();
+</script>
