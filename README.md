@@ -1,11 +1,8 @@
 # eks-platform-lab
 
-How to build a just-enough application platform on
-[Amazon EKS Auto Mode](https://docs.aws.amazon.com/eks/latest/userguide/automode.html)
-with an AI coding agent and its skills from the
-[Agent Toolkit for AWS](https://docs.aws.amazon.com/agent-toolkit/latest/userguide/what-is-agent-toolkit.html)
-and [APEX Skills](https://aws-samples.github.io/sample-apex-skills/), in
-numbered, rebuildable parts.
+A just-enough application platform on
+[Amazon EKS Auto Mode](https://docs.aws.amazon.com/eks/latest/userguide/automode.html),
+in numbered, rebuildable parts.
 
 ## Overview
 
