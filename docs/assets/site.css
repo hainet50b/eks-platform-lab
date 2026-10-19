@@ -14,7 +14,7 @@ body {
   background: var(--bg); color: var(--fg); font-family: var(--sans); font-size: 16px; line-height: 1.7; margin: 0;
 }
 a { color: var(--accent); }
-a:focus-visible, summary:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+a:focus-visible, summary:focus-visible, button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 code { font-family: var(--mono); font-size: .86em; }
 :not(pre) > code { background: var(--code-bg); padding: .1em .35em; border-radius: 4px; }
 .part-number { font-family: var(--mono); color: var(--muted); font-size: .88em; }
@@ -47,6 +47,14 @@ code { font-family: var(--mono); font-size: .86em; }
 .parts-menu a { display: block; padding: 3px 8px; border-radius: 6px; color: var(--fg); text-decoration: none; }
 .parts-menu a:hover { background: var(--accent-bg); }
 .parts-menu [aria-current] a { color: var(--accent); font-weight: 500; }
+.account-field { margin: 0 0 18px; }
+.account-field input {
+  display: block; width: 100%; box-sizing: border-box; padding: 6px 8px; border: 1px solid var(--line);
+  border-radius: 8px; background: var(--surface); color: var(--fg); font: .84rem var(--mono);
+}
+.account-field input::placeholder { color: var(--faint); }
+.account-name { color: var(--pin); }
+.account-name.filled { color: var(--accent); }
 .outline ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 1px; }
 .outline a {
   display: block; padding: 5px 8px; border-radius: 6px; color: var(--muted); text-decoration: none; line-height: 1.35;

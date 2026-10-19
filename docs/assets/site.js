@@ -95,6 +95,51 @@
     }));
   });
 
+  // Account name: what the reader types takes the place of <account-name> on the page, and in what the copy buttons
+  // copy. The browser remembers it.
+  const ACCOUNT_PLACEHOLDER = "<account-name>";
+  const ACCOUNT_STORAGE_KEY = "eks-platform-lab:account-name";
+  const accountWalker = document.createTreeWalker(document.querySelector(".page"), NodeFilter.SHOW_TEXT, {
+    acceptNode: (text) => text.nodeValue.includes(ACCOUNT_PLACEHOLDER) && text.parentElement.tagName !== "SCRIPT"
+      ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_SKIP,
+  });
+  const textsWithPlaceholder = [];
+  while (accountWalker.nextNode()) textsWithPlaceholder.push(accountWalker.currentNode);
+  const accountSlots = [];
+  for (const text of textsWithPlaceholder) {
+    const fragment = document.createDocumentFragment();
+    text.nodeValue.split(ACCOUNT_PLACEHOLDER).forEach((piece, index) => {
+      if (index > 0) {
+        const slot = document.createElement("span");
+        slot.className = "account-name";
+        accountSlots.push(slot);
+        fragment.append(slot);
+      }
+      fragment.append(piece);
+    });
+    text.replaceWith(fragment);
+  }
+
+  const accountInput = document.getElementById("account-name");
+  if (accountInput && accountSlots.length) {
+    const fill = (value) => accountSlots.forEach((slot) => {
+      slot.textContent = value || ACCOUNT_PLACEHOLDER;
+      slot.classList.toggle("filled", value !== "");
+    });
+    accountInput.closest(".account-field").hidden = false;
+    try {
+      accountInput.value = localStorage.getItem(ACCOUNT_STORAGE_KEY) || "";
+    } catch {}
+    fill(accountInput.value.trim());
+    accountInput.addEventListener("input", () => {
+      const value = accountInput.value.trim();
+      fill(value);
+      try {
+        localStorage.setItem(ACCOUNT_STORAGE_KEY, value);
+      } catch {}
+    });
+  }
+
   // Copy: a command as written, without the numbers of its parts.
   const COPY_ICON = '<svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true">'
     + '<rect x="5" y="5" width="9" height="9" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.4"/>'

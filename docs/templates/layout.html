@@ -16,6 +16,10 @@
     <summary>{{ current }}</summary>
     <ol>{% for part in parts %}<li{% if part == current_part %} aria-current=page{% endif %}>{{ part_link(part) }}</li>{% endfor %}</ol>
   </details>
+  <div class="account-field" hidden>
+    <p class="rail-label"><label for="account-name">Account name</label></p>
+    <input id="account-name" type="text" placeholder="&lt;account-name&gt;" autocomplete="off" spellcheck="false">
+  </div>
   <nav class="outline" aria-label="This page">
     <ol>{{ outline }}</ol>
   </nav>
