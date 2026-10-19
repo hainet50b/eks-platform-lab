@@ -58,7 +58,8 @@ spec:
 {% endcall %}
 {% call apply() %}
 {% call command() %}
-{% call piece("Builds the kustomization and applies the result.") %}kubectl apply -k parts/60-argo-rollouts/manifests/argo-rollouts{% endcall %} {% call piece("Applies on the API server. The CRDs are too large for a client-side apply.") %}--server-side{% endcall %}
+{% call piece("Builds the kustomization and applies the result.") %}kubectl --context <account-name>-admin \
+  apply -k parts/60-argo-rollouts/manifests/argo-rollouts{% endcall %} {% call piece("Applies on the API server. The CRDs are too large for a client-side apply.") %}--server-side{% endcall %}
 {% endcall %}
 <p>To let Argo CD see the kind Rollout, invalidate its cache in the Argo CD UI. Argo CD does not see a kind added after it read the cluster. Without this, the Rollout stays Unknown.</p>
 {% call command() %}
@@ -70,12 +71,15 @@ spec:
 {{ ui("the administrator", "Settings|Clusters|in-cluster|Invalidate Cache", opens_url=true) }}
 {% endcall %}
 {% call confirm() %}
-{% call check("The controller is Running. It stays Pending for about a minute, until a new node of the NodePool `system` is ready.") %}kubectl get pods -n argo-rollouts -o wide{% call output() %}NAME                   READY   STATUS    …   NODE
+{% call check("The controller is Running. It stays Pending for about a minute, until a new node of the NodePool `system` is ready.") %}kubectl --context <account-name>-admin \
+  get pods -n argo-rollouts -o wide{% call output() %}NAME                   READY   STATUS    …   NODE
 argo-rollouts-<hash>   1/1     Running   …   <node>{% endcall %}{% endcall %}
-{% call check("Its node belongs to the NodePool `system`.") %}kubectl get nodes -L karpenter.sh/nodepool{% call output() %}NAME     STATUS   …   NODEPOOL
+{% call check("Its node belongs to the NodePool `system`.") %}kubectl --context <account-name>-admin \
+  get nodes -L karpenter.sh/nodepool{% call output() %}NAME     STATUS   …   NODEPOOL
 <node>   Ready    …   system
 …        Ready    …   apps{% endcall %}{% endcall %}
-{% call check("The cluster has the kind Rollout.") %}kubectl api-resources --api-group=argoproj.io{% call output() %}NAME                       …   KIND
+{% call check("The cluster has the kind Rollout.") %}kubectl --context <account-name>-admin \
+  api-resources --api-group=argoproj.io{% call output() %}NAME                       …   KIND
 analysisruns               …   AnalysisRun
 analysistemplates          …   AnalysisTemplate
 applications               …   Application
@@ -110,7 +114,8 @@ rollouts                   …   Rollout{% endcall %}{% endcall %}
 {% endcall %}
 {% call apply() %}
 {% call command() %}
-{% call piece("Creates the Role and the two RoleBindings in the namespace `team-a`.") %}kubectl apply -f parts/60-argo-rollouts/manifests/rbac.yaml{% endcall %}
+{% call piece("Creates the Role and the two RoleBindings in the namespace `team-a`.") %}kubectl --context <account-name>-admin \
+  apply -f parts/60-argo-rollouts/manifests/rbac.yaml{% endcall %}
 {% endcall %}
 {% endcall %}
 {% call confirm() %}
@@ -119,7 +124,8 @@ rollouts                   …   Rollout{% endcall %}{% endcall %}
 rollouts.argoproj.io          …   [get list watch create update patch delete]
 rollouts.argoproj.io/scale    …   [get list watch]
 rollouts.argoproj.io/status   …   [update patch]{% endcall %}{% endcall %}
-{% call check("Argo CD may do the same. The command asks as a member of the group `argocd`.") %}kubectl --as=argocd-check --as-group=argocd \
+{% call check("Argo CD may do the same. The command asks as a member of the group `argocd`.") %}kubectl --context <account-name>-admin \
+  --as=argocd-check --as-group=argocd \
   auth can-i --list -n team-a | grep -E '^Resources|rollouts'{% call output() %}Resources                     …   Verbs
 rollouts.argoproj.io          …   [get list watch create update patch delete]
 rollouts.argoproj.io/scale    …   [get list watch]
@@ -192,11 +198,13 @@ aws --profile <account-name>-admin \
 
 {% call piece("Builds the AppProject from the overlay and its components, without applying it.") %}kubectl kustomize parts/60-argo-rollouts/manifests/project/overlays/team-a-argo-rollouts{% endcall %} \
   | {% call piece("Replaces the placeholder with the ID of the group.") %}sed "s|<eks-platform-lab-team-a-group-id>|${group_id}|"{% endcall %} \
-  | {% call piece("Applies the AppProject that it reads from standard input.") %}kubectl apply -f -{% endcall %}
+  | {% call piece("Applies the AppProject that it reads from standard input.") %}kubectl --context <account-name>-admin \
+    apply -f -{% endcall %}
 {% endcall %}
 {% endcall %}
 {% call confirm() %}
-{% call check("The allow list has Rollout.") %}kubectl get appproject team-a-argo-rollouts -n argocd \
+{% call check("The allow list has Rollout.") %}kubectl --context <account-name>-admin \
+  get appproject team-a-argo-rollouts -n argocd \
   -o jsonpath='{.spec.namespaceResourceWhitelist[?(@.kind=="Rollout")]}{"\n"}'{% call output() %}{"group":"argoproj.io","kind":"Rollout"}{% endcall %}{% endcall %}
 {% endcall %}
 {% endcall %}
@@ -243,18 +251,22 @@ aws --profile <account-name>-admin \
 {% endcall %}
 {% call apply() %}
 {% call command() %}
-{% call piece("Creates the ApplicationSet, which creates the Application.") %}kubectl apply -f parts/60-argo-rollouts/manifests/applicationset.yaml{% endcall %}
+{% call piece("Creates the ApplicationSet, which creates the Application.") %}kubectl --context <account-name>-admin \
+  apply -f parts/60-argo-rollouts/manifests/applicationset.yaml{% endcall %}
 {% endcall %}
 {% endcall %}
 {% call confirm() %}
-{% call check("The Application is Synced and Healthy.") %}kubectl get application team-a-nginx-argo-rollouts-pod-ratio -n argocd{% call output() %}NAME                                   SYNC STATUS   HEALTH STATUS
+{% call check("The Application is Synced and Healthy.") %}kubectl --context <account-name>-admin \
+  get application team-a-nginx-argo-rollouts-pod-ratio -n argocd{% call output() %}NAME                                   SYNC STATUS   HEALTH STATUS
 team-a-nginx-argo-rollouts-pod-ratio   Synced        Healthy{% endcall %}{% endcall %}
-{% call check("The Rollout is Synced along with the Service and the Ingress. If the AppProject does not allow Rollout, the sync fails as not permitted in the project.") %}kubectl get application team-a-nginx-argo-rollouts-pod-ratio -n argocd \
+{% call check("The Rollout is Synced along with the Service and the Ingress. If the AppProject does not allow Rollout, the sync fails as not permitted in the project.") %}kubectl --context <account-name>-admin \
+  get application team-a-nginx-argo-rollouts-pod-ratio -n argocd \
   -o jsonpath='{range .status.resources[*]}{.kind}{"\t"}{.name}{"\t"}{.status}{"\n"}{end}'{% call output() %}Service   nginx-argo-rollouts-pod-ratio   Synced
 Rollout   nginx-argo-rollouts-pod-ratio   Synced
 Ingress   nginx-argo-rollouts-pod-ratio   Synced{% endcall %}{% endcall %}
 {% call check("The sample workload answers through its ALB. The ALB can take several minutes to answer.") %}alb=$( \
-kubectl get ingress nginx-argo-rollouts-pod-ratio -n team-a \
+kubectl --context <account-name>-admin \
+  get ingress nginx-argo-rollouts-pod-ratio -n team-a \
   -o jsonpath='{.status.loadBalancer.ingress[0].hostname}' \
 )
 
@@ -291,7 +303,8 @@ git -C ../eks-platform-lab-workloads add $f
 git -C ../eks-platform-lab-workloads commit -m "Roll out <new tag>"
 git -C ../eks-platform-lab-workloads push
 
-kubectl annotate application team-a-nginx-argo-rollouts-pod-ratio -n argocd \
+kubectl --context <account-name>-admin \
+  annotate application team-a-nginx-argo-rollouts-pod-ratio -n argocd \
   argocd.argoproj.io/refresh=normal --overwrite{% endcall %}
 {% call check("The Rollout pauses at the first step: one pod of four runs the new version.") %}kubectl argo rollouts --context <account-name>-team-a-dev \
   get rollout nginx-argo-rollouts-pod-ratio -n team-a{% call output() %}Status:          ॥ Paused
@@ -301,7 +314,8 @@ Strategy:        Canary
   SetWeight:     25
   ActualWeight:  25{% endcall %}{% endcall %}
 {% call check("About a quarter of the requests reach the new version. Wait a minute first, until the ALB sends requests to the new pod.") %}alb=$( \
-kubectl get ingress nginx-argo-rollouts-pod-ratio -n team-a \
+kubectl --context <account-name>-admin \
+  get ingress nginx-argo-rollouts-pod-ratio -n team-a \
   -o jsonpath='{.status.loadBalancer.ingress[0].hostname}' \
 )
 
@@ -309,7 +323,8 @@ for i in $(seq 100); do curl -sI "http://${alb}/" | grep -i '^server:'; done \
   | sort | uniq -c{% call output() %}     75 Server: nginx/1.30.5
      25 Server: nginx/<new tag>{% endcall %}{% endcall %}
 {% call ui("a developer", "Applications|team-a-nginx-argo-rollouts-pod-ratio|the menu of the Rollout|Resume") %}Resume: the Rollout moves to 50%, waits 60 seconds, and goes to 100% by itself.{% endcall %}
-{% call check("At 100%, the Application is Synced and Healthy, and every request reaches the new version.") %}kubectl get application team-a-nginx-argo-rollouts-pod-ratio -n argocd
+{% call check("At 100%, the Application is Synced and Healthy, and every request reaches the new version.") %}kubectl --context <account-name>-admin \
+  get application team-a-nginx-argo-rollouts-pod-ratio -n argocd
 
 for i in $(seq 100); do curl -sI "http://${alb}/" | grep -i '^server:'; done \
   | sort | uniq -c{% call output() %}NAME                                   SYNC STATUS   HEALTH STATUS
@@ -318,7 +333,8 @@ team-a-nginx-argo-rollouts-pod-ratio   Synced        Healthy
 {% call check("Revert the commit, push, and refresh the Application. The rollback is a rollout too, and pauses at the first step.") %}git -C ../eks-platform-lab-workloads revert --no-edit HEAD
 git -C ../eks-platform-lab-workloads push
 
-kubectl annotate application team-a-nginx-argo-rollouts-pod-ratio -n argocd \
+kubectl --context <account-name>-admin \
+  annotate application team-a-nginx-argo-rollouts-pod-ratio -n argocd \
   argocd.argoproj.io/refresh=normal --overwrite{% endcall %}
 {% call check("The rollback pauses at the first step: one pod of four runs the old version.") %}kubectl argo rollouts --context <account-name>-team-a-dev \
   get rollout nginx-argo-rollouts-pod-ratio -n team-a{% call output() %}Status:          ॥ Paused
@@ -328,7 +344,8 @@ Strategy:        Canary
   SetWeight:     25
   ActualWeight:  25{% endcall %}{% endcall %}
 {% call ui("a developer", "Applications|team-a-nginx-argo-rollouts-pod-ratio|the menu of the Rollout|Promote-Full") %}Promote-Full: the Rollout skips the remaining steps and goes to 100% at once.{% endcall %}
-{% call check("The Application is Synced and Healthy, and every request reaches the old version again.") %}kubectl get application team-a-nginx-argo-rollouts-pod-ratio -n argocd
+{% call check("The Application is Synced and Healthy, and every request reaches the old version again.") %}kubectl --context <account-name>-admin \
+  get application team-a-nginx-argo-rollouts-pod-ratio -n argocd
 
 for i in $(seq 100); do curl -sI "http://${alb}/" | grep -i '^server:'; done \
   | sort | uniq -c{% call output() %}NAME                                   SYNC STATUS   HEALTH STATUS
@@ -346,7 +363,8 @@ git -C ../eks-platform-lab-workloads add $f
 git -C ../eks-platform-lab-workloads commit -m "Roll out <new tag>"
 git -C ../eks-platform-lab-workloads push
 
-kubectl annotate application team-a-nginx-argo-rollouts-pod-ratio -n argocd \
+kubectl --context <account-name>-admin \
+  annotate application team-a-nginx-argo-rollouts-pod-ratio -n argocd \
   argocd.argoproj.io/refresh=normal --overwrite{% endcall %}
 {% call check("The Rollout pauses at the first step: one pod of four runs the new version.") %}kubectl argo rollouts --context <account-name>-team-a-dev \
   get rollout nginx-argo-rollouts-pod-ratio -n team-a{% call output() %}Status:          ॥ Paused
@@ -356,7 +374,8 @@ Strategy:        Canary
   SetWeight:     25
   ActualWeight:  25{% endcall %}{% endcall %}
 {% call ui("a developer", "Applications|team-a-nginx-argo-rollouts-pod-ratio|the menu of the Rollout|Abort") %}Abort: every pod goes back to the old version at once.{% endcall %}
-{% call check("The Application is Synced but Degraded, and every request reaches the old version.") %}kubectl get application team-a-nginx-argo-rollouts-pod-ratio -n argocd
+{% call check("The Application is Synced but Degraded, and every request reaches the old version.") %}kubectl --context <account-name>-admin \
+  get application team-a-nginx-argo-rollouts-pod-ratio -n argocd
 
 for i in $(seq 100); do curl -sI "http://${alb}/" | grep -i '^server:'; done \
   | sort | uniq -c{% call output() %}NAME                                   SYNC STATUS   HEALTH STATUS
@@ -365,9 +384,11 @@ team-a-nginx-argo-rollouts-pod-ratio   Synced        Degraded
 {% call check("Revert the commit, push, and refresh the Application. Git asks for `1.30.5` again, and the Rollout becomes Healthy at once.") %}git -C ../eks-platform-lab-workloads revert --no-edit HEAD
 git -C ../eks-platform-lab-workloads push
 
-kubectl annotate application team-a-nginx-argo-rollouts-pod-ratio -n argocd \
+kubectl --context <account-name>-admin \
+  annotate application team-a-nginx-argo-rollouts-pod-ratio -n argocd \
   argocd.argoproj.io/refresh=normal --overwrite{% endcall %}
-{% call check("The Application is Synced and Healthy, and every request reaches the old version.") %}kubectl get application team-a-nginx-argo-rollouts-pod-ratio -n argocd
+{% call check("The Application is Synced and Healthy, and every request reaches the old version.") %}kubectl --context <account-name>-admin \
+  get application team-a-nginx-argo-rollouts-pod-ratio -n argocd
 
 for i in $(seq 100); do curl -sI "http://${alb}/" | grep -i '^server:'; done \
   | sort | uniq -c{% call output() %}NAME                                   SYNC STATUS   HEALTH STATUS
@@ -382,19 +403,25 @@ team-a-nginx-argo-rollouts-pod-ratio   Synced        Healthy
 <p>Tear down in the reverse order of the steps. The workloads repository stays.</p>
 {% call apply() %}
 {% call command() %}
-{% call piece("Deletes the ApplicationSet, and with it the Application.") %}kubectl delete -f parts/60-argo-rollouts/manifests/applicationset.yaml{% endcall %} {% call piece("Returns only after the Application, the sample workload, and the ALB are gone.") %}--cascade=foreground{% endcall %}
+{% call piece("Deletes the ApplicationSet, and with it the Application.") %}kubectl --context <account-name>-admin \
+  delete -f parts/60-argo-rollouts/manifests/applicationset.yaml{% endcall %} {% call piece("Returns only after the Application, the sample workload, and the ALB are gone.") %}--cascade=foreground{% endcall %}
 
-{% call piece("Deletes the AppProject.") %}kubectl delete -k parts/60-argo-rollouts/manifests/project/overlays/team-a-argo-rollouts{% endcall %}
+{% call piece("Deletes the AppProject.") %}kubectl --context <account-name>-admin \
+  delete -k parts/60-argo-rollouts/manifests/project/overlays/team-a-argo-rollouts{% endcall %}
 
-{% call piece("Deletes the Role and the RoleBindings.") %}kubectl delete -f parts/60-argo-rollouts/manifests/rbac.yaml{% endcall %}
+{% call piece("Deletes the Role and the RoleBindings.") %}kubectl --context <account-name>-admin \
+  delete -f parts/60-argo-rollouts/manifests/rbac.yaml{% endcall %}
 
-{% call piece("Deletes the controller, the CRDs, the ClusterRoles, and the namespace.") %}kubectl delete -k parts/60-argo-rollouts/manifests/argo-rollouts{% endcall %}
+{% call piece("Deletes the controller, the CRDs, the ClusterRoles, and the namespace.") %}kubectl --context <account-name>-admin \
+  delete -k parts/60-argo-rollouts/manifests/argo-rollouts{% endcall %}
 {% endcall %}
 {% endcall %}
 {% call confirm() %}
-{% call check("The ApplicationSet and its Application are gone.") %}kubectl get applicationset team-a-argo-rollouts-pod-ratio -n argocd
+{% call check("The ApplicationSet and its Application are gone.") %}kubectl --context <account-name>-admin \
+  get applicationset team-a-argo-rollouts-pod-ratio -n argocd
 
-kubectl get application team-a-nginx-argo-rollouts-pod-ratio -n argocd{% call output() %}Error from server (NotFound): applicationsets.argoproj.io "team-a-argo-rollouts-pod-ratio" not found
+kubectl --context <account-name>-admin \
+  get application team-a-nginx-argo-rollouts-pod-ratio -n argocd{% call output() %}Error from server (NotFound): applicationsets.argoproj.io "team-a-argo-rollouts-pod-ratio" not found
 Error from server (NotFound): applications.argoproj.io "team-a-nginx-argo-rollouts-pod-ratio" not found{% endcall %}{% endcall %}
 {% call check("No load balancer of the sample workload is left, so nothing is charged for it.") %}aws --profile <account-name>-admin \
   resourcegroupstaggingapi get-resources \
@@ -402,19 +429,25 @@ Error from server (NotFound): applications.argoproj.io "team-a-nginx-argo-rollou
   --resource-type-filters elasticloadbalancing:loadbalancer \
   --query 'ResourceTagMappingList[].ResourceARN' \
   --output text{% call output() %}(nothing){% endcall %}{% endcall %}
-{% call check("The AppProject is gone.") %}kubectl get appproject team-a-argo-rollouts -n argocd{% call output() %}Error from server (NotFound): appprojects.argoproj.io "team-a-argo-rollouts" not found{% endcall %}{% endcall %}
-{% call check("The Role and the RoleBindings are gone.") %}kubectl get role rollouts-edit -n team-a
+{% call check("The AppProject is gone.") %}kubectl --context <account-name>-admin \
+  get appproject team-a-argo-rollouts -n argocd{% call output() %}Error from server (NotFound): appprojects.argoproj.io "team-a-argo-rollouts" not found{% endcall %}{% endcall %}
+{% call check("The Role and the RoleBindings are gone.") %}kubectl --context <account-name>-admin \
+  get role rollouts-edit -n team-a
 
-kubectl get rolebinding developer-rollouts argocd-rollouts -n team-a{% call output() %}Error from server (NotFound): roles.rbac.authorization.k8s.io "rollouts-edit" not found
+kubectl --context <account-name>-admin \
+  get rolebinding developer-rollouts argocd-rollouts -n team-a{% call output() %}Error from server (NotFound): roles.rbac.authorization.k8s.io "rollouts-edit" not found
 Error from server (NotFound): rolebindings.rbac.authorization.k8s.io "developer-rollouts" not found
 Error from server (NotFound): rolebindings.rbac.authorization.k8s.io "argocd-rollouts" not found{% endcall %}{% endcall %}
-{% call check("The namespace `argo-rollouts` is gone, and only the CRDs of Argo CD are left.") %}kubectl get namespace argo-rollouts
+{% call check("The namespace `argo-rollouts` is gone, and only the CRDs of Argo CD are left.") %}kubectl --context <account-name>-admin \
+  get namespace argo-rollouts
 
-kubectl get crd -o name | grep argoproj.io{% call output() %}Error from server (NotFound): namespaces "argo-rollouts" not found
+kubectl --context <account-name>-admin \
+  get crd -o name | grep argoproj.io{% call output() %}Error from server (NotFound): namespaces "argo-rollouts" not found
 customresourcedefinition.apiextensions.k8s.io/applications.argoproj.io
 customresourcedefinition.apiextensions.k8s.io/applicationsets.argoproj.io
 customresourcedefinition.apiextensions.k8s.io/appprojects.argoproj.io{% endcall %}{% endcall %}
-{% call check("No node of the NodePool `system` is left. The node of the controller can take about a minute to go away.") %}kubectl get nodes -L karpenter.sh/nodepool{% call output() %}NAME     STATUS   …   NODEPOOL
+{% call check("No node of the NodePool `system` is left. The node of the controller can take about a minute to go away.") %}kubectl --context <account-name>-admin \
+  get nodes -L karpenter.sh/nodepool{% call output() %}NAME     STATUS   …   NODEPOOL
 <node>   Ready    …   apps{% endcall %}{% endcall %}
 {% endcall %}
 
