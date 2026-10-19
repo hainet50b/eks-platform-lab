@@ -234,7 +234,8 @@ To create the NodePool:
    Or run the command yourself:
 
    ```bash
-   kubectl apply -f parts/30-workload/manifests/nodepool.yaml
+   kubectl --context <account-name>-admin \
+     apply -f parts/30-workload/manifests/nodepool.yaml
    ```
 
    Nothing is launched yet. The cluster launches nodes only for pods that
@@ -259,11 +260,14 @@ To create the NodePool:
    Or run the commands yourself:
 
    ```bash
-   kubectl get nodepool apps
+   kubectl --context <account-name>-admin \
+     get nodepool apps
 
-   kubectl get nodepool apps -o yaml
+   kubectl --context <account-name>-admin \
+     get nodepool apps -o yaml
 
-   kubectl get nodeclaims,nodes -l karpenter.sh/nodepool=apps
+   kubectl --context <account-name>-admin \
+     get nodeclaims,nodes -l karpenter.sh/nodepool=apps
    ```
 
    The first command lists the NodePool with `READY` at `True` and `NODES`
@@ -355,7 +359,8 @@ To create the IngressClass:
    Or run the command yourself:
 
    ```bash
-   kubectl apply -f parts/30-workload/manifests/ingressclass.yaml
+   kubectl --context <account-name>-admin \
+     apply -f parts/30-workload/manifests/ingressclass.yaml
    ```
 
    Nothing is created in AWS yet. The cluster creates a load balancer only
@@ -382,9 +387,11 @@ To create the IngressClass:
    Or run the commands yourself:
 
    ```bash
-   kubectl get ingressclass/alb ingressclassparams/alb
+   kubectl --context <account-name>-admin \
+     get ingressclass/alb ingressclassparams/alb
 
-   kubectl get ingressclass alb -o yaml
+   kubectl --context <account-name>-admin \
+     get ingressclass alb -o yaml
 
    aws --profile <account-name>-admin \
      resourcegroupstaggingapi get-resources \
@@ -505,7 +512,8 @@ To create the sample workload:
    Or run the command yourself:
 
    ```bash
-   kubectl apply -f parts/30-workload/manifests/nginx.yaml
+   kubectl --context <account-name>-admin \
+     apply -f parts/30-workload/manifests/nginx.yaml
    ```
 
    From now on, the node and the ALB are charged (see [Cost](#cost)), so
@@ -522,7 +530,8 @@ To create the sample workload:
    To watch this happen, run:
 
    ```bash
-   watch -n 2 kubectl get pods,nodeclaims,nodes,ingress -o wide
+   watch -n 2 kubectl --context <account-name>-admin \
+     get pods,nodeclaims,nodes,ingress -o wide
    ```
 
 3. Check the workload. The checks come in four groups, each covering
@@ -545,9 +554,11 @@ To create the sample workload:
    Or run the commands yourself:
 
    ```bash
-   kubectl get pods -l app.kubernetes.io/name=nginx -o wide
+   kubectl --context <account-name>-admin \
+     get pods -l app.kubernetes.io/name=nginx -o wide
 
-   kubectl get nodeclaims,nodes -l karpenter.sh/nodepool=apps -o wide
+   kubectl --context <account-name>-admin \
+     get nodeclaims,nodes -l karpenter.sh/nodepool=apps -o wide
    ```
 
    **The Service.** The Service has an address of its own, outside the
@@ -567,11 +578,14 @@ To create the sample workload:
    Or run the commands yourself:
 
    ```bash
-   kubectl get service nginx
+   kubectl --context <account-name>-admin \
+     get service nginx
 
-   kubectl get endpointslices -l kubernetes.io/service-name=nginx
+   kubectl --context <account-name>-admin \
+     get endpointslices -l kubernetes.io/service-name=nginx
 
-   kubectl run check --rm -it --restart=Never --image=public.ecr.aws/docker/library/busybox:1.37 -- \
+   kubectl --context <account-name>-admin \
+     run check --rm -it --restart=Never --image=public.ecr.aws/docker/library/busybox:1.37 -- \
      wget -S --spider http://nginx
    ```
 
@@ -593,7 +607,8 @@ To create the sample workload:
    its tag for the others:
 
    ```bash
-   kubectl get ingress nginx
+   kubectl --context <account-name>-admin \
+     get ingress nginx
 
    alb_arn=$( \
    aws --profile <account-name>-admin \
@@ -639,7 +654,8 @@ To create the sample workload:
    ```bash
    curl http://<alb-dns-name>/
 
-   kubectl logs deployment/nginx --tail=5
+   kubectl --context <account-name>-admin \
+     logs deployment/nginx --tail=5
    ```
 
    The log shows a `GET /` from `ELB-HealthChecker/2.0` every fifteen
@@ -664,7 +680,8 @@ To tear down the workload:
    Or run the command yourself:
 
    ```bash
-   kubectl delete -f parts/30-workload/manifests/nginx.yaml
+   kubectl --context <account-name>-admin \
+     delete -f parts/30-workload/manifests/nginx.yaml
    ```
 
    The command takes a little while to return, because the Ingress is
@@ -682,9 +699,11 @@ To tear down the workload:
    Or run the commands yourself:
 
    ```bash
-   kubectl delete -f parts/30-workload/manifests/ingressclass.yaml
+   kubectl --context <account-name>-admin \
+     delete -f parts/30-workload/manifests/ingressclass.yaml
 
-   kubectl delete -f parts/30-workload/manifests/nodepool.yaml
+   kubectl --context <account-name>-admin \
+     delete -f parts/30-workload/manifests/nodepool.yaml
    ```
 
    Deleting the NodePool terminates its node if it is still there.
@@ -715,7 +734,8 @@ To tear down the workload:
      --query 'ResourceTagMappingList[].ResourceARN' \
      --output table
 
-   kubectl get nodeclaims,nodes -l karpenter.sh/nodepool=apps
+   kubectl --context <account-name>-admin \
+     get nodeclaims,nodes -l karpenter.sh/nodepool=apps
    ```
 
    The first command prints nothing, and the second finds no resources.
