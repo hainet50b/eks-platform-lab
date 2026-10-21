@@ -543,7 +543,7 @@ def build(repository, out):
         (out / f"{part.directory}.html").write_text(page, encoding="utf-8", newline="\n")
     index = env.get_template("index.html").render(parts=parts).strip("\n")
     page = env.get_template("layout.html").render(
-        title="eks-platform-lab",
+        title=None,
         current="Parts",
         current_part=None,
         parts=parts,
