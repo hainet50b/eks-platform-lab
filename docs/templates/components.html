@@ -76,7 +76,7 @@
 {% macro command_card(items, command) -%}
 <div class="command-card"><div class="annotated-code"><div class="annotations"><p class="side-label">What it does</p><ol class="annotation-list">
 {%- for item in items -%}
-<li data-pin="{{ loop.index }}" tabindex="0"><span class="pin">{{ loop.index }}</span><span>{{ item }}</span></li>
+<li data-pin="{{ loop.index }}" tabindex="0"><span class="pin">{{ loop.index }}</span><span>{{ item.text }}{% if item.reason %}<span class="note-reason">{{ item.reason }}</span>{% endif %}</span></li>
 {%- endfor -%}
 </ol></div><div class="code-side"><p class="side-label">Command</p><pre class="command"><code>{{ command }}</code></pre></div></div></div>
 {%- endmacro %}

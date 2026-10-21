@@ -1,0 +1,105 @@
+{{ page_head("Scale a workload with its load") }}
+
+{% call stage("understand") %}
+{{ section("idea", "The idea") }}
+<p>A <a href="https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale/">HorizontalPodAutoscaler</a> (HPA) changes how many pods a workload runs, to keep a metric, such as their CPU, near a target. When the new pods do not fit on the nodes, EKS Auto Mode adds a node.</p>
+<p>For the HPA to scale a workload, the Rollout leaves out <code>replicas</code>, and an HPA points at it.</p>
+
+<div class="side-by-side" aria-label="A Rollout with a fixed number of pods and a Rollout that the HPA scales, side by side">
+  <figure><figcaption>A fixed number of pods</figcaption><pre><code>kind: Rollout
+spec:
+<span class="removed">  replicas: 2</span>
+  template:
+    spec:
+      containers:
+      - name: nginx
+        image: …
+<span class="blank"> </span>
+<span class="blank"> </span>
+<span class="blank"> </span>
+<span class="blank"> </span>
+<span class="blank"> </span>
+<span class="blank"> </span>
+<span class="blank"> </span>
+<span class="blank"> </span></code></pre></figure>
+  <figure><figcaption>Pods that the HPA scales</figcaption><pre><code>kind: Rollout
+spec:
+<span class="blank gone"> </span>
+  template:
+    spec:
+      containers:
+      - name: nginx
+        image: …
+<span class="added">---</span>
+<span class="added">kind: HorizontalPodAutoscaler</span>
+<span class="added">spec:</span>
+<span class="added">  scaleTargetRef:</span>
+<span class="added">    kind: Rollout</span>
+<span class="added">  minReplicas: 2</span>
+<span class="added">  maxReplicas: 8</span>
+<span class="added">  metrics: …</span></code></pre></figure>
+</div>
+
+{{ section("how", "How the HPA scales") }}
+<p>The pods and the nodes follow the load: the HPA changes the pods, and Auto Mode changes the nodes.</p>
+{% include "partials/70-hpa/scaling.html" %}
+{% endcall %}
+
+{% call stage("build") %}
+{% call step("metrics-server", "metrics-server") %}
+{% call what() %}
+<p>An HPA reads the CPU of pods from the Metrics API, which <a href="https://kubernetes-sigs.github.io/metrics-server/">metrics-server</a> serves. EKS Auto Mode does not include metrics-server, so this step installs it as an <a href="https://docs.aws.amazon.com/eks/latest/userguide/eks-add-ons.html">EKS add-on</a>, on the NodePool <code>system</code>.</p>
+{% include "partials/70-hpa/metrics.html" %}
+{% endcall %}
+{% call files() %}
+{% call file("parts/70-hpa/terraform/main.tf", main=true) %}
+  {% call note("data \"aws_eks_addon_version\"", "Use the add-on version that AWS marks as the default for the cluster's Kubernetes version.") %}The add-on stays current when the cluster is built again.{% endcall %}
+  {% call note("nodeSelector = {", "Place metrics-server on the NodePool `system`.") %}Its default tolerations already allow the taint of `system`.{% endcall %}
+{% endcall %}
+{% call file("parts/70-hpa/terraform/terraform.tf") %}{% endcall %}
+{% call file("parts/70-hpa/terraform/providers.tf") %}{% endcall %}
+{% endcall %}
+{% call apply() %}
+{% call command() %}
+{% call piece("Gets the name of the state bucket.") %}bucket_name=$( \
+AWS_PROFILE=<account-name>-admin \
+terraform -chdir=parts/05-terraform-state/terraform \
+  output -raw bucket_name \
+){% endcall %}
+
+{% call piece("Prepares the directory, with the state in that bucket.") %}AWS_PROFILE=<account-name>-admin \
+terraform -chdir=parts/70-hpa/terraform \
+  init -backend-config="bucket=${bucket_name}"{% endcall %}
+
+{% call piece("Plans the change and saves the plan.", "The plan adds one resource, the add-on, and ends with `Plan: 1 to add, 0 to change, 0 to destroy.`") %}AWS_PROFILE=<account-name>-admin \
+terraform -chdir=parts/70-hpa/terraform \
+  plan -out=terraform.tfplan{% endcall %}
+
+{% call piece("Applies the saved plan.") %}AWS_PROFILE=<account-name>-admin \
+terraform -chdir=parts/70-hpa/terraform \
+  apply terraform.tfplan{% endcall %}
+{% endcall %}
+{% endcall %}
+{% call confirm() %}
+{% call check("The add-on is active.") %}aws --profile <account-name>-admin \
+  eks describe-addon --cluster-name eks-platform-lab --addon-name metrics-server \
+  --query 'addon.[status, addonVersion]' \
+  --output text{% call output() %}ACTIVE  v0.9.0-eksbuild.…{% endcall %}{% endcall %}
+{% call check("metrics-server runs on a node of the NodePool `system`.") %}kubectl --context <account-name>-admin \
+  get pods -n kube-system -l app.kubernetes.io/name=metrics-server -o wide
+
+kubectl --context <account-name>-admin \
+  get nodes -L karpenter.sh/nodepool{% call output() %}NAME                    READY   STATUS    …   NODE
+metrics-server-<hash>   1/1     Running   …   <node>
+metrics-server-<hash>   1/1     Running   …   <node>
+NAME     STATUS   …   NODEPOOL
+<node>   Ready    …   system{% endcall %}{% endcall %}
+{% call check("The Metrics API is available.") %}kubectl --context <account-name>-admin \
+  get apiservice v1beta1.metrics.k8s.io{% call output() %}NAME                     SERVICE                      AVAILABLE   AGE
+v1beta1.metrics.k8s.io   kube-system/metrics-server   True        …{% endcall %}{% endcall %}
+{% call check("The nodes show their CPU and memory.") %}kubectl --context <account-name>-admin \
+  top nodes{% call output() %}NAME     CPU(cores)   CPU(%)   MEMORY(bytes)   MEMORY(%)
+<node>   …            …        …               …{% endcall %}{% endcall %}
+{% endcall %}
+{% endcall %}
+{% endcall %}

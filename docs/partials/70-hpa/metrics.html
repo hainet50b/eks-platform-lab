@@ -1,0 +1,33 @@
+<div class="diagram">
+<svg viewBox="0 0 1000 480" role="img" aria-labelledby="metrics-title metrics-description">
+  <title id="metrics-title">Where the HPA gets the CPU of pods</title>
+  <desc id="metrics-description">The HPA controller in the control plane asks the API server for the CPU of the pods, and so does kubectl top. The HPA controller then sets the replicas through the API server. The API server forwards the request to metrics-server, as registered in the APIService of the Metrics API, which runs in the namespace kube-system on a node of the NodePool system. Every 15 seconds, metrics-server collects the CPU of the containers from the kubelet of each node, and answers from what it collected last.</desc>
+  <defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z"/></marker></defs>
+
+  <g class="box"><rect x="20" y="80" width="126" height="40"/><text x="83" y="105" text-anchor="middle">kubectl top</text></g>
+
+  <rect class="frame" x="262" y="20" width="718" height="140" rx="8"/>
+  <text class="frame-label" x="278" y="42">Control plane, run by EKS</text>
+  <g class="box"><rect x="290" y="70" width="230" height="60"/><text x="405" y="96" text-anchor="middle">API server</text><text class="subtitle" x="405" y="115" text-anchor="middle">routes the Metrics API</text></g>
+  <g class="box"><rect x="690" y="70" width="260" height="60"/><text x="820" y="96" text-anchor="middle">HPA controller</text><text class="subtitle" x="820" y="115" text-anchor="middle">in kube-controller-manager</text></g>
+  <path class="edge" d="M690,88 H524"/><text class="edge-label" x="607" y="80" text-anchor="middle">asks for the CPU</text>
+  <path class="edge" d="M690,114 H524"/><text class="edge-label" x="607" y="132" text-anchor="middle">sets the replicas</text>
+  <path class="edge" d="M146,100 H286"/><text class="edge-label" x="204" y="92" text-anchor="middle">asks for the CPU</text>
+
+  <rect class="frame" x="20" y="200" width="960" height="260" rx="8"/>
+  <text class="frame-label" x="36" y="222">Nodes</text>
+  <rect class="frame" x="40" y="240" width="430" height="150" rx="8"/>
+  <text class="frame-label" x="56" y="262">A node of the NodePool system</text>
+  <g class="box this-part"><rect x="70" y="290" width="200" height="60"/><text x="170" y="316" text-anchor="middle">metrics-server</text><text class="subtitle" x="170" y="335" text-anchor="middle">kube-system</text></g>
+  <g class="box"><rect x="310" y="290" width="130" height="60"/><text x="375" y="325" text-anchor="middle">kubelet</text></g>
+  <rect class="frame" x="500" y="240" width="460" height="150" rx="8"/>
+  <text class="frame-label" x="516" y="262">A node of the NodePool apps</text>
+  <g class="box"><rect x="530" y="290" width="210" height="60"/><text x="635" y="316" text-anchor="middle">pods of the workload</text><text class="subtitle" x="635" y="335" text-anchor="middle">team-a</text></g>
+  <g class="box"><rect x="800" y="290" width="130" height="60"/><text x="865" y="325" text-anchor="middle">kubelet</text></g>
+
+  <path class="edge" d="M405,130 V270 H170 V286"/><text class="edge-label" x="413" y="176">forwards the Metrics API</text><text class="edge-label" x="413" y="192">as registered in its APIService</text>
+  <path class="edge periodic" d="M170,350 V420 H865 V354"/>
+  <path class="edge periodic" d="M375,420 V354"/><text class="edge-label" x="620" y="412" text-anchor="middle">every 15 seconds, collects the CPU of the containers from each node</text>
+  <path class="edge periodic" d="M800,320 H744"/><text class="edge-label" x="772" y="282" text-anchor="middle">measures</text>
+</svg>
+</div>

@@ -270,6 +270,10 @@ ol.annotation-list .pin { margin-left: 0; }
 }
 .side-by-side pre { margin: 0; padding: 10px 12px; font-size: .8rem; line-height: 1.6; overflow-x: auto; }
 .side-by-side .changed { display: inline-block; width: 100%; }
+.side-by-side .removed, .side-by-side .added, .side-by-side .blank { display: inline-block; width: 100%; }
+.side-by-side .removed { background: color-mix(in srgb, var(--bad) 16%, transparent); color: var(--bad); }
+.side-by-side .added { background: var(--new-bg); color: var(--new); }
+.side-by-side .gone { background: color-mix(in srgb, var(--bad) 8%, transparent); }
 .side-by-side figure:first-child .changed { background: var(--old-bg); color: var(--old); }
 .side-by-side figure:last-child .changed { background: var(--new-bg); color: var(--new); }
 
@@ -367,6 +371,26 @@ ol.annotation-list .pin { margin-left: 0; }
 .diagram .edge-label { fill: var(--muted); font: 400 11.5px var(--sans); }
 .diagram #arrow path, .diagram #kustomize-arrow path { fill: var(--muted); }
 .diagram .github-mark path { fill: var(--fg); }
+
+.diagram .edge.periodic { stroke-dasharray: 5 4; }
+
+/* How the HPA scales: the HPA and Auto Mode take turns */
+.diagram .scaling-steps .title { fill: var(--fg); font: 500 13px var(--sans); }
+.diagram .scaling-steps .actor { fill: var(--surface); stroke: var(--muted); }
+.diagram .scaling-steps .actor-name { fill: var(--fg); font: 500 11px var(--sans); }
+.diagram .scaling-steps .verb { fill: var(--muted); font: 400 11.5px var(--sans); }
+.diagram .scaling-steps .label { fill: var(--muted); font: 400 11px var(--sans); }
+.diagram .scaling-steps .node { fill: none; stroke: var(--muted); stroke-width: 1.2; }
+.diagram .scaling-steps .pod-mark { fill: var(--accent); }
+.diagram .scaling-steps .added { fill: var(--pin-bg); stroke: var(--pin); stroke-width: 2; }
+.diagram .scaling-steps .pending { fill: url(#pending-hatch); }
+.diagram .scaling-steps .hatch-ground { fill: var(--pin-bg); }
+.diagram .scaling-steps .hatch-line { stroke: var(--pin); stroke-width: 2; }
+.diagram .scaling-steps .removed { fill: none; stroke: var(--muted); stroke-width: 1.2; stroke-dasharray: 4 3; opacity: .7; }
+.diagram .scaling-steps .load-on { fill: var(--pin-bg); }
+.diagram .scaling-steps .load-off { fill: none; stroke: var(--line); }
+.diagram .scaling-steps .load-label { fill: var(--pin); font: 500 11.5px var(--sans); }
+.diagram .scaling-steps .load-label.off { fill: var(--muted); }
 
 /* Tables */
 .table-wrap { overflow-x: auto; }

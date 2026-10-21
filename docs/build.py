@@ -19,7 +19,7 @@ functions of PageBuilder.template_functions():
           {{ external_link("parts/.../", "label", "https://...") }}
         {% endcall %}
         {% call apply() %}
-          {% call command() %}{% call piece("what it does") %}kubectl ...{% endcall %}{% endcall %}
+          {% call command() %}{% call piece("what it does", "what it leads to") %}kubectl ...{% endcall %}{% endcall %}
           {% call ui("the administrator", "Settings|Clusters|in-cluster") %}why{% endcall %}
         {% endcall %}
         {% call confirm() %}
@@ -429,12 +429,13 @@ class PageBuilder:
             if not (self.repository / path.rstrip("/.")).exists():
                 self.add_finding(f"{section}: the command refers to {path}, which the repository does not have")
         marked = Markup(fill_pieces(text, pieces, self.markup.command_part)).rstrip()
-        return self.markup.command_card([as_code(description) for description, _ in pieces], marked)
+        items = [{"text": as_code(description), "reason": as_code(reason)} for description, _, reason in pieces]
+        return self.markup.command_card(items, marked)
 
-    def piece(self, description, caller):
-        """A piece of a command, numbered, with what it does."""
+    def piece(self, description, reason="", caller=None):
+        """A piece of a command, numbered, with what it does and, if it helps, what it leads to."""
         pieces = self.current("command").data["pieces"]
-        pieces.append((description, body_text(caller)))
+        pieces.append((description, body_text(caller), reason))
         return PIECE.format(len(pieces))
 
     def confirm(self, caller):
