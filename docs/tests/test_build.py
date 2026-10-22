@@ -7,7 +7,8 @@ import build
 
 def make_repository(root, page):
     """A repository with one part, 10-sample, whose page is the given source."""
-    shutil.copytree(build.REPOSITORY / "docs" / "templates", root / "docs" / "templates")
+    for directory in ("templates", "assets"):
+        shutil.copytree(build.REPOSITORY / "docs" / directory, root / "docs" / directory)
     (root / "docs" / "pages").mkdir(parents=True)
     (root / "docs" / "pages" / "10-sample.html").write_text(page, encoding="utf-8")
     manifests = root / "parts" / "10-sample" / "manifests"

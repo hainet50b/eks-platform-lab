@@ -40,6 +40,7 @@ icons, screenshots, and the links between the READMEs and the pages. The shape o
 
 import argparse
 import base64
+import hashlib
 import html
 import re
 import shutil
@@ -143,7 +144,15 @@ def read_parts(repository):
 
 
 def environment(docs):
-    return Environment(loader=FileSystemLoader([docs, docs / "templates"]), autoescape=True, keep_trailing_newline=True)
+    env = Environment(loader=FileSystemLoader([docs, docs / "templates"]), autoescape=True, keep_trailing_newline=True)
+
+    def asset(name):
+        """The path of a file in assets/, with a hash of its content, so that a browser loads it again after a change."""
+        digest = hashlib.sha256((docs / "assets" / name).read_bytes()).hexdigest()[:10]
+        return f"assets/{name}?v={digest}"
+
+    env.globals["asset"] = asset
+    return env
 
 
 class LinkCollector(HTMLParser):
