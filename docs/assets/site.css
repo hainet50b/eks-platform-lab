@@ -276,6 +276,75 @@ ol.annotation-list .pin { margin-left: 0; }
 .side-by-side .gone { background: color-mix(in srgb, var(--bad) 8%, transparent); }
 .side-by-side figure:first-child .changed { background: var(--old-bg); color: var(--old); }
 .side-by-side figure:last-child .changed { background: var(--new-bg); color: var(--new); }
+/* Who sets the replicas: Argo CD and the HPA side by side, and the number of pods while the load lasts */
+.replicas-owner {
+  border: 1px solid var(--line); border-radius: 12px; background: var(--surface); padding: 16px; margin: 12px 0 8px;
+  overflow-x: auto;
+}
+.owner-toggle { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; margin-bottom: 10px; }
+.owner-toggle button {
+  font: 500 .82rem var(--sans); color: var(--muted); background: transparent; border: 0; padding: 6px 12px; cursor: pointer;
+}
+.owner-toggle button + button { border-left: 1px solid var(--line); }
+.owner-toggle button[aria-pressed="true"] { background: var(--accent-bg); color: var(--fg); }
+.replicas-owner svg { display: block; width: 100%; min-width: 640px; height: auto; }
+.replicas-owner .box rect { fill: var(--surface); stroke: var(--muted); stroke-width: 1.2; }
+.replicas-owner .box text { fill: var(--fg); font: 500 13px var(--sans); }
+.replicas-owner .box .subtitle { fill: var(--muted); font: 400 11.5px var(--sans); }
+.replicas-owner .box .mono { fill: var(--muted); font: 400 12px var(--mono); }
+.replicas-owner .edge { fill: none; stroke: var(--muted); stroke-width: 1.3; }
+.replicas-owner marker path { fill: var(--muted); }
+.replicas-owner:not(.fight) #owner-edge-argocd { stroke-dasharray: 3 4; opacity: .5; marker-end: none; }
+.replicas-owner.fight #owner-argocd rect { stroke: var(--old); }
+.replicas-owner .chart-title { fill: var(--muted); font: 500 12px var(--sans); }
+.replicas-owner .chart-axis { stroke: var(--line); }
+.replicas-owner .chart-line { fill: none; stroke: var(--accent); stroke-width: 2.5; }
+.replicas-owner.fight .chart-line { stroke: var(--old); }
+.replicas-owner .chart-value { fill: var(--muted); font: 500 12px var(--mono); }
+
+/* How the HPA counts pods: the pods as jars that fill with the CPU they use, against the target */
+.hpa-count {
+  border: 1px solid var(--line); border-radius: 12px; background: var(--surface); padding: 16px; margin: 14px 0 8px;
+}
+.hpa-count-control {
+  display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 4px 12px; margin-bottom: 10px;
+}
+.hpa-count-control label { font-weight: 500; }
+.hpa-count-control output { font: 500 .9rem var(--mono); text-align: right; }
+.hpa-count-control input { grid-column: 1 / -1; width: 100%; margin: 0; accent-color: var(--accent); }
+/* The thumb is about 16px wide, so the ruler starts and ends half a thumb in from the edges. */
+.hpa-count-ruler { grid-column: 1 / -1; position: relative; height: 44px; margin: 0 8px; }
+.hpa-count-ruler span { position: absolute; }
+.hpa-count-ruler .tick { top: 0; width: 1px; height: 6px; background: var(--faint); }
+.hpa-count-ruler .tick.major { height: 10px; background: var(--muted); }
+.hpa-count-ruler .value { top: 10px; transform: translateX(-50%); font: 400 11px var(--mono); color: var(--muted); }
+.hpa-count-ruler .range {
+  top: 26px; height: 18px; line-height: 16px; box-sizing: border-box; border: 1px solid var(--line); border-radius: 4px;
+  text-align: center; font: 400 11px var(--sans); color: var(--faint); white-space: nowrap; overflow: hidden;
+  transition: color .2s, border-color .2s, background .2s;
+}
+.hpa-count-ruler .range.here { color: var(--fg); border-color: var(--muted); }
+.hpa-count-ruler .range.scaling.here { background: var(--accent-bg); border-color: var(--accent); }
+.hpa-count-ruler .range.maximum.here { background: var(--old-bg); border-color: var(--old); }
+.hpa-count-pods { display: block; width: 100%; height: auto; }
+.hpa-count-pods .glass { fill: none; stroke: var(--line); stroke-width: 1.2; stroke-dasharray: 4 3; transition: stroke .3s; }
+.hpa-count-pods .running .glass { stroke: var(--muted); stroke-dasharray: none; }
+.hpa-count-pods .water { fill: var(--accent); opacity: .85; transition: y .5s ease, height .5s ease; }
+.hpa-count-pods .pod-label { fill: var(--faint); font: 400 11px var(--sans); transition: fill .3s; }
+.hpa-count-pods .running .pod-label { fill: var(--muted); }
+.hpa-count-pods .target { stroke: var(--pin); stroke-width: 1.5; stroke-dasharray: 6 4; }
+.hpa-count-pods .axis { fill: var(--muted); font: 500 11px var(--mono); }
+.hpa-count-pods .axis.sub { font: 400 10.5px var(--sans); }
+.hpa-count-pods .target-label { fill: var(--pin); }
+.hpa-count-pods .excess { fill: var(--old); opacity: .85; transition: y .5s ease, height .5s ease; }
+.hpa-count-pods .tick { stroke: var(--faint); stroke-width: 1; }
+.hpa-count-pods .level line { stroke: var(--accent); stroke-width: 1; stroke-dasharray: 2 3; transition: y1 .5s ease, y2 .5s ease; }
+.hpa-count-pods .level text { fill: var(--accent); font: 600 12px var(--mono); transition: y .5s ease; }
+.hpa-count-pods .level .sub { font: 400 11px var(--mono); }
+.hpa-count-pods .level.over line { stroke: var(--old); }
+.hpa-count-pods .level.over text { fill: var(--old); }
+.hpa-count-pods .bounds path { fill: none; stroke: var(--muted); stroke-width: 1.2; }
+.hpa-count-pods .bounds text { fill: var(--muted); font: 500 11px var(--mono); }
 
 /* How a rollout runs: the line of moments, and the state at the selected one */
 .rollout-walkthrough {

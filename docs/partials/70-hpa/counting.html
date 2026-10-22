@@ -1,0 +1,123 @@
+<div class="hpa-count" id="hpa-count">
+  <div class="hpa-count-control">
+    <label for="hpa-count-usage">CPU in use</label><output id="hpa-count-usage-out" for="hpa-count-usage"></output>
+    <input type="range" id="hpa-count-usage" min="0" max="2400" step="75" value="225">
+    <div class="hpa-count-ruler" id="hpa-count-ruler" aria-hidden="true"></div>
+  </div>
+  <svg class="hpa-count-pods" viewBox="0 0 800 280" role="img" aria-labelledby="hpa-count-title" aria-describedby="hpa-count-readout">
+    <title id="hpa-count-title">The pods, each filled to the CPU that it uses, against the target of 50%</title>
+    <g id="hpa-count-scale"></g>
+    <g id="hpa-count-jars"></g>
+    <line class="target" x1="92" x2="706" y1="110" y2="110"/>
+    <text class="axis" x="84" y="34" text-anchor="end">300m</text>
+    <text class="axis sub" x="84" y="47" text-anchor="end">request</text>
+    <text class="axis target-label" x="84" y="108" text-anchor="end">150m</text>
+    <text class="axis target-label sub" x="84" y="121" text-anchor="end">target 50%</text>
+    <text class="axis" x="84" y="194" text-anchor="end">0</text>
+    <g class="level" id="hpa-count-level">
+      <line id="hpa-count-level-line" x1="92" x2="712" y1="190" y2="190"/>
+      <text id="hpa-count-level-value" x="718" y="194"></text>
+      <text class="sub" id="hpa-count-level-share" x="718" y="207"></text>
+    </g>
+    <g class="bounds">
+      <path d="M100,224 v6 H234 v-6"/><text x="167" y="245" text-anchor="middle">minReplicas: 2</text>
+      <path d="M100,252 v6 H702 v-6"/><text x="401" y="273" text-anchor="middle">maxReplicas: 8</text>
+    </g>
+  </svg>
+  <p class="visually-hidden" id="hpa-count-readout" aria-live="polite"></p>
+</div>
+<script>
+(function () {
+  // A model of the HPA: the CPU in use spreads evenly over the pods, and the HPA keeps one pod for each 150m
+  // (50% of the 300m request), from 2 to 8. A pod is a jar as tall as its request; the water is the CPU it uses.
+  const REQUEST = 300, TARGET = 0.5, MIN = 2, MAX = 8;
+  const TOP = 30, BOTTOM = 190, LEFT = 100, WIDTH = 56, GAP = 22;
+  const svgNS = "http://www.w3.org/2000/svg";
+  const $ = (id) => document.getElementById(id);
+  const usage = $("hpa-count-usage");
+  const toY = (millicores) => BOTTOM - Math.min(millicores / REQUEST, 1) * (BOTTOM - TOP);
+  const TARGET_Y = toY(REQUEST * TARGET);
+
+  function element(tag, attributes, text) {
+    const node = document.createElementNS(svgNS, tag);
+    Object.entries(attributes).forEach(([name, value]) => node.setAttribute(name, value));
+    if (text) node.textContent = text;
+    return node;
+  }
+
+  // The ruler under the slider: a tick at each 150m, where the HPA wants one more pod, and the three ranges.
+  const ruler = $("hpa-count-ruler");
+  const SLIDER_MAX = Number(usage.max);
+  const at = (millicores) => `${(millicores / SLIDER_MAX) * 100}%`;
+  const LOW = MIN * REQUEST * TARGET, HIGH = MAX * REQUEST * TARGET;
+  function mark(className, left, text, width) {
+    const node = document.createElement("span");
+    node.className = className;
+    node.style.left = left;
+    if (width) node.style.width = width;
+    if (text) node.textContent = text;
+    ruler.appendChild(node);
+  }
+  for (let m = 0; m <= SLIDER_MAX; m += REQUEST * TARGET) mark(m === LOW || m === HIGH ? "tick major" : "tick", at(m));
+  [0, LOW, HIGH, SLIDER_MAX].forEach((m) => mark("value", at(m), `${m}m`));
+  const ranges = [[0, LOW, "2 pods", "minimum"], [LOW, HIGH, "3 to 8 pods", "scaling"],
+    [HIGH, SLIDER_MAX, "8 pods, above the target", "maximum"]];
+  ranges.forEach(([from, to, text, name]) => mark(`range ${name}`, at(from), text, at(to - from)));
+
+  // A tick on the scale every 25m, longer every 50m.
+  for (let m = 0; m <= REQUEST; m += 25) {
+    $("hpa-count-scale").appendChild(element("line", { class: "tick", x1: m % 50 ? 92 : 88, x2: 96, y1: toY(m), y2: toY(m) }));
+  }
+
+  const slots = Array.from({ length: MAX }, (_, i) => {
+    const x = LEFT + i * (WIDTH + GAP);
+    const group = element("g", { class: "jar" });
+    const water = element("rect", { class: "water", x, y: BOTTOM, width: WIDTH, height: 0, rx: 3 });
+    const excess = element("rect", { class: "excess", x, y: TARGET_Y, width: WIDTH, height: 0 });
+    group.append(
+      element("rect", { class: "glass", x, y: TOP, width: WIDTH, height: BOTTOM - TOP, rx: 6 }),
+      water,
+      excess,
+      element("text", { class: "pod-label", x: x + WIDTH / 2, y: BOTTOM + 22, "text-anchor": "middle" }, `pod ${i + 1}`),
+    );
+    $("hpa-count-jars").appendChild(group);
+    return { group, water, excess };
+  });
+
+  function update() {
+    const inUse = Number(usage.value);
+    const replicas = Math.min(MAX, Math.max(MIN, Math.ceil(inUse / (REQUEST * TARGET))));
+    const each = inUse / replicas;
+    const share = Math.round((each / REQUEST) * 100);
+    const over = replicas === MAX && share > 50;
+    const y = toY(each);
+    slots.forEach((slot, i) => {
+      const running = i < replicas;
+      slot.group.classList.toggle("running", running);
+      // Up to the target, the water is blue; at eight pods, what rises above the target shows in another color.
+      const blueTop = over ? TARGET_Y : y;
+      slot.water.setAttribute("y", running ? blueTop : BOTTOM);
+      slot.water.setAttribute("height", running ? BOTTOM - blueTop : 0);
+      slot.excess.setAttribute("y", over ? y : TARGET_Y);
+      slot.excess.setAttribute("height", over ? TARGET_Y - y : 0);
+    });
+    $("hpa-count-level-line").setAttribute("y1", y);
+    $("hpa-count-level-line").setAttribute("y2", y);
+    $("hpa-count-level-value").setAttribute("y", y + 4);
+    $("hpa-count-level-share").setAttribute("y", y + 17);
+    $("hpa-count-level-value").textContent = `${Math.round(each)}m`;
+    $("hpa-count-level-share").textContent = `${share}%`;
+    $("hpa-count-level").classList.toggle("over", over);
+    $("hpa-count-usage-out").textContent = `${inUse}m`;
+    ruler.querySelectorAll(".range").forEach((node, i) => {
+      const [from, to] = ranges[i];
+      // 300m still needs only two pods, and 1200m is eight pods right at the target.
+      node.classList.toggle("here", (i === 0 ? inUse >= from : inUse > from) && inUse <= to);
+    });
+    $("hpa-count-readout").textContent = `${replicas} pods, each using ${Math.round(each)}m.`;
+  }
+
+  usage.addEventListener("input", update);
+  update();
+})();
+</script>

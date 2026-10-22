@@ -39,10 +39,15 @@ spec:
 <span class="added">  maxReplicas: 8</span>
 <span class="added">  metrics: …</span></code></pre></figure>
 </div>
+{% include "partials/70-hpa/owner.html" %}
 
 {{ section("how", "How the HPA scales") }}
 <p>The pods and the nodes follow the load: the HPA changes the pods, and Auto Mode changes the nodes.</p>
 {% include "partials/70-hpa/scaling.html" %}
+
+{{ section("count", "How the HPA counts pods") }}
+<p>The HPA looks at utilization: the CPU that a pod uses, as a share of the CPU that the pod requests. When the average utilization rises above the target, the HPA adds pods, so that the CPU in use spreads over more pods and the average comes back to the target.</p>
+{% include "partials/70-hpa/counting.html" %}
 {% endcall %}
 
 {% call stage("build") %}
@@ -100,6 +105,33 @@ v1beta1.metrics.k8s.io   kube-system/metrics-server   True        …{% endcall 
 {% call check("The nodes show their CPU and memory.") %}kubectl --context <account-name>-admin \
   top nodes{% call output() %}NAME     CPU(cores)   CPU(%)   MEMORY(bytes)   MEMORY(%)
 <node>   …            …        …               …{% endcall %}{% endcall %}
+{% endcall %}
+{% endcall %}
+
+{% call step("sample-workload", "Sample workload with an HPA") %}
+{% call what() %}
+<p>The workload to scale: a Rollout of nginx with a Service in front of it, and an HPA that scales the Rollout. A developer delivers them by pushing their manifest to the workloads repository, which Argo CD reads.</p>
+{% endcall %}
+{% call files() %}
+{% call file("parts/70-hpa/workloads/team-a-hpa/nginx-hpa/nginx-hpa.yaml", main=true) %}
+  {{ note("spec:", "Leave out `replicas`, so that the HPA sets the number of pods.") }}
+  {% call note("cpu: 300m", "Ask for 300m of CPU for each pod.") %}The HPA measures the CPU usage of a pod against this request.{% endcall %}
+  {{ note("scaleTargetRef", "Scale the Rollout `nginx-hpa`.") }}
+  {{ note("minReplicas: 2||maxReplicas: 8", "Keep between two and eight pods.") }}
+  {{ note("averageUtilization: 50", "Keep the average CPU usage near 50% of the request.") }}
+{% endcall %}
+{% endcall %}
+{% call apply() %}
+{% call command() %}
+{% call piece("Copies the workload into the workloads repository.") %}cp -r parts/70-hpa/workloads/team-a-hpa ../eks-platform-lab-workloads/{% endcall %}
+
+{% call piece("Stages only the directory of the workload.") %}git -C ../eks-platform-lab-workloads add team-a-hpa{% endcall %}
+{% call piece("Commits it.") %}git -C ../eks-platform-lab-workloads commit -m "Add the workload nginx-hpa"{% endcall %}
+{% call piece("Pushes it to the repository that Argo CD reads.") %}git -C ../eks-platform-lab-workloads push{% endcall %}
+{% endcall %}
+{% endcall %}
+{% call confirm() %}
+{% call check("The workloads repository has the workload.") %}git -C ../eks-platform-lab-workloads log origin/HEAD --oneline -1 -- team-a-hpa{% call output() %}<hash> Add the workload nginx-hpa{% endcall %}{% endcall %}
 {% endcall %}
 {% endcall %}
 {% endcall %}

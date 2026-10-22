@@ -1,0 +1,48 @@
+<div class="replicas-owner" id="replicas-owner">
+  <div class="owner-toggle" role="group" aria-label="replicas in the Rollout in Git">
+    <button type="button" data-owner="both" aria-pressed="true"><code>replicas: 2</code> in Git</button>
+    <button type="button" data-owner="hpa" aria-pressed="false">No <code>replicas</code> in Git</button>
+  </div>
+  <svg viewBox="0 0 900 214" role="img" aria-labelledby="owner-title" aria-describedby="owner-state">
+    <title id="owner-title">Argo CD and the HPA both set the replicas of the Rollout, and the number of pods under load</title>
+    <defs><marker id="owner-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z"/></marker></defs>
+    <g class="box" id="owner-argocd"><rect x="20" y="22" width="260" height="60" rx="8"/><text x="36" y="47">Argo CD, with selfHeal</text><text class="subtitle" id="owner-argocd-text" x="36" y="68"></text></g>
+    <g class="box"><rect x="20" y="130" width="260" height="60" rx="8"/><text x="36" y="155">HPA</text><text class="subtitle" x="36" y="176">sets it from the CPU usage</text></g>
+    <g class="box"><rect x="370" y="76" width="170" height="60" rx="8"/><text x="386" y="101">Rollout</text><text class="mono" x="386" y="122">spec.replicas</text></g>
+    <path class="edge" id="owner-edge-argocd" marker-end="url(#owner-arrow)" d="M280,52 L366,96"/>
+    <path class="edge" marker-end="url(#owner-arrow)" d="M280,160 L366,116"/>
+    <text class="chart-title" x="600" y="24">Pods under load</text>
+    <line class="chart-axis" x1="600" x2="880" y1="190" y2="190"/>
+    <path class="chart-line" id="owner-chart" d=""/>
+    <text class="chart-value" x="886" y="64">8</text>
+    <text class="chart-value" x="886" y="158">2</text>
+  </svg>
+  <p class="visually-hidden" id="owner-state" aria-live="polite"></p>
+</div>
+<script>
+(function () {
+  // Two owners of spec.replicas, or one. Under load, the HPA wants 8; with replicas: 2 in Git,
+  // Argo CD sets the number back to 2 each time, so it goes up and down.
+  const figure = document.getElementById("replicas-owner");
+  const buttons = figure.querySelectorAll("[data-owner]");
+  const LEFT = 600, RIGHT = 880, y = (pods) => 190 - (pods / 8) * 130;
+
+  function show(owner) {
+    const both = owner === "both";
+    buttons.forEach((button) => button.setAttribute("aria-pressed", String(button.dataset.owner === owner)));
+    figure.classList.toggle("fight", both);
+    document.getElementById("owner-argocd-text").textContent = both
+      ? "sets it back to 2, as in Git" : "finds no replicas in Git, and leaves it";
+    const values = both ? [2, 8, 2, 8, 2, 8, 2, 8] : [2, 8, 8, 8, 8, 8, 8, 8];
+    const step = (RIGHT - LEFT) / values.length;
+    let d = `M${LEFT},${y(values[0])}`;
+    values.forEach((value, i) => { d += ` V${y(value)} H${LEFT + step * (i + 1)}`; });
+    document.getElementById("owner-chart").setAttribute("d", d);
+    document.getElementById("owner-state").textContent = both
+      ? "The number of pods goes between 8 and 2 again and again." : "The number of pods stays at 8.";
+  }
+
+  buttons.forEach((button) => button.addEventListener("click", () => show(button.dataset.owner)));
+  show("both");
+})();
+</script>

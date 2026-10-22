@@ -1,0 +1,96 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
+metadata:
+  name: nginx-hpa
+  namespace: team-a
+  labels:
+    app.kubernetes.io/name: nginx-hpa
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: nginx-hpa
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: nginx-hpa
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: nginx-hpa
+          image: public.ecr.aws/nginx/nginx-unprivileged:1.30.5
+          ports:
+            - containerPort: 8080
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 8080
+          lifecycle:
+            preStop:
+              sleep:
+                seconds: 10
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+          resources:
+            requests:
+              cpu: 300m
+              memory: 128Mi
+            limits:
+              memory: 128Mi
+  strategy:
+    canary: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-hpa
+  namespace: team-a
+  labels:
+    app.kubernetes.io/name: nginx-hpa
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: nginx-hpa
+  ports:
+    - port: 80
+      targetPort: 8080
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: nginx-hpa
+  namespace: team-a
+  labels:
+    app.kubernetes.io/name: nginx-hpa
+spec:
+  scaleTargetRef:
+    apiVersion: argoproj.io/v1alpha1
+    kind: Rollout
+    name: nginx-hpa
+  minReplicas: 2
+  maxReplicas: 8
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 50
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: nginx-hpa
+  namespace: team-a
+  labels:
+    app.kubernetes.io/name: nginx-hpa
+spec:
+  maxUnavailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: nginx-hpa
