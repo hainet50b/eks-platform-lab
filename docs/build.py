@@ -147,7 +147,7 @@ def environment(docs):
     env = Environment(loader=FileSystemLoader([docs, docs / "templates"]), autoescape=True, keep_trailing_newline=True)
 
     def asset(name):
-        """The path of a file in assets/, with a hash of its content, so that a browser loads it again after a change."""
+        """A file in assets/, with a hash of its content, so that a browser loads it again after a change."""
         digest = hashlib.sha256((docs / "assets" / name).read_bytes()).hexdigest()[:10]
         return f"assets/{name}?v={digest}"
 
