@@ -243,10 +243,7 @@ aws --profile <account-name>-admin \
 {% call files() %}
 {% call file("parts/60-argo-rollouts/manifests/applicationset.yaml", main=true) %}
   {{ note("path: team-a-argo-rollouts/pod-ratio/*", "Create an Application for each directory right under `team-a-argo-rollouts/pod-ratio`.") }}
-  {{ note("name: team-a-{{", "Name each `team-a-<name of the directory>`.") }}
-  {{ note("resources-finalizer", "When an Application is deleted, delete the resources that it synced.") }}
   {{ note("project: team-a-argo-rollouts", "Use the AppProject `team-a-argo-rollouts`.") }}
-  {{ note("automated", "Sync changes in Git automatically.") }}
 {% endcall %}
 {% endcall %}
 {% call apply() %}
