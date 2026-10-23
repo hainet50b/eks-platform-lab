@@ -205,3 +205,51 @@ nginx-hpa   Rollout/nginx-hpa   cpu: 0%/50%   2         8         2          …
 <node>   Ready    …   apps{% endcall %}{% endcall %}
 {% endcall %}
 {% endcall %}
+
+{% call stage("wrapup") %}
+{{ section("teardown", "Teardown") }}
+<p>Tear down in the reverse order of the steps. The workloads repository stays.</p>
+{% call apply() %}
+{% call command() %}
+{% call piece("Deletes the ApplicationSet, and with it the Application.") %}kubectl --context <account-name>-admin \
+  delete -f parts/70-hpa/manifests/applicationset.yaml{% endcall %} {% call piece("Returns only after the Application and the sample workload are gone.") %}--cascade=foreground{% endcall %}
+
+{% call piece("Plans the removal of the add-on and saves the plan.", "The plan destroys one resource, the add-on, and ends with `Plan: 0 to add, 0 to change, 1 to destroy.`") %}AWS_PROFILE=<account-name>-admin \
+terraform -chdir=parts/70-hpa/terraform \
+  plan -destroy -out=terraform.tfplan{% endcall %}
+
+{% call piece("Applies the saved plan.") %}AWS_PROFILE=<account-name>-admin \
+terraform -chdir=parts/70-hpa/terraform \
+  apply terraform.tfplan{% endcall %}
+{% endcall %}
+{% endcall %}
+{% call confirm() %}
+{% call check("The ApplicationSet and its Application are gone.") %}kubectl --context <account-name>-admin \
+  get applicationset team-a-hpa -n argocd
+
+kubectl --context <account-name>-admin \
+  get application team-a-nginx-hpa -n argocd{% call output() %}Error from server (NotFound): applicationsets.argoproj.io "team-a-hpa" not found
+Error from server (NotFound): applications.argoproj.io "team-a-nginx-hpa" not found{% endcall %}{% endcall %}
+{% call check("The add-on is gone.") %}aws --profile <account-name>-admin \
+  eks list-addons --cluster-name eks-platform-lab \
+  --query 'addons' \
+  --output text{% call output() %}(nothing){% endcall %}{% endcall %}
+{% call check("No node of the NodePool `apps` is left. The node of the sample workload can take about a minute to go away.") %}kubectl --context <account-name>-admin \
+  get nodes -L karpenter.sh/nodepool{% call output() %}NAME     STATUS   …   NODEPOOL
+<node>   Ready    …   system{% endcall %}{% endcall %}
+{% endcall %}
+
+{{ section("cost", "Cost") }}
+<div class="cost-total"><p class="cost-sum"><b id="cost-sum"></b> USD a day</p><div class="cost-bar" id="cost-bar" aria-hidden="true"></div></div>
+<svg class="cost-chart" id="cost-chart" role="img" aria-label="Daily cost by resource"></svg>
+<p class="caption">metrics-server adds nothing: the add-on is free, and its pods fit on the node of part 60. While the load runs, a second node for the workload adds about 0.03 USD for 15 minutes.</p>
+
+<script type="application/json" id="cost-items">
+[
+  ["EC2 instance for the workload", 2.3, "{{ icon("aws/ec2") }}"],
+  ["EKS Auto Mode management, workload", 0.28, "{{ icon("aws/eks") }}"],
+  ["EBS volumes, workload node", 0.27, "{{ icon("aws/ebs") }}"],
+  ["Application of the capability", 0.044, "{{ icon("aws/eks") }}"]
+]
+</script>
+{% endcall %}
