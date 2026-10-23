@@ -165,3 +165,43 @@ team-a-nginx-hpa   Synced        Healthy{% endcall %}{% endcall %}
 {% endcall %}
 {% endcall %}
 {% endcall %}
+
+{% call stage("use") %}
+{{ section("load", "Load the workload") }}
+<p>Run a Job in <code>team-a</code> that sends requests to the Service <code>nginx-hpa</code> as fast as it can, and watch the pods and the nodes follow the load, as shown in <a href="#how">How the HPA scales</a>. The Job sends the requests with <a href="https://fortio.org/">fortio</a>, a load testing tool.</p>
+{% call files() %}
+{% call file("parts/70-hpa/manifests/load-generator.yaml", main=true) %}
+  {% call note("args:", "Send requests to the Service `nginx-hpa` over 32 connections, as fast as they go, until the command is stopped.") %}Keeps every pod busy enough for the HPA to add pods.{% endcall %}
+  {{ note("activeDeadlineSeconds: 900", "Stop the Job after 15 minutes.") }}
+  {{ note("backoffLimit: 0", "Do not run the pod again if it fails.") }}
+  {{ note("ttlSecondsAfterFinished: 60", "Delete the Job a minute after it ends.") }}
+  {% call note("runAsUser: 65532", "Run as a user and a group given by number.") %}The namespace `team-a` admits only pods that run as a user other than root.{% endcall %}
+{% endcall %}
+{% endcall %}
+{% call run() %}
+{% call check("Start the load: run the Job.") %}kubectl --context <account-name>-team-a-dev \
+  apply -f parts/70-hpa/manifests/load-generator.yaml{% endcall %}
+{% call check("Within a minute or two, the HPA sees the CPU usage rise and adds pods, up to eight.") %}kubectl --context <account-name>-team-a-dev \
+  get hpa nginx-hpa -n team-a{% call output() %}NAME        REFERENCE           TARGETS         MINPODS   MAXPODS   REPLICAS   AGE
+nginx-hpa   Rollout/nginx-hpa   cpu: …%/50%     2         8         8          …{% endcall %}{% endcall %}
+{% call check("The pods that do not fit on the first node are Pending for a short while, until Auto Mode adds a node to the NodePool `apps`.") %}kubectl --context <account-name>-team-a-dev \
+  get pods -n team-a -l app.kubernetes.io/name=nginx-hpa{% call output() %}NAME               READY   STATUS    RESTARTS   AGE
+nginx-hpa-<hash>   1/1     Running   0          …
+nginx-hpa-<hash>   0/1     Pending   0          …
+…{% endcall %}{% endcall %}
+{% call check("Every pod runs, on two nodes of the NodePool `apps`.") %}kubectl --context <account-name>-admin \
+  get nodes -L karpenter.sh/nodepool{% call output() %}NAME     STATUS   …   NODEPOOL
+<node>   Ready    …   apps
+<node>   Ready    …   apps
+<node>   Ready    …   system{% endcall %}{% endcall %}
+{% call check("Stop the load: delete the Job.") %}kubectl --context <account-name>-team-a-dev \
+  delete -f parts/70-hpa/manifests/load-generator.yaml{% endcall %}
+{% call check("About five minutes later, the HPA brings the Rollout back to two pods.") %}kubectl --context <account-name>-team-a-dev \
+  get hpa nginx-hpa -n team-a{% call output() %}NAME        REFERENCE           TARGETS       MINPODS   MAXPODS   REPLICAS   AGE
+nginx-hpa   Rollout/nginx-hpa   cpu: 0%/50%   2         8         2          …{% endcall %}{% endcall %}
+{% call check("A few minutes more after that, Auto Mode moves the pods left on the added node to the first node, and removes the added node.") %}kubectl --context <account-name>-admin \
+  get nodes -L karpenter.sh/nodepool{% call output() %}NAME     STATUS   …   NODEPOOL
+<node>   Ready    …   system
+<node>   Ready    …   apps{% endcall %}{% endcall %}
+{% endcall %}
+{% endcall %}

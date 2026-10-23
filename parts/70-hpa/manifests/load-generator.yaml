@@ -1,0 +1,38 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: load-generator
+  namespace: team-a
+  labels:
+    app.kubernetes.io/name: load-generator
+spec:
+  activeDeadlineSeconds: 900
+  backoffLimit: 0
+  ttlSecondsAfterFinished: 60
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: load-generator
+    spec:
+      restartPolicy: Never
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        runAsGroup: 65532
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: fortio
+          image: fortio/fortio:1.75.3
+          args: ["load", "-qps", "0", "-c", "32", "-t", "0", "http://nginx-hpa/"]
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              memory: 128Mi
