@@ -39,7 +39,7 @@ spec:
 <span class="added">  maxReplicas: 8</span>
 <span class="added">  metrics: …</span></code></pre></figure>
 </div>
-{% include "partials/70-hpa/owner.html" %}
+{% include "partials/70-hpa/replicas-owner.html" %}
 
 {{ section("how", "How the HPA scales") }}
 <p>The pods and the nodes follow the load: the HPA changes the pods, and Auto Mode changes the nodes.</p>
@@ -48,13 +48,17 @@ spec:
 {{ section("count", "How the HPA counts pods") }}
 <p>The HPA looks at utilization: the CPU that a pod uses, as a share of the CPU that the pod requests. When the average utilization rises above the target, the HPA adds pods, so that the CPU in use spreads over more pods and the average comes back to the target.</p>
 {% include "partials/70-hpa/counting.html" %}
+
+{{ section("what", "What you build") }}
+<p>Select a box to go to the step that creates it.</p>
+{% include "partials/70-hpa/overview.html" %}
 {% endcall %}
 
 {% call stage("build") %}
 {% call step("metrics-server", "metrics-server") %}
 {% call what() %}
 <p>An HPA reads the CPU of pods from the Metrics API, which <a href="https://kubernetes-sigs.github.io/metrics-server/">metrics-server</a> serves. EKS Auto Mode does not include metrics-server, so this step installs it as an <a href="https://docs.aws.amazon.com/eks/latest/userguide/eks-add-ons.html">EKS add-on</a>, on the NodePool <code>system</code>.</p>
-{% include "partials/70-hpa/metrics.html" %}
+{% include "partials/70-hpa/metrics-api.html" %}
 {% endcall %}
 {% call files() %}
 {% call file("parts/70-hpa/terraform/main.tf", main=true) %}
@@ -132,6 +136,32 @@ v1beta1.metrics.k8s.io   kube-system/metrics-server   True        …{% endcall 
 {% endcall %}
 {% call confirm() %}
 {% call check("The workloads repository has the workload.") %}git -C ../eks-platform-lab-workloads log origin/HEAD --oneline -1 -- team-a-hpa{% call output() %}<hash> Add the workload nginx-hpa{% endcall %}{% endcall %}
+{% endcall %}
+{% endcall %}
+
+{% call step("applicationset", "ApplicationSet") %}
+{% call what() %}
+<p>An ApplicationSet that turns each directory under <code>team-a-hpa/</code> of the workloads repository into an Application.</p>
+{% endcall %}
+{% call files() %}
+{% call file("parts/70-hpa/manifests/applicationset.yaml", main=true) %}
+  {{ note("path: team-a-hpa/*", "Create an Application for each directory right under `team-a-hpa`.") }}
+  {{ note("project: team-a-argo-rollouts", "Use the AppProject `team-a-argo-rollouts` from part 60.") }}
+{% endcall %}
+{% endcall %}
+{% call apply() %}
+{% call command() %}
+{% call piece("Creates the ApplicationSet, which creates the Application.") %}kubectl --context <account-name>-admin \
+  apply -f parts/70-hpa/manifests/applicationset.yaml{% endcall %}
+{% endcall %}
+{% endcall %}
+{% call confirm() %}
+{% call check("The HPA reads the CPU usage of the pods and keeps the Rollout at two pods, the minimum.") %}kubectl --context <account-name>-team-a-dev \
+  get hpa nginx-hpa -n team-a{% call output() %}NAME        REFERENCE           TARGETS       MINPODS   MAXPODS   REPLICAS   AGE
+nginx-hpa   Rollout/nginx-hpa   cpu: 0%/50%   2         8         2          …{% endcall %}{% endcall %}
+{% call check("The Application stays Synced and Healthy: Argo CD does not count the replicas that the HPA sets as a difference.") %}kubectl --context <account-name>-admin \
+  get application team-a-nginx-hpa -n argocd{% call output() %}NAME               SYNC STATUS   HEALTH STATUS
+team-a-nginx-hpa   Synced        Healthy{% endcall %}{% endcall %}
 {% endcall %}
 {% endcall %}
 {% endcall %}
