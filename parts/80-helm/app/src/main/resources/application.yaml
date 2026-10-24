@@ -1,0 +1,25 @@
+spring:
+  application:
+    name: spring-boot
+  lifecycle:
+    timeout-per-shutdown-phase: 30s
+server:
+  port: 8080
+  shutdown: graceful
+  tomcat:
+    threads:
+      max: 200
+management:
+  server:
+    port: 8081
+  endpoints:
+    access:
+      default: none
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      access: read-only
+    info:
+      access: read-only
