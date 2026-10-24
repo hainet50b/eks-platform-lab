@@ -51,7 +51,7 @@
 </div></div>
 {%- endmacro %}
 
-{% macro file_figure(source, shown_path, github_url, lines, notes, code_label) -%}
+{% macro file_figure(source, shown_path, github_url, lines, notes) -%}
 {%- set caption -%}
 <figcaption><a href="{{ github_url }}" title="{{ source }}">{{ shown_path }}</a><a class="github-link" href="{{ github_url }}" aria-label="Open {{ source }} on GitHub">{{ github_mark() }}<span>GitHub</span></a></figcaption>
 {%- endset -%}
@@ -67,7 +67,7 @@
 {%- for note in notes -%}
 <li data-pin="{{ note.number }}" tabindex="0"><span class="pin">{{ note.number }}</span><span>{{ note.spec }}{% if note.reason %}<span class="note-reason">{{ note.reason }}</span>{% endif %}</span></li>
 {%- endfor -%}
-</ol></div><div class="code-side"><p class="side-label">{{ code_label }}</p>{{ code }}</div></div></figure>
+</ol></div><div class="code-side"><p class="side-label">File</p>{{ code }}</div></div></figure>
 {%- else -%}
 <figure class="file-figure">{{ caption }}{{ code }}</figure>
 {%- endif -%}

@@ -416,14 +416,7 @@ class PageBuilder:
         rows = [
             {"number": i + 1, "html": Markup(highlight(line)), "pins": pins.get(i, [])} for i, line in enumerate(lines)
         ]
-        # a YAML file is a manifest when it names a kind; a YAML file without one is the configuration of an application
-        if source.endswith((".yaml", ".yml")) and any(line.startswith("kind:") for line in lines):
-            code_label = "Manifest"
-        elif source.endswith((".yaml", ".yml", ".tf")):
-            code_label = "Configuration"
-        else:
-            code_label = "Source"
-        return self.markup.file_figure(source, self.display_path(source), GITHUB_BLOB + source, rows, notes, code_label)
+        return self.markup.file_figure(source, self.display_path(source), GITHUB_BLOB + source, rows, notes)
 
     # ---- commands, checks, and actions in the UI ----
 
