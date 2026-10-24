@@ -52,7 +52,7 @@ curl -s -w '\n' localhost:8081/actuator/health/readiness{% call output() %}{"sta
   {% call note("AS build", "Build in a stage with the JDK and Maven.") %}{% endcall %}
   {% call note("dependency:go-offline", "Download the dependencies before copying the source.") %}Avoids downloading them again after a change only to the source.{% endcall %}
   {% call note("extract --layers --launcher", "Split the jar into layers.") %}{% endcall %}
-  {% call note("-jre-noble", "Run in a stage with only the Java runtime.") %}Keeps the build tools out of the image.{% endcall %}
+  {% call note("-jre-resolute", "Run in a stage with only the Java runtime.") %}Keeps the build tools out of the image.{% endcall %}
   {% call note("/layers/dependencies/||/layers/spring-boot-loader/||/layers/snapshot-dependencies/||/layers/application/", "Copy the layers from the least to the most often changed.") %}{% endcall %}
   {% call note("USER 10001", "Run as a user and a group with numeric IDs, neither of them root.") %}Lets the kubelet check `runAsNonRoot`, which the namespace `team-a` enforces.{% endcall %}
   {% call note("ENTRYPOINT", "Start the application with the launcher, with no JVM options.") %}The workload passes the memory settings.{% endcall %}
@@ -70,7 +70,7 @@ curl -s -w '\n' localhost:8081/actuator/health/readiness{% call output() %}{"sta
 <p>Run the checks in another terminal, and stop the container with Ctrl+C afterwards.</p>
 {% endcall %}
 {% call confirm() %}
-{% call check("The image runs as the user and the group `10001`.") %}docker run --rm --entrypoint id team-a/spring-boot:0.0.1{% call output() %}uid=10001 gid=10001 groups=10001{% endcall %}{% endcall %}
+{% call check("The image runs as the user and the group `10001`.") %}docker run --rm --entrypoint id team-a/spring-boot:0.0.1{% call output() %}uid=10001(10001) gid=10001(10001) groups=10001(10001){% endcall %}{% endcall %}
 {% call check("The application answers in the container.") %}curl -s localhost:8080/{% call output() %}Hello from Spring Boot{% endcall %}{% endcall %}
 {% call check("Without JVM options, the JVM gives a quarter of the memory limit to the heap, and uses the serial garbage collector.") %}docker run --rm -m 512m --entrypoint java team-a/spring-boot:0.0.1 \
   -XX:+PrintFlagsFinal -version 2>/dev/null \

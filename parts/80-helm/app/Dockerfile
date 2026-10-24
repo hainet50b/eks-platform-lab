@@ -1,4 +1,4 @@
-FROM eclipse-temurin:25.0.4.1_1-jdk-noble AS build
+FROM eclipse-temurin:25.0.4.1_1-jdk-resolute AS build
 WORKDIR /src
 COPY .mvn/ .mvn/
 COPY mvnw pom.xml ./
@@ -8,7 +8,7 @@ RUN ./mvnw -q package -DskipTests \
  && java -Djarmode=tools -jar target/spring-boot-0.0.1.jar \
     extract --layers --launcher --destination /layers
 
-FROM eclipse-temurin:25.0.4.1_1-jre-noble
+FROM eclipse-temurin:25.0.4.1_1-jre-resolute
 WORKDIR /app
 COPY --from=build /layers/dependencies/ ./
 COPY --from=build /layers/spring-boot-loader/ ./
