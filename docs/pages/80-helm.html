@@ -1,0 +1,81 @@
+{{ page_head("Turn your code into a running workload") }}
+
+{% call stage("build") %}
+{% call step("application", "Spring Boot application") %}
+{% call what() %}
+<p>The sample is a Spring Boot application, generated with <a href="https://start.spring.io/">Spring Initializr</a> with two dependencies: Spring Web MVC and <a href="https://docs.spring.io/spring-boot/reference/actuator/index.html">Actuator</a>. It answers at <code>/</code> and <code>/pod</code> on the port 8080. Actuator serves its health and its version on the port 8081.</p>
+<p>The health has two groups, <code>liveness</code> and <code>readiness</code>, which the probes check later in this part.</p>
+{% endcall %}
+{% call files() %}
+{% call file("parts/80-helm/app/pom.xml") %}
+  {% call note("<artifactId>spring-boot-starter-webmvc</artifactId>", "Serve HTTP with Spring MVC on the embedded Tomcat.") %}{% endcall %}
+  {% call note("<artifactId>spring-boot-starter-actuator</artifactId>", "Add Actuator, which serves the health and the version.") %}{% endcall %}
+  {% call note("<goal>build-info</goal>", "Write the build information, with the version, into the jar.") %}Actuator shows it at `/actuator/info`.{% endcall %}
+{% endcall %}
+{% call file("parts/80-helm/app/src/main/java/io/github/hainet50b/springboot/HelloController.java", main=true) %}
+  {% call note("@GetMapping(\"/\")", "Answer with a fixed greeting.") %}{% endcall %}
+  {% call note("@GetMapping(\"/pod\")", "Answer with the host name, which in a pod is the name of the pod.") %}{% endcall %}
+{% endcall %}
+{% call file("parts/80-helm/app/src/main/resources/application.yaml") %}
+  {% call note("timeout-per-shutdown-phase", "On shutdown, wait up to 30 seconds for the requests in progress.") %}{% endcall %}
+  {% call note("port: 8080", "Serve HTTP on the port 8080.") %}The Service sends requests to this port.{% endcall %}
+  {% call note("shutdown: graceful","On shutdown, refuse new requests, and finish the requests already in progress.") %}{% endcall %}
+  {% call note("max: 200", "Serve up to 200 requests at the same time.") %}Each thread takes memory outside the heap.{% endcall %}
+  {% call note("port: 8081", "Serve Actuator on the port 8081, apart from the requests.") %}Keeps Actuator away from the load balancer, and keeps the probes answering while every request thread is busy.{% endcall %}
+  {% call note("default: none", "Allow no Actuator endpoint by default, and only reading `health` and `info`.") %}Keeps the other endpoints off, even if they are exposed by mistake.{% endcall %}
+  {% call note("include: health,info","Serve `health` and `info` over HTTP, and no other Actuator endpoint.") %}{% endcall %}
+{% endcall %}
+{% endcall %}
+{% call apply() %}
+{% call command() %}
+{% call piece("Runs the application, on the ports 8080 and 8081.") %}parts/80-helm/app/mvnw -f parts/80-helm/app spring-boot:run{% endcall %}
+{% endcall %}
+<p>Run the checks in another terminal, and stop the application with Ctrl+C afterwards.</p>
+{% endcall %}
+{% call confirm() %}
+{% call check("The application answers at `/`.") %}curl -s localhost:8080/{% call output() %}Hello from Spring Boot{% endcall %}{% endcall %}
+{% call check("`/pod` answers with the host name.") %}curl -s localhost:8080/pod{% call output() %}&lt;your host name&gt;{% endcall %}{% endcall %}
+{% call check("The health is up, with the groups `liveness` and `readiness`.") %}curl -s -w '\n' localhost:8081/actuator/health{% call output() %}{"groups":["liveness","readiness"],"status":"UP"}{% endcall %}{% endcall %}
+{% call check("The groups `liveness` and `readiness`, which the probes check, are up.") %}curl -s -w '\n' localhost:8081/actuator/health/liveness
+curl -s -w '\n' localhost:8081/actuator/health/readiness{% call output() %}{"status":"UP"}
+{"status":"UP"}{% endcall %}{% endcall %}
+{% call check("Actuator shows the version from the build information.") %}curl -s -w '\n' localhost:8081/actuator/info{% call output() %}{"build":{"artifact":"spring-boot","name":"spring-boot","time":"1980-02-01T00:00:00Z","version":"0.0.1","group":"io.github.hainet50b"}}{% endcall %}{% endcall %}
+{% endcall %}
+{% endcall %}
+
+{% call step("image", "Container image") %}
+{% call what() %}
+<p>The Dockerfile has two stages: a build stage that makes the jar, and a runtime stage that runs it. For container images, Spring Boot has the <a href="https://docs.spring.io/spring-boot/reference/packaging/container-images/dockerfiles.html">tools jar mode</a>, which splits the jar into layers. Docker then reuses the unchanged layers, such as the dependencies, when only the code changes.</p>
+{% endcall %}
+{% call files() %}
+{% call file("parts/80-helm/app/Dockerfile", main=true) %}
+  {% call note("AS build", "Build in a stage with the JDK and Maven.") %}{% endcall %}
+  {% call note("dependency:go-offline", "Download the dependencies before copying the source.") %}Avoids downloading them again after a change only to the source.{% endcall %}
+  {% call note("extract --layers --launcher", "Split the jar into layers.") %}{% endcall %}
+  {% call note("-jre-noble", "Run in a stage with only the Java runtime.") %}Keeps the build tools out of the image.{% endcall %}
+  {% call note("/layers/dependencies/||/layers/spring-boot-loader/||/layers/snapshot-dependencies/||/layers/application/", "Copy the layers from the least to the most often changed.") %}{% endcall %}
+  {% call note("USER 10001", "Run as a user and a group with numeric IDs, neither of them root.") %}Lets the kubelet check `runAsNonRoot`, which the namespace `team-a` enforces.{% endcall %}
+  {% call note("ENTRYPOINT", "Start the application with the launcher, with no JVM options.") %}The workload passes the memory settings.{% endcall %}
+{% endcall %}
+{% call file("parts/80-helm/app/.dockerignore") %}
+  {% call note("target/", "Leave the local build out of the build context.") %}{% endcall %}
+{% endcall %}
+{% endcall %}
+{% call apply() %}
+{% call command() %}
+{% call piece("Builds the image, with the version as its tag.") %}docker build -t team-a/spring-boot:0.0.1 parts/80-helm/app{% endcall %}
+
+{% call piece("Runs it with a memory limit, as a pod would.") %}docker run --rm -m 512m -p 8080:8080 team-a/spring-boot:0.0.1{% endcall %}
+{% endcall %}
+<p>Run the checks in another terminal, and stop the container with Ctrl+C afterwards.</p>
+{% endcall %}
+{% call confirm() %}
+{% call check("The image runs as the user and the group `10001`.") %}docker run --rm --entrypoint id team-a/spring-boot:0.0.1{% call output() %}uid=10001 gid=10001 groups=10001{% endcall %}{% endcall %}
+{% call check("The application answers in the container.") %}curl -s localhost:8080/{% call output() %}Hello from Spring Boot{% endcall %}{% endcall %}
+{% call check("Without JVM options, the JVM gives a quarter of the memory limit to the heap, and uses the serial garbage collector.") %}docker run --rm -m 512m --entrypoint java team-a/spring-boot:0.0.1 \
+  -XX:+PrintFlagsFinal -version 2>/dev/null \
+  | awk '$2 == "MaxHeapSize" || $2 == "UseSerialGC" {print $2, $4}'{% call output() %}MaxHeapSize 134217728
+UseSerialGC true{% endcall %}{% endcall %}
+{% endcall %}
+{% endcall %}
+{% endcall %}
