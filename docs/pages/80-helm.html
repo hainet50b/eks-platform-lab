@@ -78,4 +78,73 @@ curl -s -w '\n' localhost:8081/actuator/health/readiness{% call output() %}{"sta
 UseSerialGC true{% endcall %}{% endcall %}
 {% endcall %}
 {% endcall %}
+
+{% call step("repository", "Image repository") %}
+{% call what() %}
+<p>The image goes to a repository in <a href="https://docs.aws.amazon.com/AmazonECR/latest/userguide/what-is-ecr.html">Amazon ECR</a>. This lab tags images the way <a href="https://github.com/docker/metadata-action">docker/metadata-action</a> does. It tags every image with its commit SHA, such as <code>sha-1a2b3c4</code>, and also tags a release image with the Git tag on its commit, such as <code>0.0.1</code>.</p>
+<p>With these tags in place, this lab sets a lifecycle policy on the repository. The policy protects release images from deletion and moves the ones older than the last 10 to the archive storage class, but deletes the other images older than the last 10.</p>
+{% endcall %}
+{% call files() %}
+{% call file("parts/80-helm/terraform/main.tf", main=true) %}
+  {% call note("name                 = \"team-a/spring-boot\"", "Name the repository after the tenant and the application.") %}Lets an IAM policy limit pushes to `team-a/*`.{% endcall %}
+  {% call note("IMMUTABLE", "Refuse a push that reuses a tag.") %}A tag then always points to the same image, so the values in Git tell what runs.{% endcall %}
+  {% call note("force_delete", "Let Terraform delete the repository while it still holds images.") %}The lab deletes the repository every day.{% endcall %}
+  {% call note("scan_on_push", "Scan each image for known vulnerabilities in its OS packages, when it is pushed.") %}{% endcall %}
+  {% call note("\"*.*.*\"", "Move the release images older than the last 10 to the archive storage class.") %}An <a href="https://docs.aws.amazon.com/AmazonECR/latest/userguide/archive_restore_image.html">archived</a> release image needs a <a href="https://docs.aws.amazon.com/AmazonECR/latest/userguide/restore-image.html">restore</a> before a pull, but stays in the repository.{% endcall %}
+  {% call note("\"sha-*\"", "Expire the other images older than the last 10.") %}Rule 2 cannot expire an image that rule 1 selects, even one with a `sha-` tag.{% endcall %}
+{% endcall %}
+{% call file("parts/80-helm/terraform/outputs.tf") %}{% endcall %}
+{% call file("parts/80-helm/terraform/terraform.tf") %}{% endcall %}
+{% call file("parts/80-helm/terraform/providers.tf") %}{% endcall %}
+{% endcall %}
+{% call apply() %}
+{% call command() %}
+{% call piece("Gets the name of the state bucket.") %}bucket_name=$( \
+AWS_PROFILE=<account-name>-admin \
+terraform -chdir=parts/05-terraform-state/terraform \
+  output -raw bucket_name \
+){% endcall %}
+
+{% call piece("Prepares the directory, with the state in that bucket.") %}AWS_PROFILE=<account-name>-admin \
+terraform -chdir=parts/80-helm/terraform \
+  init -backend-config="bucket=${bucket_name}"{% endcall %}
+
+{% call piece("Plans the change and saves the plan.", "The plan adds two resources, the repository and its lifecycle policy, and ends with `Plan: 2 to add, 0 to change, 0 to destroy.`") %}AWS_PROFILE=<account-name>-admin \
+terraform -chdir=parts/80-helm/terraform \
+  plan -out=terraform.tfplan{% endcall %}
+
+{% call piece("Applies the saved plan.") %}AWS_PROFILE=<account-name>-admin \
+terraform -chdir=parts/80-helm/terraform \
+  apply terraform.tfplan{% endcall %}
+{% endcall %}
+<p>Then push the image from step 2.</p>
+{% call command() %}
+{% call piece("Gets the URL of the repository.") %}repository_url=$( \
+AWS_PROFILE=<account-name>-admin \
+terraform -chdir=parts/80-helm/terraform \
+  output -raw repository_url \
+){% endcall %}
+
+{% call piece("Makes the tag from the current commit.") %}tag=sha-$(git rev-parse --short=7 HEAD){% endcall %}
+
+{% call piece("Signs Docker in to the registry, for 12 hours.") %}aws --profile <account-name>-admin \
+  ecr get-login-password \
+  | docker login --username AWS --password-stdin "${repository_url%%/*}"{% endcall %}
+
+{% call piece("Tags the image from step 2, and pushes it.") %}docker tag team-a/spring-boot:0.0.1 "${repository_url}:${tag}"
+docker push "${repository_url}:${tag}"{% endcall %}
+{% endcall %}
+{% endcall %}
+{% call confirm() %}
+{% call check("The repository refuses to reuse a tag, and scans each push.") %}aws --profile <account-name>-admin \
+  ecr describe-repositories --repository-names team-a/spring-boot \
+  --query 'repositories[0].[imageTagMutability, imageScanningConfiguration.scanOnPush]' \
+  --output text{% call output() %}IMMUTABLE       True{% endcall %}{% endcall %}
+{% call check("The image is in the repository, with the tag.") %}aws --profile <account-name>-admin \
+  ecr describe-images --repository-name team-a/spring-boot \
+  --filter tagStatus=TAGGED \
+  --query 'imageDetails[].imageTags' \
+  --output text{% call output() %}sha-&lt;commit&gt;{% endcall %}{% endcall %}
+{% endcall %}
+{% endcall %}
 {% endcall %}
