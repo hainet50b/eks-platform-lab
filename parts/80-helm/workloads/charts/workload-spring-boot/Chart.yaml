@@ -1,0 +1,5 @@
+apiVersion: v2
+name: workload-spring-boot
+description: Runs a Spring Boot application for a tenant
+type: application
+version: 0.1.0

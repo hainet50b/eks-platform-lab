@@ -1,0 +1,15 @@
+image:
+  repository: team-a/spring-boot
+  tag: sha-<commit>
+resources:
+  cpu: 250m
+  memory: 512Mi
+jvm:
+  heapPercentage: 50
+ingress:
+  enabled: true
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 4
+  targetCPUUtilization: 70

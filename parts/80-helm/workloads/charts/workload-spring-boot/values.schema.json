@@ -1,0 +1,66 @@
+{
+  "$schema": "https://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "image": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["registry", "repository", "tag"],
+      "properties": {
+        "registry": { "type": "string", "minLength": 1 },
+        "repository": { "type": "string", "minLength": 1 },
+        "tag": { "type": "string", "minLength": 1 }
+      }
+    },
+    "replicas": { "type": "integer", "minimum": 1 },
+    "resources": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "cpu": { "type": "string", "pattern": "^[0-9]+m$" },
+        "memory": { "type": "string", "pattern": "^[0-9]+(Mi|Gi)$" }
+      }
+    },
+    "jvm": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "heapPercentage": { "type": "integer", "minimum": 1, "maximum": 100 }
+      }
+    },
+    "ports": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "http": { "type": "integer", "minimum": 1, "maximum": 65535 },
+        "management": { "type": "integer", "minimum": 1, "maximum": 65535 }
+      }
+    },
+    "probes": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "livenessPath": { "type": "string", "pattern": "^/" },
+        "readinessPath": { "type": "string", "pattern": "^/" }
+      }
+    },
+    "ingress": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": { "type": "boolean" }
+      }
+    },
+    "autoscaling": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "minReplicas": { "type": "integer", "minimum": 1 },
+        "maxReplicas": { "type": "integer", "minimum": 1 },
+        "targetCPUUtilization": { "type": "integer", "minimum": 1 }
+      }
+    }
+  }
+}

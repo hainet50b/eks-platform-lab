@@ -147,4 +147,92 @@ docker push "${repository_url}:${tag}"{% endcall %}
   --output text{% call output() %}sha-&lt;commit&gt;{% endcall %}{% endcall %}
 {% endcall %}
 {% endcall %}
+
+{% call step("chart", "Workload chart and values") %}
+{% call what() %}
+<p>This lab gives developers a workload chart, so that a developer writes only the values for an application. The chart turns them into a Rollout, a Service, an Ingress, an HPA, and a PDB.</p>
+<p>The chart sets defaults for Spring Boot. It sends requests to port 8080, and asks Actuator for the health groups <code>liveness</code> and <code>readiness</code> on port 8081. An application on another framework changes the ports and the paths in its values.</p>
+{% endcall %}
+{% call files() %}
+{% call file("parts/80-helm/workloads/team-a-helm/helm-spring-boot/values.yaml", main=true) %}
+  {{ note("repository: team-a/spring-boot", "Set the repository in ECR.") }}
+  {{ note("tag: sha-<commit>", "Set the tag of the image to run.") }}
+  {{ note("cpu: 250m", "Ask for 250m of CPU for each pod.") }}
+  {{ note("memory: 512Mi", "Give each pod 512 MiB of memory.") }}
+  {% call note("heapPercentage: 50", "Give half of the memory to the heap.") %}Leaves the rest for the memory that the JVM uses outside the heap.{% endcall %}
+  {{ note("ingress:>>enabled: true", "Expose the application through an ALB.") }}
+  {{ note("autoscaling:>>enabled: true", "Turn on the HPA.") }}
+  {{ note("minReplicas: 2||maxReplicas: 4", "Keep between two and four pods.") }}
+  {{ note("targetCPUUtilization: 70", "Keep the average CPU usage near 70% of the request.") }}
+{% endcall %}
+{% call file("parts/80-helm/workloads/charts/workload-spring-boot/templates/rollout.yaml") %}
+  {{ note("{{- if not .Values.autoscaling.enabled }}", "Write `replicas` only when the HPA is off.") }}
+  {{ note("image: \"{{", "Put the registry, the repository, and the tag together into the image.") }}
+  {% call note("name: JAVA_TOOL_OPTIONS", "Set the starting heap and the largest heap to the same percentage of the memory limit.") %}The JVM reads this variable when it starts.{% endcall %}
+  {% call note("startupProbe:", "Check every 5 seconds whether the application has started, for up to 120 seconds.") %}The liveness probe and the readiness probe start after this probe succeeds.{% endcall %}
+  {{ note("livenessProbe:", "Restart the container when the group `liveness` fails.") }}
+  {{ note("readinessProbe:", "Stop sending requests to the pod while the group `readiness` fails.") }}
+  {% call note("terminationGracePeriodSeconds: 45", "Give the pod 45 seconds to stop.") %}Covers the `preStop` wait (10 seconds) and the graceful shutdown in Spring Boot (up to 30 seconds).{% endcall %}
+  {% call note("preStop:", "Make the container wait 10 seconds before it stops.") %}Lets the ALB stop sending requests to the pod before it stops.{% endcall %}
+{% endcall %}
+{% call file("parts/80-helm/workloads/charts/workload-spring-boot/templates/service.yaml") %}
+  {{ note("targetPort: http", "Point to the port by its name, so that the Service follows the port in the Rollout.") }}
+{% endcall %}
+{% call file("parts/80-helm/workloads/charts/workload-spring-boot/templates/ingress.yaml") %}
+  {{ note("{{- if .Values.ingress.enabled }}", "Create the Ingress only when the values expose the application.") }}
+{% endcall %}
+{% call file("parts/80-helm/workloads/charts/workload-spring-boot/templates/hpa.yaml") %}
+  {{ note("{{- if .Values.autoscaling.enabled }}", "Create the HPA unless the values turn it off.") }}
+  {{ note("kind: Rollout", "Scale the Rollout that has the same name.") }}
+{% endcall %}
+{% call file("parts/80-helm/workloads/charts/workload-spring-boot/templates/pdb.yaml") %}{% endcall %}
+{% call file("parts/80-helm/workloads/charts/workload-spring-boot/values.yaml") %}
+  {{ note("registry: \"\"", "Take the registry from the ApplicationSet.") }}
+  {{ note("replicas: 2", "Run two pods when the HPA is off.") }}
+  {{ note("http: 8080||management: 8081||livenessPath||readinessPath", "Send requests to port 8080, and ask Actuator on port 8081 whether the application is alive and ready.") }}
+  {{ note("enabled: false", "Keep the application private unless the values expose it.") }}
+{% endcall %}
+{% call file("parts/80-helm/workloads/charts/workload-spring-boot/values.schema.json") %}
+  {{ note("\"additionalProperties\": false", "Refuse an item that the chart does not know, such as a misspelled one.") }}
+  {{ note("\"required\": [\"registry\", \"repository\", \"tag\"]", "Refuse values that leave out the registry, the repository, or the tag.") }}
+{% endcall %}
+{% call file("parts/80-helm/workloads/charts/workload-spring-boot/Chart.yaml") %}{% endcall %}
+{% endcall %}
+{% call apply() %}
+{% call command() %}
+{% call piece("Makes the tag from the current commit.") %}tag=sha-$(git rev-parse --short=7 HEAD){% endcall %}
+
+{% call piece("Copies the chart and the values into the workloads repository.") %}cp -r parts/80-helm/workloads/charts parts/80-helm/workloads/team-a-helm ../eks-platform-lab-workloads/{% endcall %}
+
+{% call piece("Writes the tag into the values.") %}sed -i "s/^  tag: .*/  tag: ${tag}/" \
+  ../eks-platform-lab-workloads/team-a-helm/helm-spring-boot/values.yaml{% endcall %}
+
+{% call piece("Stages only the chart and the values.") %}git -C ../eks-platform-lab-workloads add charts team-a-helm{% endcall %}
+{% call piece("Commits them.") %}git -C ../eks-platform-lab-workloads commit -m "Add the workload chart and the values for helm-spring-boot"{% endcall %}
+{% call piece("Pushes them to the repository that Argo CD reads.") %}git -C ../eks-platform-lab-workloads push{% endcall %}
+{% endcall %}
+{% endcall %}
+{% call confirm() %}
+{% call check("The workloads repository has the chart and the values.") %}git -C ../eks-platform-lab-workloads log origin/HEAD --oneline -1 -- charts team-a-helm{% call output() %}&lt;hash&gt; Add the workload chart and the values for helm-spring-boot{% endcall %}{% endcall %}
+{% call check("The chart makes five resources from the values. Helm renders the chart on your machine, as Argo CD does in the cluster.") %}registry=$( \
+aws --profile <account-name>-admin \
+  sts get-caller-identity --query Account --output text \
+).dkr.ecr.ap-northeast-1.amazonaws.com
+
+helm template helm-spring-boot ../eks-platform-lab-workloads/charts/workload-spring-boot \
+  -n team-a \
+  -f ../eks-platform-lab-workloads/team-a-helm/helm-spring-boot/values.yaml \
+  --set image.registry="${registry}" \
+  | grep '^kind:'{% call output() %}kind: PodDisruptionBudget
+kind: Service
+kind: HorizontalPodAutoscaler
+kind: Ingress
+kind: Rollout{% endcall %}{% endcall %}
+{% call check("The Rollout runs the image that the values set.") %}helm template helm-spring-boot ../eks-platform-lab-workloads/charts/workload-spring-boot \
+  -n team-a \
+  -f ../eks-platform-lab-workloads/team-a-helm/helm-spring-boot/values.yaml \
+  --set image.registry="${registry}" \
+  | grep -o 'image: .*'{% call output() %}image: "&lt;account-id&gt;.dkr.ecr.ap-northeast-1.amazonaws.com/team-a/spring-boot:sha-&lt;commit&gt;"{% endcall %}{% endcall %}
+{% endcall %}
+{% endcall %}
 {% endcall %}
