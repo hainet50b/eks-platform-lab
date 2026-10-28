@@ -116,7 +116,7 @@ instructions.
 
 ## Tools
 
-The tools that this repository uses.
+The tools that this repository uses. The commands in this repository are written for bash.
 
 | Name | Introduced in |
 | --- | --- |
