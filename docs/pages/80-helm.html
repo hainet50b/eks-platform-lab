@@ -5,9 +5,9 @@
 <p>A developer writes only the values for an application, and the platform renders them into Kubernetes resources with its Helm chart. The chart adds what the platform expects from every workload, such as the probes, the preStop wait, and the securityContext.</p>
 {% include "partials/80-helm/values-to-resources.html" %}
 
-{{ section("how", "How your code reaches a pod") }}
-<p>The code becomes an image on your machine, goes into ECR, and runs as a pod in the cluster.</p>
-{% include "partials/80-helm/code-to-pod.html" %}
+{{ section("what", "What you build") }}
+<p>Select a box to go to the step that creates it.</p>
+{% include "partials/80-helm/overview.html" %}
 {% endcall %}
 
 {% call stage("build") %}

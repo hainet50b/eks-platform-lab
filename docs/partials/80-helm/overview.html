@@ -1,0 +1,59 @@
+<div class="diagram">
+<svg viewBox="0 0 1060 616" role="img" aria-labelledby="overview-title overview-description">
+  <title id="overview-title">Components of part 80</title>
+  <desc id="overview-description">On your machine, the developer writes the Spring Boot application, which is built into an image and pushed to the ECR repository. The developer writes the values, and the administrator writes the chart, and both are pushed to the workloads repository. The administrator also creates the ECR repository and applies manifests to the cluster, where the ApplicationSet in the namespace argocd creates the Application. The Argo CD capability reads the workloads repository and the namespace argocd, and syncs the sample workload into the namespace team-a. The sample workload consists of a Rollout, a Service, an Ingress, an HPA, and a PDB, and pulls the image from the ECR repository.</desc>
+  <defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z"/></marker></defs>
+
+  <g class="box role"><rect x="40" y="62" width="260" height="40"/><image href="{{ icon("aws/identity-center") }}" x="48" y="70" width="24" height="24"/><text x="180" y="87" text-anchor="middle">developer</text></g>
+  <rect class="frame" x="380" y="20" width="660" height="104" rx="10"/><text class="frame-label" x="396" y="42">your machine</text>
+  <a class="box this-part" href="#application"><rect x="400" y="60" width="260" height="44"/><text x="530" y="87" text-anchor="middle">Spring Boot application</text></a>
+  <a class="box this-part" href="#image"><rect x="760" y="60" width="260" height="44"/><rect x="769" y="67" width="30" height="30" rx="4" style="fill:#ffffff;stroke:none"/><image href="{{ icon("oci/containerimage") }}" x="772" y="70" width="24" height="24"/><text x="890" y="87" text-anchor="middle">image</text></a>
+  <path class="edge" d="M300,82 H396"/><text class="edge-label" x="340" y="74" text-anchor="middle">writes</text>
+  <path class="edge" d="M660,82 H756"/><text class="edge-label" x="710" y="74" text-anchor="middle">is built into</text>
+
+  <g class="box role"><rect x="400" y="174" width="260" height="40"/><image href="{{ icon("aws/identity-center") }}" x="408" y="182" width="24" height="24"/><text x="540" y="199" text-anchor="middle">administrator</text></g>
+  <a class="box this-part" href="#repository"><rect x="760" y="172" width="260" height="44"/><image href="{{ icon("aws/ecr") }}" x="772" y="182" width="24" height="24"/><text x="890" y="190" text-anchor="middle">ECR repository</text><text class="subtitle" x="890" y="207" text-anchor="middle">team-a/spring-boot</text></a>
+  <path class="edge" d="M890,104 V168"/><text class="edge-label" x="898" y="146">is pushed to</text>
+  <path class="edge" d="M660,194 H756"/><text class="edge-label" x="708" y="186" text-anchor="middle">creates</text>
+  <path class="edge" d="M530,214 V252"/><text class="edge-label" x="538" y="240">applies manifests</text>
+
+  <g class="box"><rect x="40" y="516" width="260" height="44"/><svg class="github-mark" x="52" y="528" width="20" height="20" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0c4.42 0 8 3.58 8 8a8.013 8.013 0 0 1-5.45 7.59c-.4.08-.55-.17-.55-.38 0-.27.01-1.13.01-2.2 0-.75-.25-1.23-.54-1.48 1.78-.2 3.65-.88 3.65-3.95 0-.88-.31-1.59-.82-2.15.08-.2.36-1.02-.08-2.12 0 0-.67-.22-2.2.82-.64-.18-1.32-.27-2-.27-.68 0-1.36.09-2 .27-1.53-1.03-2.2-.82-2.2-.82-.44 1.1-.16 1.92-.08 2.12-.51.56-.82 1.28-.82 2.15 0 3.06 1.86 3.75 3.64 3.95-.23.2-.44.55-.51 1.07-.46.21-1.61.55-2.33-.66-.15-.24-.6-.83-1.23-.82-.67.01-.27.38.01.53.34.19.73.9.82 1.13.16.45.68 1.31 2.69.94 0 .67.01 1.3.01 1.49 0 .21-.15.45-.55.38A7.995 7.995 0 0 1 0 8c0-4.42 3.58-8 8-8Z"/></svg><text x="180" y="534" text-anchor="middle">workloads repository</text><text class="subtitle" x="180" y="551" text-anchor="middle">part 50</text></g>
+  <a class="box this-part" href="#chart"><rect x="40" y="330" width="120" height="44"/><text x="100" y="357" text-anchor="middle">values</text></a>
+  <a class="box this-part" href="#chart"><rect x="180" y="330" width="120" height="44"/><rect x="189" y="337" width="30" height="30" rx="4" style="fill:#ffffff;stroke:none"/><image href="{{ icon("helm/helm") }}" x="192" y="340" width="24" height="24"/><text x="252" y="357" text-anchor="middle">chart</text></a>
+  <path class="edge" d="M100,102 V326"/><text class="edge-label" x="108" y="220">writes</text>
+  <path class="edge" d="M400,194 H240 V326"/><text class="edge-label" x="320" y="186" text-anchor="middle">writes</text>
+  <path class="edge" d="M100,374 V512"/><text class="edge-label" x="108" y="448">is pushed to</text>
+  <path class="edge" d="M240,374 V512"/><text class="edge-label" x="248" y="448">is pushed to</text>
+
+  <rect class="frame" x="380" y="256" width="660" height="340" rx="10"/><image href="{{ icon("aws/eks") }}" x="392" y="262" width="18" height="18"/><text class="frame-label" x="416" y="275">EKS Auto Mode cluster</text>
+
+  <rect class="frame" x="400" y="296" width="260" height="180" rx="8"/><image href="{{ icon("kubernetes/namespace") }}" x="410" y="301" width="16" height="16"/><text class="frame-label" x="430" y="314">namespace argocd</text>
+  <a class="box this-part" href="#applicationset"><rect x="420" y="332" width="220" height="44"/><image href="{{ icon("argo/argo") }}" x="426" y="344" width="20" height="20"/><text x="542" y="350" text-anchor="middle">ApplicationSet</text><text class="subtitle" x="542" y="367" text-anchor="middle">team-a-helm</text></a>
+  <a class="box this-part" href="#applicationset"><rect x="420" y="412" width="220" height="44"/><image href="{{ icon("argo/argo") }}" x="426" y="424" width="20" height="20"/><text x="542" y="430" text-anchor="middle">Application</text><text class="subtitle" x="542" y="447" text-anchor="middle">team-a-helm-spring-boot</text></a>
+  <path class="edge" d="M530,376 V408"/><text class="edge-label" x="538" y="396">creates</text>
+
+  <g class="box"><rect x="400" y="516" width="260" height="44"/><image href="{{ icon("aws/eks") }}" x="412" y="526" width="24" height="24"/><text x="530" y="534" text-anchor="middle">Argo CD capability</text><text class="subtitle" x="530" y="551" text-anchor="middle">part 50</text></g>
+  <path class="edge" d="M530,516 V480"/><text class="edge-label" x="538" y="502">reads</text>
+  <path class="edge" d="M400,538 H304"/><text class="edge-label" x="340" y="530" text-anchor="middle">reads</text>
+  <path class="edge" d="M660,538 H710 V444 H776"/><text class="edge-label" x="718" y="495">syncs</text>
+
+  <rect class="frame" x="760" y="296" width="260" height="280" rx="8"/><image href="{{ icon("kubernetes/namespace") }}" x="770" y="301" width="16" height="16"/><text class="frame-label" x="790" y="314">namespace team-a (part 40)</text>
+  <a class="box this-part" href="#applicationset"><rect x="780" y="332" width="220" height="224"/><text x="794" y="352">sample workload</text></a>
+  <g class="box"><rect x="796" y="368" width="188" height="172"/>
+    <image href="{{ icon("argo/argo") }}" x="808" y="380" width="20" height="20"/><text x="838" y="394">Rollout</text>
+    <image href="{{ icon("kubernetes/service") }}" x="808" y="412" width="20" height="20"/><text x="838" y="426">Service</text>
+    <image href="{{ icon("kubernetes/ingress") }}" x="808" y="444" width="20" height="20"/><text x="838" y="458">Ingress</text>
+    <image href="{{ icon("kubernetes/hpa") }}" x="808" y="476" width="20" height="20"/><text x="838" y="490">HPA</text>
+    <image href="{{ icon("kubernetes/kubernetes") }}" x="808" y="508" width="20" height="20"/><text x="838" y="522">PDB</text>
+  </g>
+  <path class="edge" d="M890,332 V220"/><text class="edge-label" x="898" y="240">pulls the image</text>
+
+  <g class="badge"><circle cx="400" cy="60" r="10"/><text x="400" y="64" text-anchor="middle">1</text></g>
+  <g class="badge"><circle cx="760" cy="60" r="10"/><text x="760" y="64" text-anchor="middle">2</text></g>
+  <g class="badge"><circle cx="760" cy="172" r="10"/><text x="760" y="176" text-anchor="middle">3</text></g>
+  <g class="badge"><circle cx="40" cy="330" r="10"/><text x="40" y="334" text-anchor="middle">4</text></g>
+  <g class="badge"><circle cx="180" cy="330" r="10"/><text x="180" y="334" text-anchor="middle">4</text></g>
+  <g class="badge"><circle cx="420" cy="332" r="10"/><text x="420" y="336" text-anchor="middle">5</text></g>
+  <g class="badge"><circle cx="780" cy="332" r="10"/><text x="780" y="336" text-anchor="middle">5</text></g>
+</svg>
+</div>
