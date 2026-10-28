@@ -491,6 +491,8 @@ ol.annotation-list .pin { margin-left: 0; }
 .diagram .bars .check.fails { fill: none; stroke: var(--bad); stroke-width: 2.4; stroke-linecap: round; }
 .diagram .bars .check.skipped { fill: var(--faint); }
 .diagram .bars .segment.idle { fill: none; stroke: var(--muted); stroke-dasharray: 4 3; }
+.diagram .bars .segment.plain { fill: var(--surface); stroke: var(--muted); }
+.diagram .bars .segment.accent-line { fill: none; stroke: var(--accent); }
 .diagram .bars .note-title { fill: var(--bad); font: 500 12.5px var(--sans); }
 .diagram .bars .note { paint-order: stroke; stroke: var(--surface); stroke-width: 6px; stroke-linejoin: round; }
 

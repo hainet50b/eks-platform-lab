@@ -55,7 +55,8 @@ curl -s -w '\n' localhost:8081/actuator/health/readiness{% call output() %}{"sta
 
 {% call step("image", "Container image") %}
 {% call what() %}
-<p>The Dockerfile has two stages: a build stage that makes the jar, and a runtime stage that runs it. For container images, Spring Boot has the <a href="https://docs.spring.io/spring-boot/reference/packaging/container-images/dockerfiles.html">tools jar mode</a>, which splits the jar into layers. Docker then reuses the unchanged layers, such as the dependencies, when only the code changes.</p>
+<p>The Dockerfile has two stages. The build stage makes the jar, and the runtime stage runs it. For container images, Spring Boot has the <a href="https://docs.spring.io/spring-boot/reference/packaging/container-images/dockerfiles.html">tools jar mode</a>, which splits the jar into layers and puts the application code in a layer of its own. When only that code changes, Docker reuses the other layers, such as the dependencies.</p>
+{% include "partials/80-helm/layers.html" %}
 {% endcall %}
 {% call files() %}
 {% call file("parts/80-helm/app/Dockerfile", main=true) %}

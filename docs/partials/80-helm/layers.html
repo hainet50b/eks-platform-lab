@@ -1,0 +1,31 @@
+<div class="diagram">
+<svg class="bars" viewBox="0 0 1040 304" role="img" aria-labelledby="layers-title layers-description">
+  <title id="layers-title">The layers that Docker builds again for each kind of change</title>
+  <desc id="layers-description">The image has five layers, from the top: the application, the snapshot dependencies, the Spring Boot loader, the dependencies, and the base image. When a layer changes, Docker builds that layer and every layer above it again, and reuses the layers below it. When the code changes, only the application layer is built again. When a dependency changes, the dependencies layer and the three layers above it are built again. When the base image changes, every layer is built again.</desc>
+
+  <text x="40" y="54">from the most often changed</text>
+  <text class="row-label" x="40" y="89">application</text><text x="40" y="105">your classes and resources</text>
+  <text class="row-label" x="40" y="133">snapshot-dependencies</text><text x="40" y="149">libraries in SNAPSHOT versions</text>
+  <text class="row-label" x="40" y="177">spring-boot-loader</text><text x="40" y="193">the launcher</text>
+  <text class="row-label" x="40" y="221">dependencies</text><text x="40" y="237">libraries in release versions</text>
+  <text class="row-label" x="40" y="265">base image</text><text x="40" y="281">Ubuntu and the Java runtime</text>
+  <text class="row-label" x="430" y="54" text-anchor="middle">the code changes</text>
+  <rect class="segment accent" x="330" y="76" width="200" height="32"/><text class="segment-text" x="430" y="97" text-anchor="middle">✏️ changed</text>
+  <rect class="segment plain" x="330" y="120" width="200" height="32"/><text class="segment-text" x="430" y="141" text-anchor="middle">♻️ reused</text>
+  <rect class="segment plain" x="330" y="164" width="200" height="32"/><text class="segment-text" x="430" y="185" text-anchor="middle">♻️ reused</text>
+  <rect class="segment plain" x="330" y="208" width="200" height="32"/><text class="segment-text" x="430" y="229" text-anchor="middle">♻️ reused</text>
+  <rect class="segment plain" x="330" y="252" width="200" height="32"/><text class="segment-text" x="430" y="273" text-anchor="middle">♻️ reused</text>
+  <text class="row-label" x="660" y="54" text-anchor="middle">a dependency changes</text>
+  <rect class="segment accent-line" x="560" y="76" width="200" height="32"/><text class="segment-text" x="660" y="97" text-anchor="middle">🔁 built again</text>
+  <rect class="segment accent-line" x="560" y="120" width="200" height="32"/><text class="segment-text" x="660" y="141" text-anchor="middle">🔁 built again</text>
+  <rect class="segment accent-line" x="560" y="164" width="200" height="32"/><text class="segment-text" x="660" y="185" text-anchor="middle">🔁 built again</text>
+  <rect class="segment accent" x="560" y="208" width="200" height="32"/><text class="segment-text" x="660" y="229" text-anchor="middle">✏️ changed</text>
+  <rect class="segment plain" x="560" y="252" width="200" height="32"/><text class="segment-text" x="660" y="273" text-anchor="middle">♻️ reused</text>
+  <text class="row-label" x="890" y="54" text-anchor="middle">the base image changes</text>
+  <rect class="segment accent-line" x="790" y="76" width="200" height="32"/><text class="segment-text" x="890" y="97" text-anchor="middle">🔁 built again</text>
+  <rect class="segment accent-line" x="790" y="120" width="200" height="32"/><text class="segment-text" x="890" y="141" text-anchor="middle">🔁 built again</text>
+  <rect class="segment accent-line" x="790" y="164" width="200" height="32"/><text class="segment-text" x="890" y="185" text-anchor="middle">🔁 built again</text>
+  <rect class="segment accent-line" x="790" y="208" width="200" height="32"/><text class="segment-text" x="890" y="229" text-anchor="middle">🔁 built again</text>
+  <rect class="segment accent" x="790" y="252" width="200" height="32"/><text class="segment-text" x="890" y="273" text-anchor="middle">✏️ changed</text>
+</svg>
+</div>
