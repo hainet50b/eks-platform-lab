@@ -124,6 +124,7 @@ The tools that this repository uses.
 | [Terraform](https://developer.hashicorp.com/terraform) | [05 terraform-state](parts/05-terraform-state/README.md#creating-the-bucket-with-terraform) |
 | [kubectl](https://kubernetes.io/docs/reference/kubectl/) | [20 eks-cluster](parts/20-eks-cluster/README.md#creating-the-cluster-with-terraform) |
 | [Argo Rollouts kubectl plugin](https://argo-rollouts.readthedocs.io/en/stable/installation/#kubectl-plugin-installation) | [60 argo-rollouts](https://hainet50b.github.io/eks-platform-lab/60-argo-rollouts.html#plugin) |
+| [Helm](https://helm.sh/docs/) | [80 helm](https://hainet50b.github.io/eks-platform-lab/80-helm.html#chart) |
 
 ## Skills
 

@@ -13,7 +13,9 @@ functions of PageBuilder.template_functions():
     {% call stage("understand") %} {{ section("idea", "The idea") }} ... {% endcall %}
     {% call stage("build") %}
       {% call step("argo-rollouts", "Argo Rollouts") %}
-        {% call what() %} what the step puts in place {% endcall %}
+        {% call what() %}
+          what the step puts in place, and a tool that it needs: {% call prepare() %} checks {% endcall %}
+        {% endcall %}
         {% call files() %}
           {% call file("parts/...", main=true) %} {{ note("text on the line", "what it says") }} {% endcall %}
           {{ external_link("parts/.../", "label", "https://...") }}
@@ -216,6 +218,7 @@ class PageBuilder:
                 "piece",
                 "ui",
                 "confirm",
+                "prepare",
                 "run",
                 "check",
                 "output",
@@ -448,6 +451,10 @@ class PageBuilder:
 
     def confirm(self, caller):
         return self.beat("confirm", self.checks(caller, CHECK_HEAD))
+
+    def prepare(self, caller):
+        """Checks shown where they are written, such as a tool to install in the What of a step."""
+        return self.checks(caller, CHECK_HEAD)
 
     def run(self, caller):
         return self.checks(caller, RUN_HEAD)
