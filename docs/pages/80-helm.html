@@ -278,6 +278,20 @@ kubectl --context <account-name>-admin \
 )
 
 curl -s -w '\n' "http://${alb}/"{% call output() %}Hello from Spring Boot{% endcall %}{% endcall %}
+{% call check("Requests through the ALB reach both pods.") %}for i in $(seq 10); do curl -s "http://${alb}/pod"; done | sort | uniq -c{% call output() %}      5 helm-spring-boot-&lt;hash&gt;-&lt;id&gt;
+      5 helm-spring-boot-&lt;hash&gt;-&lt;id&gt;{% endcall %}{% endcall %}
+{% call check("The ALB does not reach Actuator.") %}curl -s -o /dev/null -w '%{http_code}\n' "http://${alb}/actuator/info"{% call output() %}404{% endcall %}{% endcall %}
+{% call check("Actuator shows the version of the application on port 8081, through a port forward.") %}pod=$( \
+kubectl --context <account-name>-team-a-dev \
+  get pods -n team-a -l app.kubernetes.io/name=helm-spring-boot -o name \
+  | head -1 \
+)
+
+kubectl --context <account-name>-team-a-dev \
+  port-forward -n team-a "${pod}" 18081:8081 &
+
+curl -s -w '\n' localhost:18081/actuator/info
+kill %1{% call output() %}{"build":{"artifact":"spring-boot","name":"spring-boot","time":"1980-02-01T00:00:00Z","version":"0.0.1","group":"io.github.hainet50b"}}{% endcall %}{% endcall %}
 {% endcall %}
 {% endcall %}
 {% endcall %}
