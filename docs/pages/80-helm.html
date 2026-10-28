@@ -117,7 +117,7 @@ terraform -chdir=parts/80-helm/terraform \
 terraform -chdir=parts/80-helm/terraform \
   apply terraform.tfplan{% endcall %}
 {% endcall %}
-<p>Then push the image from step 2.</p>
+<p>Then push the image <code>team-a/spring-boot:0.0.1</code>.</p>
 {% call command() %}
 {% call piece("Gets the URL of the repository.") %}repository_url=$( \
 AWS_PROFILE=<account-name>-admin \
@@ -131,7 +131,7 @@ terraform -chdir=parts/80-helm/terraform \
   ecr get-login-password \
   | docker login --username AWS --password-stdin "${repository_url%%/*}"{% endcall %}
 
-{% call piece("Tags the image from step 2, and pushes it.") %}docker tag team-a/spring-boot:0.0.1 "${repository_url}:${tag}"
+{% call piece("Tags the image `team-a/spring-boot:0.0.1`, and pushes it.") %}docker tag team-a/spring-boot:0.0.1 "${repository_url}:${tag}"
 docker push "${repository_url}:${tag}"{% endcall %}
 {% endcall %}
 {% endcall %}
@@ -294,4 +294,66 @@ curl -s -w '\n' localhost:18081/actuator/info
 kill %1{% call output() %}{"build":{"artifact":"spring-boot","name":"spring-boot","time":"1980-02-01T00:00:00Z","version":"0.0.1","group":"io.github.hainet50b"}}{% endcall %}{% endcall %}
 {% endcall %}
 {% endcall %}
+{% endcall %}
+
+{% call stage("wrapup") %}
+{{ section("teardown", "Teardown") }}
+<p>Tear down in the reverse order of the steps, down to the image on your machine. The workloads repository stays.</p>
+{% call apply() %}
+{% call command() %}
+{% call piece("Deletes the ApplicationSet, and with it the Application and the workload.") %}kubectl --context <account-name>-admin \
+  delete -f parts/80-helm/manifests/applicationset.yaml{% endcall %} {% call piece("Returns only after the Application and the workload are gone.") %}--cascade=foreground{% endcall %}
+
+{% call piece("Plans the removal of the repository and saves the plan.", "The plan destroys two resources, the repository and its lifecycle policy, and ends with `Plan: 0 to add, 0 to change, 2 to destroy.`") %}AWS_PROFILE=<account-name>-admin \
+terraform -chdir=parts/80-helm/terraform \
+  plan -destroy -out=terraform.tfplan{% endcall %}
+
+{% call piece("Applies the saved plan.") %}AWS_PROFILE=<account-name>-admin \
+terraform -chdir=parts/80-helm/terraform \
+  apply terraform.tfplan{% endcall %}
+
+{% call piece("Gets the ID of the AWS account.") %}account_id=$( \
+aws --profile <account-name>-admin \
+  sts get-caller-identity --query Account --output text \
+){% endcall %}
+
+{% call piece("Removes the credentials that Docker keeps for the registry.") %}docker logout "${account_id}.dkr.ecr.ap-northeast-1.amazonaws.com"{% endcall %}
+
+{% call piece("Removes the image `team-a/spring-boot:0.0.1`, with all its names, including the names for ECR.") %}docker image rm --force "$(docker image ls --quiet team-a/spring-boot:0.0.1)"{% endcall %}
+{% endcall %}
+{% endcall %}
+{% call confirm() %}
+{% call check("The ApplicationSet and its Application are gone.") %}kubectl --context <account-name>-admin \
+  get applicationset team-a-helm -n argocd
+
+kubectl --context <account-name>-admin \
+  get application team-a-helm-spring-boot -n argocd{% call output() %}Error from server (NotFound): applicationsets.argoproj.io "team-a-helm" not found
+Error from server (NotFound): applications.argoproj.io "team-a-helm-spring-boot" not found{% endcall %}{% endcall %}
+{% call check("No load balancer of the workload is left, so nothing is charged for it.") %}aws --profile <account-name>-admin \
+  resourcegroupstaggingapi get-resources \
+  --tag-filters Key=ingress.eks.amazonaws.com/stack,Values=team-a/helm-spring-boot \
+  --resource-type-filters elasticloadbalancing:loadbalancer \
+  --query 'ResourceTagMappingList[].ResourceARN' \
+  --output text{% call output() %}(nothing){% endcall %}{% endcall %}
+{% call check("The repository is gone.") %}aws --profile <account-name>-admin \
+  ecr describe-repositories --repository-names team-a/spring-boot{% call output() %}aws: [ERROR]: An error occurred (RepositoryNotFoundException) …{% endcall %}{% endcall %}
+{% call check("No image of the application is left on your machine.") %}docker image ls --format '{{ "{{" }}.Repository}}:{{ "{{" }}.Tag}}' | grep team-a/spring-boot{% call output() %}(nothing){% endcall %}{% endcall %}
+{% endcall %}
+
+{{ section("cost", "Cost") }}
+<div class="cost-total"><p class="cost-sum"><b id="cost-sum"></b> USD a day</p><div class="cost-bar" id="cost-bar" aria-hidden="true"></div></div>
+<svg class="cost-chart" id="cost-chart" role="img" aria-label="Daily cost by resource"></svg>
+<p class="caption">Also charged by use: the capacity of the load balancer (0.008 USD per LCU-hour).</p>
+
+<script type="application/json" id="cost-items">
+[
+  ["EC2 instance for the workload", 2.3, "{{ icon("aws/ec2") }}"],
+  ["Application Load Balancer", 0.58, "{{ icon("aws/elb") }}"],
+  ["EKS Auto Mode management, workload", 0.28, "{{ icon("aws/eks") }}"],
+  ["EBS volumes, workload node", 0.27, "{{ icon("aws/ebs") }}"],
+  ["Public IPv4 addresses of the ALB", 0.24, "{{ icon("aws/vpc") }}"],
+  ["Application of the capability", 0.044, "{{ icon("aws/eks") }}"],
+  ["Image storage in ECR", 0.0005, "{{ icon("aws/ecr") }}"]
+]
+</script>
 {% endcall %}
