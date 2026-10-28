@@ -1,0 +1,34 @@
+<div class="diagram">
+<svg viewBox="0 0 1040 400" role="img" aria-labelledby="idea-title idea-description">
+  <title id="idea-title">The values of a developer, the chart of the platform, and the resources that the chart renders</title>
+  <desc id="idea-description">The developer writes the values of the application. The administrator writes the workload chart. Helm renders the chart with the values into a Rollout, a Service, an Ingress, an HPA, and a PDB.</desc>
+  <defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z"/></marker></defs>
+
+  <g class="box role"><rect x="60" y="20" width="220" height="40"/><image href="{{ icon("aws/identity-center") }}" x="68" y="28" width="24" height="24"/><text x="180" y="45" text-anchor="middle">developer</text></g>
+  <g class="box role"><rect x="410" y="20" width="220" height="40"/><image href="{{ icon("aws/identity-center") }}" x="418" y="28" width="24" height="24"/><text x="530" y="45" text-anchor="middle">administrator</text></g>
+  <path class="edge" d="M170,60 V106"/><text class="edge-label" x="178" y="88">writes</text>
+  <path class="edge" d="M520,60 V141"/><text class="edge-label" x="528" y="108">writes</text>
+
+  <g class="box this-part"><rect x="40" y="110" width="260" height="250"/><text x="56" y="136">values</text><text class="subtitle" x="56" y="156">helm-spring-boot</text>
+    <text class="mono" x="56" y="192">image:</text><text class="mono" x="72" y="212">repository, tag</text>
+    <text class="mono" x="56" y="236">resources:</text><text class="mono" x="72" y="256">cpu, memory</text>
+    <text class="mono" x="56" y="284">jvm: heapPercentage</text>
+    <text class="mono" x="56" y="308">ingress: enabled</text>
+    <text class="mono" x="56" y="332">autoscaling: …</text></g>
+
+  <g class="box this-part"><rect x="400" y="145" width="240" height="110"/><rect x="411" y="158" width="34" height="34" rx="4" style="fill:#ffffff;stroke:none"/><image href="{{ icon("helm/helm") }}" x="414" y="161" width="28" height="28"/><text x="452" y="181">workload chart</text><text class="subtitle" x="452" y="201">workload-spring-boot</text><text class="subtitle" x="416" y="231">probes, preStop, securityContext</text></g>
+  <path class="edge" d="M300,200 H396"/><text class="edge-label" x="348" y="192" text-anchor="middle">fill in</text>
+
+  <g class="box"><rect x="740" y="40" width="260" height="48"/><image href="{{ icon("argo/argo") }}" x="752" y="52" width="24" height="24"/><text x="890" y="69" text-anchor="middle">Rollout</text></g>
+  <g class="box"><rect x="740" y="108" width="260" height="48"/><image href="{{ icon("kubernetes/service") }}" x="752" y="120" width="24" height="24"/><text x="890" y="137" text-anchor="middle">Service</text></g>
+  <g class="box"><rect x="740" y="176" width="260" height="48"/><image href="{{ icon("kubernetes/ingress") }}" x="752" y="188" width="24" height="24"/><text x="890" y="205" text-anchor="middle">Ingress</text></g>
+  <g class="box"><rect x="740" y="244" width="260" height="48"/><image href="{{ icon("kubernetes/hpa") }}" x="752" y="256" width="24" height="24"/><text x="890" y="273" text-anchor="middle">HPA</text></g>
+  <g class="box"><rect x="740" y="312" width="260" height="48"/><image href="{{ icon("kubernetes/kubernetes") }}" x="752" y="324" width="24" height="24"/><text x="890" y="341" text-anchor="middle">PDB</text></g>
+  <path class="edge" d="M640,200 H690 V64 H736"/>
+  <path class="edge" d="M640,200 H690 V132 H736"/>
+  <path class="edge" d="M640,200 H736"/>
+  <path class="edge" d="M640,200 H690 V268 H736"/>
+  <path class="edge" d="M640,200 H690 V336 H736"/>
+  <text class="edge-label" x="664" y="192" text-anchor="middle">renders</text>
+</svg>
+</div>
