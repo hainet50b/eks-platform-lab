@@ -1,0 +1,129 @@
+<div class="diagram">
+<svg class="bars" viewBox="0 36 1040 410" role="img" aria-labelledby="probes-title probes-description">
+  <title id="probes-title">What the probes decide, from the start of the container</title>
+  <desc id="probes-description">The startup probe checks every 5 seconds whether the application has started, and the kubelet restarts the container if it does not pass within 120 seconds. After it passes, the readiness probe checks every 5 seconds, and the liveness probe every 10 seconds. When the readiness probe fails 3 times, the Service and the ALB stop sending requests to the pod until it passes again. When the liveness probe fails 3 times, the kubelet restarts the container, and the startup probe starts again.</desc>
+
+  <line class="guide" x1="260" y1="78" x2="260" y2="132"/>
+  <line class="guide" x1="860" y1="78" x2="860" y2="132"/>
+  <line class="guide" x1="780" y1="78" x2="780" y2="200"/>
+  <line class="guide" x1="440" y1="268" x2="440" y2="316"/>
+  <line class="guide" x1="740" y1="268" x2="740" y2="316"/>
+  <text class="row-label" x="40" y="69">container</text>
+  <text class="row-label" x="40" y="130">startupProbe</text><text class="row-label sub" x="40" y="146">every 5 s</text>
+  <text class="row-label" x="40" y="198">livenessProbe</text><text class="row-label sub" x="40" y="214">every 10 s</text>
+  <text class="row-label" x="40" y="266">readinessProbe</text><text class="row-label sub" x="40" y="282">every 5 s</text>
+  <text class="row-label" x="40" y="328">requests</text><text class="row-label sub" x="40" y="344">Service and ALB</text>
+  <rect class="segment caution" x="160" y="51" width="100" height="26"/><text class="segment-text" x="210" y="69" text-anchor="middle">starting</text>
+  <rect class="segment new" x="260" y="51" width="520" height="26"/><text class="segment-text" x="520" y="69" text-anchor="middle">running</text>
+  <rect class="segment caution" x="780" y="51" width="80" height="26"/><text class="segment-text" x="820" y="69" text-anchor="middle">starting</text>
+  <rect class="segment new" x="860" y="51" width="140" height="26"/><text class="segment-text" x="930" y="69" text-anchor="middle">running</text>
+  <line class="marker bad" x1="640" y1="116" x2="640" y2="124"/><line class="marker bad" x1="640" y1="140" x2="640" y2="148"/>
+  <text class="note note-title" x="650" y="106">120 s to pass</text><text class="note" x="650" y="121">if not, the kubelet restarts it</text>
+  <line class="track" x1="160" y1="132" x2="1000" y2="132"/>
+  <text x="260" y="162" text-anchor="middle">passed, and stops checking</text>
+  <circle class="check skipped" cx="280" cy="132" r="5"/>
+  <circle class="check skipped" cx="300" cy="132" r="5"/>
+  <circle class="check skipped" cx="320" cy="132" r="5"/>
+  <circle class="check skipped" cx="340" cy="132" r="5"/>
+  <circle class="check skipped" cx="360" cy="132" r="5"/>
+  <circle class="check skipped" cx="380" cy="132" r="5"/>
+  <circle class="check skipped" cx="400" cy="132" r="5"/>
+  <circle class="check skipped" cx="420" cy="132" r="5"/>
+  <circle class="check skipped" cx="440" cy="132" r="5"/>
+  <circle class="check skipped" cx="460" cy="132" r="5"/>
+  <circle class="check skipped" cx="480" cy="132" r="5"/>
+  <circle class="check skipped" cx="500" cy="132" r="5"/>
+  <circle class="check skipped" cx="520" cy="132" r="5"/>
+  <circle class="check skipped" cx="540" cy="132" r="5"/>
+  <circle class="check skipped" cx="560" cy="132" r="5"/>
+  <circle class="check skipped" cx="580" cy="132" r="5"/>
+  <circle class="check skipped" cx="600" cy="132" r="5"/>
+  <circle class="check skipped" cx="620" cy="132" r="5"/>
+  <circle class="check skipped" cx="640" cy="132" r="5"/>
+  <circle class="check skipped" cx="880" cy="132" r="5"/>
+  <circle class="check skipped" cx="900" cy="132" r="5"/>
+  <circle class="check skipped" cx="920" cy="132" r="5"/>
+  <circle class="check skipped" cx="940" cy="132" r="5"/>
+  <circle class="check skipped" cx="960" cy="132" r="5"/>
+  <circle class="check skipped" cx="980" cy="132" r="5"/>
+  <circle class="check skipped" cx="1000" cy="132" r="5"/>
+  <circle class="check passes" cx="260" cy="132" r="5"/>
+  <circle class="check passes" cx="860" cy="132" r="5"/>
+  <path class="check fails" d="M176,128 l8,8 m0,-8 l-8,8"/>
+  <path class="check fails" d="M196,128 l8,8 m0,-8 l-8,8"/>
+  <path class="check fails" d="M216,128 l8,8 m0,-8 l-8,8"/>
+  <path class="check fails" d="M236,128 l8,8 m0,-8 l-8,8"/>
+  <path class="check fails" d="M796,128 l8,8 m0,-8 l-8,8"/>
+  <path class="check fails" d="M816,128 l8,8 m0,-8 l-8,8"/>
+  <path class="check fails" d="M836,128 l8,8 m0,-8 l-8,8"/>
+  <line class="track" x1="160" y1="200" x2="1000" y2="200"/>
+  <circle class="check passes" cx="300" cy="200" r="5"/>
+  <circle class="check passes" cx="340" cy="200" r="5"/>
+  <circle class="check passes" cx="380" cy="200" r="5"/>
+  <circle class="check passes" cx="420" cy="200" r="5"/>
+  <circle class="check passes" cx="460" cy="200" r="5"/>
+  <circle class="check passes" cx="500" cy="200" r="5"/>
+  <circle class="check passes" cx="540" cy="200" r="5"/>
+  <circle class="check passes" cx="580" cy="200" r="5"/>
+  <circle class="check passes" cx="620" cy="200" r="5"/>
+  <circle class="check passes" cx="660" cy="200" r="5"/>
+  <circle class="check passes" cx="900" cy="200" r="5"/>
+  <circle class="check passes" cx="940" cy="200" r="5"/>
+  <circle class="check passes" cx="980" cy="200" r="5"/>
+  <path class="check fails" d="M696,196 l8,8 m0,-8 l-8,8"/>
+  <path class="check fails" d="M736,196 l8,8 m0,-8 l-8,8"/>
+  <path class="check fails" d="M776,196 l8,8 m0,-8 l-8,8"/>
+  <text class="note note-title" x="790" y="174">failed 3 times</text><text class="note" x="790" y="189">the kubelet restarts the container</text>
+  <line class="track" x1="160" y1="268" x2="1000" y2="268"/>
+  <circle class="check passes" cx="280" cy="268" r="5"/>
+  <circle class="check passes" cx="300" cy="268" r="5"/>
+  <circle class="check passes" cx="320" cy="268" r="5"/>
+  <circle class="check passes" cx="340" cy="268" r="5"/>
+  <circle class="check passes" cx="360" cy="268" r="5"/>
+  <circle class="check passes" cx="380" cy="268" r="5"/>
+  <circle class="check passes" cx="500" cy="268" r="5"/>
+  <circle class="check passes" cx="520" cy="268" r="5"/>
+  <circle class="check passes" cx="540" cy="268" r="5"/>
+  <circle class="check passes" cx="560" cy="268" r="5"/>
+  <circle class="check passes" cx="580" cy="268" r="5"/>
+  <circle class="check passes" cx="600" cy="268" r="5"/>
+  <circle class="check passes" cx="620" cy="268" r="5"/>
+  <circle class="check passes" cx="640" cy="268" r="5"/>
+  <circle class="check passes" cx="660" cy="268" r="5"/>
+  <circle class="check passes" cx="680" cy="268" r="5"/>
+  <circle class="check passes" cx="880" cy="268" r="5"/>
+  <circle class="check passes" cx="900" cy="268" r="5"/>
+  <circle class="check passes" cx="920" cy="268" r="5"/>
+  <circle class="check passes" cx="940" cy="268" r="5"/>
+  <circle class="check passes" cx="960" cy="268" r="5"/>
+  <circle class="check passes" cx="980" cy="268" r="5"/>
+  <circle class="check passes" cx="1000" cy="268" r="5"/>
+  <path class="check fails" d="M396,264 l8,8 m0,-8 l-8,8"/>
+  <path class="check fails" d="M416,264 l8,8 m0,-8 l-8,8"/>
+  <path class="check fails" d="M436,264 l8,8 m0,-8 l-8,8"/>
+  <path class="check fails" d="M456,264 l8,8 m0,-8 l-8,8"/>
+  <path class="check fails" d="M476,264 l8,8 m0,-8 l-8,8"/>
+  <path class="check fails" d="M696,264 l8,8 m0,-8 l-8,8"/>
+  <path class="check fails" d="M716,264 l8,8 m0,-8 l-8,8"/>
+  <path class="check fails" d="M736,264 l8,8 m0,-8 l-8,8"/>
+  <path class="check fails" d="M756,264 l8,8 m0,-8 l-8,8"/>
+  <path class="check fails" d="M776,264 l8,8 m0,-8 l-8,8"/>
+  <rect class="segment accent" x="280" y="317" width="160" height="26"/><text class="segment-text" x="360" y="335" text-anchor="middle">receives requests</text>
+  <rect class="segment idle" x="440" y="317" width="60" height="26"/>
+  <rect class="segment accent" x="500" y="317" width="240" height="26"/><text class="segment-text" x="620" y="335" text-anchor="middle">receives requests</text>
+  <rect class="segment idle" x="740" y="317" width="140" height="26"/>
+  <rect class="segment accent" x="880" y="317" width="120" height="26"/><text class="segment-text" x="940" y="335" text-anchor="middle">receives requests</text>
+  <text class="note note-title" x="450" y="242">failed 3 times</text><text class="note" x="450" y="257">the pod receives no requests</text>
+  <path class="axis" d="M160,374 H1000"/>
+  <path class="axis" d="M160,374 v6"/><text x="160" y="396" text-anchor="middle">0 s</text>
+  <path class="axis" d="M280,374 v6"/><text x="280" y="396" text-anchor="middle">30 s</text>
+  <path class="axis" d="M400,374 v6"/><text x="400" y="396" text-anchor="middle">60 s</text>
+  <path class="axis" d="M520,374 v6"/><text x="520" y="396" text-anchor="middle">90 s</text>
+  <path class="axis" d="M640,374 v6"/><text x="640" y="396" text-anchor="middle">120 s</text>
+  <path class="axis" d="M760,374 v6"/><text x="760" y="396" text-anchor="middle">150 s</text>
+  <path class="axis" d="M880,374 v6"/><text x="880" y="396" text-anchor="middle">180 s</text>
+  <path class="axis" d="M1000,374 v6"/><text x="1000" y="396" text-anchor="middle">210 s</text>
+  <circle class="check passes" cx="45" cy="418" r="5"/><text x="56" y="422">passes</text><path class="check fails" d="M111,414 l8,8 m0,-8 l-8,8"/><text x="126" y="422">fails</text>
+  <circle class="check skipped" cx="45" cy="436" r="5"/><text x="56" y="440">not checked</text>
+</svg>
+</div>

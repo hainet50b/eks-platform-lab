@@ -461,6 +461,39 @@ ol.annotation-list .pin { margin-left: 0; }
 .diagram .scaling-steps .load-label { fill: var(--pin); font: 500 11.5px var(--sans); }
 .diagram .scaling-steps .load-label.off { fill: var(--muted); }
 
+/* Bars on an axis, for the memory and the probes of part 80. */
+.diagram .bars text { fill: var(--muted); font: 400 12px var(--sans); }
+.diagram .bars .row-label { fill: var(--fg); font: 500 13px var(--sans); }
+.diagram .bars .row-label.sub { fill: var(--muted); font: 400 11.5px var(--mono); }
+.diagram .bars .axis { stroke: var(--line); stroke-width: 1.2; fill: none; }
+.diagram .bars .segment { stroke-width: 1.2; rx: 5; }
+.diagram .bars .segment.accent { fill: var(--accent-bg); stroke: var(--accent); }
+.diagram .bars .segment.new { fill: var(--new-bg); stroke: var(--new); }
+.diagram .bars .segment.caution { fill: var(--pin-bg); stroke: var(--pin); }
+.diagram .bars .segment-text { fill: var(--fg); font: 500 12.5px var(--sans); }
+.diagram .bars .track { stroke: var(--line); stroke-width: 2; }
+.diagram .bars .check { fill: var(--accent); }
+.diagram .bars .guide { stroke: var(--muted); stroke-width: 1; stroke-dasharray: 3 4; }
+.diagram .bars .marker { stroke-width: 1.6; }
+.diagram .bars .marker.caution { stroke: var(--pin); }
+.diagram .bars .marker.bad { stroke: var(--bad); }
+.diagram .bars .marker-label { font: 500 12.5px var(--sans); }
+.diagram .bars .marker-label.caution { fill: var(--pin); }
+.diagram .bars .marker-label.bad { fill: var(--bad); }
+.diagram .bars .zone { fill: none; stroke-width: 1.2; stroke-dasharray: 4 3; rx: 5; }
+.diagram .bars .zone.accent { stroke: var(--accent); }
+.diagram .bars .zone.new { stroke: var(--new); }
+.diagram .bars .grows { fill: none; stroke: var(--fg); stroke-width: 1.3; marker-end: url(#arrow); }
+.diagram .bars .band { fill: none; stroke: var(--muted); stroke-width: 1.2; }
+.diagram .bars .band.accent { stroke: var(--accent); }
+.diagram .bars .band-label.accent { fill: var(--accent); }
+.diagram .bars .check.passes { fill: var(--new); }
+.diagram .bars .check.fails { fill: none; stroke: var(--bad); stroke-width: 2.4; stroke-linecap: round; }
+.diagram .bars .check.skipped { fill: var(--faint); }
+.diagram .bars .segment.idle { fill: none; stroke: var(--muted); stroke-dasharray: 4 3; }
+.diagram .bars .note-title { fill: var(--bad); font: 500 12.5px var(--sans); }
+.diagram .bars .note { paint-order: stroke; stroke: var(--surface); stroke-width: 6px; stroke-linejoin: round; }
+
 /* Tables */
 .table-wrap { overflow-x: auto; }
 table { border-collapse: collapse; width: 100%; font-size: .88rem; line-height: 1.5; }

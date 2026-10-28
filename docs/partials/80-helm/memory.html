@@ -1,0 +1,25 @@
+<div class="diagram">
+<svg class="bars" viewBox="0 24 1040 246" role="img" aria-labelledby="memory-title memory-description">
+  <title id="memory-title">The memory of the JVM within the memory limit of a pod</title>
+  <desc id="memory-description">The memory limit of the pod is 512 MiB, and the JVM gives half of it, 256 MiB, to the heap. The heap in use grows toward 256 MiB, and the memory in use outside the heap, for the metaspace, the code cache, the thread stacks, and the garbage collector, grows toward the rest of the limit. When the heap is full, the JVM throws an OutOfMemoryError, and the container keeps running. When the JVM as a whole goes over the limit, the kernel kills the container, and the kubelet restarts it.</desc>
+  <defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z"/></marker></defs>
+
+  <rect class="zone accent" x="40" y="50" width="480" height="36"/>
+  <rect class="segment accent" x="40" y="50" width="300" height="36"/><text class="segment-text" x="190" y="73" text-anchor="middle">heap in use</text>
+  <path class="grows" d="M350,68 H508"/>
+  <rect class="zone new" x="520" y="50" width="480" height="36"/>
+  <rect class="segment new" x="520" y="50" width="270" height="36"/><text class="segment-text" x="655" y="73" text-anchor="middle">in use outside the heap</text>
+  <path class="grows" d="M800,68 H988"/>
+  <text x="760" y="104" text-anchor="middle">metaspace, code cache, thread stacks, garbage collector</text>
+  <line class="marker caution" x1="520" y1="36" x2="520" y2="150"/><text class="marker-label caution" x="512" y="128" text-anchor="end">a full heap: OutOfMemoryError</text><text x="512" y="144" text-anchor="end">the container keeps running</text>
+  <line class="marker bad" x1="1000" y1="36" x2="1000" y2="150"/><text class="marker-label bad" x="992" y="128" text-anchor="end">over the limit: OOMKilled</text><text x="992" y="144" text-anchor="end">the kubelet restarts the container</text>
+  <path class="axis" d="M40,156 H1000"/>
+  <path class="axis" d="M40,156 v6"/><text x="40" y="178" text-anchor="middle">0 MiB</text>
+  <path class="axis" d="M280,156 v6"/><text x="280" y="178" text-anchor="middle">128 MiB</text>
+  <path class="axis" d="M520,156 v6"/><text x="520" y="178" text-anchor="middle">256 MiB</text>
+  <path class="axis" d="M760,156 v6"/><text x="760" y="178" text-anchor="middle">384 MiB</text>
+  <path class="axis" d="M1000,156 v6"/><text x="1000" y="178" text-anchor="middle">512 MiB</text>
+  <path class="band accent" d="M40,194 v8 H520 v-8"/><text class="row-label sub band-label accent" x="280" y="220" text-anchor="middle">jvm.heapPercentage: 50</text>
+  <path class="band" d="M40,232 v8 H1000 v-8"/><text class="row-label sub" x="520" y="258" text-anchor="middle">memory: 512Mi</text>
+</svg>
+</div>

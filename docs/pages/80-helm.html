@@ -162,6 +162,10 @@ docker push "${repository_url}:${tag}"{% endcall %}
 {% call what() %}
 <p>This lab gives developers a workload chart, so that a developer writes only the values for an application. The chart turns them into a Rollout, a Service, an Ingress, an HPA, and a PDB.</p>
 <p>The chart sets defaults for Spring Boot. It sends requests to port 8080, and asks Actuator for the health groups <code>liveness</code> and <code>readiness</code> on port 8081. An application on another framework changes the ports and the paths in its values.</p>
+<p>The JVM takes its heap as a share of the memory limit, and needs the rest of the limit outside the heap.</p>
+{% include "partials/80-helm/memory.html" %}
+<p>The startup probe waits for the start, the liveness probe decides whether to restart the container, and the readiness probe decides whether the pod receives requests.</p>
+{% include "partials/80-helm/probes.html" %}
 <p><a href="https://helm.sh/">Helm</a> renders the chart on your machine. <a href="https://helm.sh/docs/intro/install/">Install Helm</a>, then check it.</p>
 {% call prepare() %}
 {% call check("Helm is installed.") %}helm version --short{% call output() %}v4.3.0+gbec5b06{% endcall %}{% endcall %}
