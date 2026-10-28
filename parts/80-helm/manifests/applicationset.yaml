@@ -1,0 +1,42 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: team-a-helm
+  namespace: argocd
+spec:
+  goTemplate: true
+  goTemplateOptions: ["missingkey=error"]
+  generators:
+    - git:
+        repoURL: https://github.com/hainet50b/eks-platform-lab-workloads.git
+        revision: main
+        directories:
+          - path: team-a-helm/*
+  template:
+    metadata:
+      name: team-a-{{ .path.basename }}
+      finalizers:
+        - resources-finalizer.argocd.argoproj.io
+    spec:
+      project: team-a-argo-rollouts
+      sources:
+        - repoURL: https://github.com/hainet50b/eks-platform-lab-workloads.git
+          targetRevision: main
+          path: charts/workload-spring-boot
+          helm:
+            releaseName: "{{ .path.basename }}"
+            valueFiles:
+              - "$values/{{ .path.path }}/values.yaml"
+            parameters:
+              - name: image.registry
+                value: <account-id>.dkr.ecr.ap-northeast-1.amazonaws.com
+        - repoURL: https://github.com/hainet50b/eks-platform-lab-workloads.git
+          targetRevision: main
+          ref: values
+      destination:
+        name: in-cluster
+        namespace: team-a
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true

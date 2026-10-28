@@ -239,4 +239,45 @@ kind: Rollout{% endcall %}{% endcall %}
   | grep -o 'image: .*'{% call output() %}image: "&lt;account-id&gt;.dkr.ecr.ap-northeast-1.amazonaws.com/team-a/spring-boot:sha-&lt;commit&gt;"{% endcall %}{% endcall %}
 {% endcall %}
 {% endcall %}
+
+{% call step("applicationset", "ApplicationSet") %}
+{% call what() %}
+<p>An ApplicationSet that turns each directory under <code>team-a-helm/</code> of the workloads repository into an Application.</p>
+<p>Each Application reads the chart in <code>charts/workload-spring-boot/</code> and the values in the directory of the application. Argo CD renders the chart with the values into manifests, and syncs the cluster to them.</p>
+{% endcall %}
+{% call files() %}
+{% call file("parts/80-helm/manifests/applicationset.yaml", main=true) %}
+  {{ note("path: team-a-helm/*", "Create an Application for each directory right under `team-a-helm`.") }}
+  {{ note("project: team-a-argo-rollouts", "Use the AppProject `team-a-argo-rollouts`, which allows Rollouts.") }}
+  {{ note("path: charts/workload-spring-boot", "Render the chart `workload-spring-boot`.") }}
+  {% call note("releaseName", "Name the resources after the directory, such as `helm-spring-boot`.") %}Without it, Argo CD uses the name of the Application.{% endcall %}
+  {% call note("$values/", "Read the values in the directory of the application.") %}`$values` stands for the top of the workloads repository.{% endcall %}
+  {% call note("<account-id>", "Give the registry to the chart.") %}The account ID is put in place when the ApplicationSet is applied.{% endcall %}
+{% endcall %}
+{% endcall %}
+{% call apply() %}
+{% call command() %}
+{% call piece("Gets the ID of the AWS account.") %}account_id=$( \
+aws --profile <account-name>-admin \
+  sts get-caller-identity --query Account --output text \
+){% endcall %}
+
+{% call piece("Replaces the placeholder with the account ID.") %}sed "s|<account-id>|${account_id}|" parts/80-helm/manifests/applicationset.yaml{% endcall %} \
+  | {% call piece("Creates the ApplicationSet, which creates the Application.") %}kubectl --context <account-name>-admin \
+    apply -f -{% endcall %}
+{% endcall %}
+{% endcall %}
+{% call confirm() %}
+{% call check("The Application is Synced and Healthy.") %}kubectl --context <account-name>-admin \
+  get application team-a-helm-spring-boot -n argocd{% call output() %}NAME                      SYNC STATUS   HEALTH STATUS
+team-a-helm-spring-boot   Synced        Healthy{% endcall %}{% endcall %}
+{% call check("The application answers through its ALB. The ALB can take several minutes to answer.") %}alb=$( \
+kubectl --context <account-name>-admin \
+  get ingress helm-spring-boot -n team-a \
+  -o jsonpath='{.status.loadBalancer.ingress[0].hostname}' \
+)
+
+curl -s -w '\n' "http://${alb}/"{% call output() %}Hello from Spring Boot{% endcall %}{% endcall %}
+{% endcall %}
+{% endcall %}
 {% endcall %}
