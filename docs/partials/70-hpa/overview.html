@@ -1,45 +1,44 @@
 <div class="diagram">
-<svg viewBox="0 0 1040 580" role="img" aria-labelledby="overview-title overview-description">
+<svg viewBox="0 0 1040 582" role="img" aria-labelledby="overview-title overview-description">
   <title id="overview-title">Components of part 70</title>
   <desc id="overview-description">The administrator installs metrics-server as an EKS add-on and applies the ApplicationSet. The developer pushes the sample workload to the workloads repository. The Argo CD capability reads the workloads repository and the namespace argocd, where the ApplicationSet creates the Application, and syncs the sample workload into the namespace team-a. The HPA of the sample workload reads the CPU usage from metrics-server and scales the Rollout. The Argo Rollouts controller of part 60 reads and updates the Rollout, and creates and scales its ReplicaSets.</desc>
   <defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z"/></marker></defs>
 
   <g class="box role"><rect x="40" y="40" width="150" height="40"/><image href="{{ icon("aws/identity-center") }}" x="48" y="48" width="24" height="24"/><text x="125" y="65" text-anchor="middle">administrator</text></g>
   <g class="box role"><rect x="470" y="40" width="150" height="40"/><image href="{{ icon("aws/identity-center") }}" x="478" y="48" width="24" height="24"/><text x="555" y="65" text-anchor="middle">developer</text></g>
-  <g class="box"><rect x="720" y="40" width="280" height="40"/><svg class="github-mark" x="732" y="50" width="20" height="20" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0c4.42 0 8 3.58 8 8a8.013 8.013 0 0 1-5.45 7.59c-.4.08-.55-.17-.55-.38 0-.27.01-1.13.01-2.2 0-.75-.25-1.23-.54-1.48 1.78-.2 3.65-.88 3.65-3.95 0-.88-.31-1.59-.82-2.15.08-.2.36-1.02-.08-2.12 0 0-.67-.22-2.2.82-.64-.18-1.32-.27-2-.27-.68 0-1.36.09-2 .27-1.53-1.03-2.2-.82-2.2-.82-.44 1.1-.16 1.92-.08 2.12-.51.56-.82 1.28-.82 2.15 0 3.06 1.86 3.75 3.64 3.95-.23.2-.44.55-.51 1.07-.46.21-1.61.55-2.33-.66-.15-.24-.6-.83-1.23-.82-.67.01-.27.38.01.53.34.19.73.9.82 1.13.16.45.68 1.31 2.69.94 0 .67.01 1.3.01 1.49 0 .21-.15.45-.55.38A7.995 7.995 0 0 1 0 8c0-4.42 3.58-8 8-8Z"/></svg><text x="860" y="65" text-anchor="middle">workloads repository</text></g>
+  <g class="box"><rect x="720" y="38" width="280" height="44"/><svg class="github-mark" x="732" y="50" width="20" height="20" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0c4.42 0 8 3.58 8 8a8.013 8.013 0 0 1-5.45 7.59c-.4.08-.55-.17-.55-.38 0-.27.01-1.13.01-2.2 0-.75-.25-1.23-.54-1.48 1.78-.2 3.65-.88 3.65-3.95 0-.88-.31-1.59-.82-2.15.08-.2.36-1.02-.08-2.12 0 0-.67-.22-2.2.82-.64-.18-1.32-.27-2-.27-.68 0-1.36.09-2 .27-1.53-1.03-2.2-.82-2.2-.82-.44 1.1-.16 1.92-.08 2.12-.51.56-.82 1.28-.82 2.15 0 3.06 1.86 3.75 3.64 3.95-.23.2-.44.55-.51 1.07-.46.21-1.61.55-2.33-.66-.15-.24-.6-.83-1.23-.82-.67.01-.27.38.01.53.34.19.73.9.82 1.13.16.45.68 1.31 2.69.94 0 .67.01 1.3.01 1.49 0 .21-.15.45-.55.38A7.995 7.995 0 0 1 0 8c0-4.42 3.58-8 8-8Z"/></svg><text x="860" y="56" text-anchor="middle">workloads repository</text><text class="subtitle" x="860" y="73" text-anchor="middle">part 50</text></g>
   <path class="edge" d="M115,80 V166"/><text class="edge-label" x="123" y="128">installs the add-on, applies manifests</text>
   <path class="edge" d="M620,60 H716"/><text class="edge-label" x="668" y="52" text-anchor="middle">pushes</text>
-  <rect class="frame" x="20" y="170" width="1000" height="390" rx="10"/><image href="{{ icon("aws/eks") }}" x="32" y="176" width="18" height="18"/><text class="frame-label" x="56" y="189">EKS Auto Mode cluster</text>
+  <rect class="frame" x="20" y="170" width="1000" height="392" rx="10"/><image href="{{ icon("aws/eks") }}" x="32" y="176" width="18" height="18"/><text class="frame-label" x="56" y="189">EKS Auto Mode cluster (part 20)</text>
 
-  <rect class="frame" x="40" y="210" width="250" height="140" rx="8"/><image href="{{ icon("kubernetes/namespace") }}" x="50" y="215" width="16" height="16"/><text class="frame-label" x="70" y="228">namespace kube-system</text>
-  <a class="box this-part" href="#metrics-server"><rect x="56" y="276" width="218" height="60"/><image href="{{ icon("kubernetes/deployment") }}" x="66" y="292" width="28" height="28"/><text x="180" y="302" text-anchor="middle">metrics-server</text><text class="subtitle" x="180" y="320" text-anchor="middle">EKS add-on</text></a>
+  <rect class="frame" x="40" y="210" width="250" height="134" rx="8"/><image href="{{ icon("kubernetes/namespace") }}" x="50" y="215" width="16" height="16"/><text class="frame-label" x="70" y="228">namespace kube-system</text>
+  <a class="box this-part" href="#metrics-server"><rect x="56" y="272" width="218" height="60"/><image href="{{ icon("kubernetes/deployment") }}" x="66" y="288" width="28" height="28"/><text x="180" y="298" text-anchor="middle">metrics-server</text><text class="subtitle" x="180" y="316" text-anchor="middle">EKS add-on</text></a>
 
-  <rect class="frame" x="40" y="364" width="250" height="176" rx="8"/><image href="{{ icon("kubernetes/namespace") }}" x="50" y="369" width="16" height="16"/><text class="frame-label" x="70" y="382">namespace argo-rollouts</text>
-  <g class="box"><rect x="56" y="392" width="218" height="124"/><image href="{{ icon("kubernetes/deployment") }}" x="151" y="418" width="28" height="28"/><text x="165" y="470" text-anchor="middle">Argo Rollouts controller</text><text class="subtitle" x="165" y="487" text-anchor="middle">part 60</text></g>
+  <rect class="frame" x="40" y="360" width="250" height="182" rx="8"/><image href="{{ icon("kubernetes/namespace") }}" x="50" y="365" width="16" height="16"/><text class="frame-label" x="70" y="378">namespace argo-rollouts (part 60)</text>
+  <g class="box"><rect x="56" y="396" width="218" height="128"/><image href="{{ icon("kubernetes/deployment") }}" x="151" y="420" width="28" height="28"/><text x="165" y="472" text-anchor="middle">Argo Rollouts controller</text><text class="subtitle" x="165" y="489" text-anchor="middle">part 60</text></g>
 
-  <rect class="frame" x="420" y="210" width="260" height="330" rx="8"/><image href="{{ icon("kubernetes/namespace") }}" x="430" y="215" width="16" height="16"/><text class="frame-label" x="450" y="228">namespace team-a (part 40)</text>
-  <a class="box this-part" href="#sample-workload"><rect x="440" y="250" width="220" height="270"/><text x="454" y="270">sample workload</text></a>
-  <g class="box"><rect x="448" y="286" width="204" height="40"/><image href="{{ icon("kubernetes/hpa") }}" x="456" y="294" width="24" height="24"/><text x="550" y="311" text-anchor="middle">HPA</text></g>
-  <g class="box"><rect x="448" y="404" width="204" height="40"/><image href="{{ icon("argo/argo") }}" x="456" y="412" width="24" height="24"/><text x="550" y="429" text-anchor="middle">Rollout</text></g>
-  <g class="box"><rect x="448" y="464" width="204" height="40"/><image href="{{ icon("kubernetes/replicaset") }}" x="456" y="473" width="22" height="22"/><text x="562" y="489" text-anchor="middle">ReplicaSets and pods</text></g>
-  <path class="edge" d="M550,326 V400"/><text class="edge-label" x="558" y="367">scales</text>
-  <path class="edge" d="M448,306 H278"/><text class="edge-label" x="363" y="298" text-anchor="middle">reads the CPU usage</text>
-  <path class="edge" d="M274,424 H444"/><text class="edge-label" x="298" y="417">reads and updates</text>
-  <path class="edge" d="M274,484 H444"/><text class="edge-label" x="298" y="477">creates and scales</text>
+  <rect class="frame" x="420" y="210" width="260" height="332" rx="8"/><image href="{{ icon("kubernetes/namespace") }}" x="430" y="215" width="16" height="16"/><text class="frame-label" x="450" y="228">namespace team-a (part 40)</text>
+  <a class="box this-part" href="#sample-workload"><rect x="440" y="246" width="220" height="280"/><text x="454" y="266">sample workload</text></a>
+  <g class="box"><rect x="448" y="282" width="204" height="40"/><image href="{{ icon("kubernetes/hpa") }}" x="456" y="290" width="24" height="24"/><text x="550" y="307" text-anchor="middle">HPA</text></g>
+  <g class="box"><rect x="448" y="410" width="204" height="40"/><image href="{{ icon("argo/argo") }}" x="456" y="418" width="24" height="24"/><text x="550" y="435" text-anchor="middle">Rollout</text></g>
+  <g class="box"><rect x="448" y="470" width="204" height="40"/><image href="{{ icon("kubernetes/replicaset") }}" x="456" y="479" width="22" height="22"/><text x="562" y="495" text-anchor="middle">ReplicaSets and pods</text></g>
+  <path class="edge" d="M550,322 V406"/><text class="edge-label" x="558" y="368">scales</text>
+  <path class="edge" d="M448,302 H278"/><text class="edge-label" x="363" y="294" text-anchor="middle">reads the CPU usage</text>
+  <path class="edge" d="M274,430 H444"/><text class="edge-label" x="298" y="423">reads and updates</text>
+  <path class="edge" d="M274,490 H444"/><text class="edge-label" x="298" y="483">creates and scales</text>
 
-  <g class="box"><rect x="720" y="210" width="280" height="44"/><image href="{{ icon("aws/eks") }}" x="732" y="220" width="24" height="24"/><text x="860" y="228" text-anchor="middle">Argo CD capability</text><text class="subtitle" x="860" y="245" text-anchor="middle">part 50</text></g>
-  <path class="edge" d="M860,210 V84"/><text class="edge-label" x="866" y="160">reads</text>
-  <path class="edge" d="M860,254 V296"/><text class="edge-label" x="866" y="280">reads</text>
-  <path class="edge" d="M720,232 H700 V385 H664"/><text class="edge-label" x="704" y="283">syncs</text>
+  <g class="box"><rect x="720" y="246" width="280" height="44"/><image href="{{ icon("aws/eks") }}" x="732" y="256" width="24" height="24"/><text x="860" y="264" text-anchor="middle">Argo CD capability</text><text class="subtitle" x="860" y="281" text-anchor="middle">part 50</text></g>
+  <path class="edge" d="M860,246 V86"/><text class="edge-label" x="866" y="160">reads</text>
+  <path class="edge" d="M860,290 V362"/><text class="edge-label" x="866" y="332">reads</text>
+  <path class="edge" d="M720,268 H700 V386 H664"/><text class="edge-label" x="694" y="331" text-anchor="end">syncs</text>
 
-  <rect class="frame" x="720" y="300" width="280" height="240" rx="8"/><image href="{{ icon("kubernetes/namespace") }}" x="730" y="305" width="16" height="16"/><text class="frame-label" x="750" y="318">namespace argocd</text>
-  <g class="box"><rect x="740" y="338" width="240" height="44"/><image href="{{ icon("argo/argo") }}" x="746" y="350" width="20" height="20"/><text x="872" y="356" text-anchor="middle">AppProject</text><text class="subtitle" x="872" y="373" text-anchor="middle">team-a-argo-rollouts, part 60</text></g>
-  <a class="box this-part" href="#applicationset"><rect x="740" y="410" width="240" height="44"/><image href="{{ icon("argo/argo") }}" x="746" y="422" width="20" height="20"/><text x="872" y="428" text-anchor="middle">ApplicationSet</text><text class="subtitle" x="872" y="445" text-anchor="middle">team-a-hpa</text></a>
+  <rect class="frame" x="720" y="366" width="280" height="176" rx="8"/><image href="{{ icon("kubernetes/namespace") }}" x="730" y="371" width="16" height="16"/><text class="frame-label" x="750" y="384">namespace argocd (part 50)</text>
+  <a class="box this-part" href="#applicationset"><rect x="740" y="402" width="240" height="44"/><image href="{{ icon("argo/argo") }}" x="746" y="414" width="20" height="20"/><text x="872" y="420" text-anchor="middle">ApplicationSet</text><text class="subtitle" x="872" y="437" text-anchor="middle">team-a-hpa</text></a>
   <a class="box this-part" href="#applicationset"><rect x="740" y="482" width="240" height="44"/><image href="{{ icon("argo/argo") }}" x="746" y="494" width="20" height="20"/><text x="872" y="500" text-anchor="middle">Application</text><text class="subtitle" x="872" y="517" text-anchor="middle">team-a-nginx-hpa</text></a>
-  <path class="edge" d="M860,454 V478"/><text class="edge-label" x="866" y="472">creates</text>
+  <path class="edge" d="M860,446 V478"/><text class="edge-label" x="866" y="466">creates</text>
 
-  <g class="badge"><circle cx="56" cy="276" r="10"/><text x="56" y="280" text-anchor="middle">1</text></g>
-  <g class="badge"><circle cx="440" cy="250" r="10"/><text x="440" y="254" text-anchor="middle">2</text></g>
-  <g class="badge"><circle cx="740" cy="410" r="10"/><text x="740" y="414" text-anchor="middle">3</text></g>
+  <g class="badge"><circle cx="56" cy="272" r="10"/><text x="56" y="276" text-anchor="middle">1</text></g>
+  <g class="badge"><circle cx="440" cy="246" r="10"/><text x="440" y="250" text-anchor="middle">2</text></g>
+  <g class="badge"><circle cx="740" cy="402" r="10"/><text x="740" y="406" text-anchor="middle">3</text></g>
 </svg>
 </div>

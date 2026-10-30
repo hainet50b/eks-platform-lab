@@ -263,7 +263,6 @@ kind: Rollout{% endcall %}{% endcall %}
 {% call files() %}
 {% call file("parts/80-helm/manifests/applicationset.yaml", main=true) %}
   {{ note("path: team-a-helm/*", "Create an Application for each directory right under `team-a-helm`.") }}
-  {{ note("project: team-a-argo-rollouts", "Use the AppProject `team-a-argo-rollouts`, which allows Rollouts.") }}
   {{ note("path: charts/workload-spring-boot", "Render the chart `workload-spring-boot`.") }}
   {% call note("releaseName", "Name the resources after the directory, such as `helm-spring-boot`.") %}Without it, Argo CD uses the name of the Application.{% endcall %}
   {% call note("$values/", "Read the values in the directory of the application.") %}`$values` stands for the top of the workloads repository.{% endcall %}

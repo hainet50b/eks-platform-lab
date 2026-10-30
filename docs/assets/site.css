@@ -422,7 +422,6 @@ ol.annotation-list .pin { margin-left: 0; }
   margin-top: 14px;
 }
 .diagram svg { display: block; min-width: 720px; width: 100%; height: auto; }
-.diagram.kustomize svg { min-width: 640px; }
 .diagram .frame { fill: none; stroke: var(--line); stroke-width: 1.5; }
 .diagram .frame.this-part { stroke: var(--accent); stroke-width: 1.5; }
 .diagram .frame-link:hover .frame.this-part { stroke-width: 2.4; }
@@ -436,9 +435,8 @@ ol.annotation-list .pin { margin-left: 0; }
 .diagram .badge circle { fill: var(--accent); }
 .diagram .badge text { fill: var(--surface); font: 600 11px var(--sans); }
 .diagram .edge { fill: none; stroke: var(--muted); stroke-width: 1.3; marker-end: url(#arrow); }
-.diagram .kustomize-edge { fill: none; stroke: var(--muted); stroke-width: 1.3; marker-end: url(#kustomize-arrow); }
 .diagram .edge-label { fill: var(--muted); font: 400 11.5px var(--sans); }
-.diagram #arrow path, .diagram #kustomize-arrow path { fill: var(--muted); }
+.diagram #arrow path { fill: var(--muted); }
 .diagram .github-mark path { fill: var(--fg); }
 
 .diagram .edge.periodic { stroke-dasharray: 5 4; }

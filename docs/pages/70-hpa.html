@@ -146,7 +146,6 @@ v1beta1.metrics.k8s.io   kube-system/metrics-server   True        …{% endcall 
 {% call files() %}
 {% call file("parts/70-hpa/manifests/applicationset.yaml", main=true) %}
   {{ note("path: team-a-hpa/*", "Create an Application for each directory right under `team-a-hpa`.") }}
-  {{ note("project: team-a-argo-rollouts", "Use the AppProject `team-a-argo-rollouts` from part 60.") }}
 {% endcall %}
 {% endcall %}
 {% call apply() %}

@@ -133,82 +133,6 @@ rollouts.argoproj.io/status   …   [update patch]{% endcall %}{% endcall %}
 {% endcall %}
 {% endcall %}
 
-{% call step("appproject", "AppProject that allows Rollouts") %}
-{% call what() %}
-<p>An AppProject whose Applications may sync Rollouts into the namespace <code>team-a</code>.</p>
-<p>Kustomize builds this AppProject from the shared settings of part 50, and adds Rollout to them.</p>
-<div class="diagram kustomize">
-<svg viewBox="0 0 900 346" role="img" aria-labelledby="kustomize-title kustomize-description">
-  <title id="kustomize-title">How Kustomize builds the AppProject</title>
-  <desc id="kustomize-description">The overlay team-a-argo-rollouts takes its own appproject.yaml as the resource, then the component sync-allowlist of part 50, then the component argo-rollouts of this part, in this order. Kustomize builds from them the AppProject team-a-argo-rollouts.</desc>
-  <defs><marker id="kustomize-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z"/></marker></defs>
-
-  <rect class="frame this-part" x="20" y="20" width="400" height="234" rx="10"/>
-  <text class="frame-label" x="36" y="44">overlay team-a-argo-rollouts, kustomization.yaml</text>
-
-  <text class="muted-label" x="40" y="74">resources</text>
-  <g class="box this-part"><rect x="40" y="84" width="360" height="34"/><text x="220" y="106" text-anchor="middle">appproject.yaml</text></g>
-
-  <text class="muted-label" x="40" y="146">components, in this order</text>
-  <g class="box"><rect x="40" y="154" width="360" height="34"/><text x="220" y="176" text-anchor="middle">1 sync-allowlist</text></g>
-  <g class="box"><rect x="40" y="208" width="360" height="34"/><text x="220" y="230" text-anchor="middle">2 argo-rollouts</text></g>
-
-  <g class="box"><rect x="500" y="149" width="380" height="44"/><text x="690" y="167" text-anchor="middle">component sync-allowlist, kustomization.yaml</text><text class="subtitle" x="690" y="184" text-anchor="middle">part 50: the allow list that every AppProject shares</text></g>
-  <g class="box this-part"><rect x="500" y="203" width="380" height="44"/><text x="690" y="221" text-anchor="middle">component argo-rollouts, kustomization.yaml</text><text class="subtitle" x="690" y="238" text-anchor="middle">this part: adds Rollout to the list</text></g>
-  <path class="kustomize-edge" d="M400,171 H496"/>
-  <path class="kustomize-edge" d="M400,225 H496"/>
-
-  <path class="kustomize-edge" d="M220,254 V288"/><text class="edge-label" x="228" y="276">kubectl kustomize builds</text>
-  <g class="box this-part"><rect x="40" y="292" width="360" height="44"/><text x="220" y="310" text-anchor="middle">AppProject</text><text class="subtitle" x="220" y="327" text-anchor="middle">team-a-argo-rollouts</text></g>
-</svg>
-</div>
-{% endcall %}
-{% call files() %}
-{% call file("parts/60-argo-rollouts/manifests/project/overlays/team-a-argo-rollouts/kustomization.yaml", main=true) %}
-  {{ note("components/sync-allowlist", "Add the component `sync-allowlist` of part 50, which holds the settings that every AppProject shares.") }}
-  {{ note("components/argo-rollouts", "Add the component `argo-rollouts`, which adds Rollout to the allow list.") }}
-{% endcall %}
-{% call file("parts/60-argo-rollouts/manifests/project/overlays/team-a-argo-rollouts/appproject.yaml") %}
-  {{ note("namespace: team-a", "Allow syncing only to the namespace `team-a` of the cluster `in-cluster`.") }}
-  {% call note("group-id", "Grant the project role `developer` to the IAM Identity Center group `<eks-platform-lab-team-a-group-id>`.") %}The ID is put in place when the AppProject is applied.{% endcall %}
-  {% call note("action/*", "Allow the developers to run the built-in actions of Applications.") %}The built-in actions of a Rollout include Resume, Promote-Full, and Abort.{% endcall %}
-{% endcall %}
-{% call file("parts/60-argo-rollouts/manifests/project/components/argo-rollouts/kustomization.yaml") %}
-  {{ note("op: add", "Add Rollout to the allow list.") }}
-{% endcall %}
-{{ file("parts/50-argo-cd/manifests/project/components/sync-allowlist/appproject.yaml") }}
-{{ file("parts/50-argo-cd/manifests/project/components/sync-allowlist/kustomization.yaml") }}
-{% endcall %}
-{% call apply() %}
-{% call command() %}
-{% call piece("Gets the ID of the IAM Identity Center identity store.") %}store_id=$( \
-aws --profile <account-name>-admin \
-  sso-admin list-instances \
-  --query 'Instances[0].IdentityStoreId' \
-  --output text \
-){% endcall %}
-
-{% call piece("Looks up the ID of the group `eks-platform-lab-team-a` in that identity store.") %}group_id=$( \
-aws --profile <account-name>-admin \
-  identitystore get-group-id --identity-store-id "$store_id" \
-  --alternate-identifier '{"UniqueAttribute":{"AttributePath":"DisplayName","AttributeValue":"eks-platform-lab-team-a"}}' \
-  --query 'GroupId' \
-  --output text \
-){% endcall %}
-
-{% call piece("Builds the AppProject from the overlay and its components, without applying it.") %}kubectl kustomize parts/60-argo-rollouts/manifests/project/overlays/team-a-argo-rollouts{% endcall %} \
-  | {% call piece("Replaces the placeholder with the ID of the group.") %}sed "s|<eks-platform-lab-team-a-group-id>|${group_id}|"{% endcall %} \
-  | {% call piece("Applies the AppProject that it reads from standard input.") %}kubectl --context <account-name>-admin \
-    apply -f -{% endcall %}
-{% endcall %}
-{% endcall %}
-{% call confirm() %}
-{% call check("The allow list has Rollout.") %}kubectl --context <account-name>-admin \
-  get appproject team-a-argo-rollouts -n argocd \
-  -o jsonpath='{.spec.namespaceResourceWhitelist[?(@.kind=="Rollout")]}{"\n"}'{% call output() %}{"group":"argoproj.io","kind":"Rollout"}{% endcall %}{% endcall %}
-{% endcall %}
-{% endcall %}
-
 {% call step("sample-workload", "Sample workload") %}
 {% call what() %}
 <p>The workload to roll out: a Rollout of nginx with four pods, and a Service and an Ingress in front of it. A developer delivers it by pushing its manifest to the workloads repository, which Argo CD reads.</p>
@@ -243,7 +167,6 @@ aws --profile <account-name>-admin \
 {% call files() %}
 {% call file("parts/60-argo-rollouts/manifests/applicationset.yaml", main=true) %}
   {{ note("path: team-a-argo-rollouts/pod-ratio/*", "Create an Application for each directory right under `team-a-argo-rollouts/pod-ratio`.") }}
-  {{ note("project: team-a-argo-rollouts", "Use the AppProject `team-a-argo-rollouts`.") }}
 {% endcall %}
 {% endcall %}
 {% call apply() %}
@@ -403,9 +326,6 @@ team-a-nginx-argo-rollouts-pod-ratio   Synced        Healthy
 {% call piece("Deletes the ApplicationSet, and with it the Application.") %}kubectl --context <account-name>-admin \
   delete -f parts/60-argo-rollouts/manifests/applicationset.yaml{% endcall %} {% call piece("Returns only after the Application, the sample workload, and the ALB are gone.") %}--cascade=foreground{% endcall %}
 
-{% call piece("Deletes the AppProject.") %}kubectl --context <account-name>-admin \
-  delete -k parts/60-argo-rollouts/manifests/project/overlays/team-a-argo-rollouts{% endcall %}
-
 {% call piece("Deletes the Role and the RoleBindings.") %}kubectl --context <account-name>-admin \
   delete -f parts/60-argo-rollouts/manifests/rbac.yaml{% endcall %}
 
@@ -426,8 +346,6 @@ Error from server (NotFound): applications.argoproj.io "team-a-nginx-argo-rollou
   --resource-type-filters elasticloadbalancing:loadbalancer \
   --query 'ResourceTagMappingList[].ResourceARN' \
   --output text{% call output() %}(nothing){% endcall %}{% endcall %}
-{% call check("The AppProject is gone.") %}kubectl --context <account-name>-admin \
-  get appproject team-a-argo-rollouts -n argocd{% call output() %}Error from server (NotFound): appprojects.argoproj.io "team-a-argo-rollouts" not found{% endcall %}{% endcall %}
 {% call check("The Role and the RoleBindings are gone.") %}kubectl --context <account-name>-admin \
   get role rollouts-edit -n team-a
 
