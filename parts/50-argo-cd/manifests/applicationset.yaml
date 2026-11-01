@@ -1,7 +1,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: ApplicationSet
 metadata:
-  name: team-a
+  name: team-a-argo-cd
   namespace: argocd
 spec:
   goTemplate: true
@@ -11,7 +11,7 @@ spec:
         repoURL: https://github.com/hainet50b/eks-platform-lab-workloads.git
         revision: main
         directories:
-          - path: team-a/*
+          - path: team-a-argo-cd/*
   template:
     metadata:
       name: team-a-{{ .path.basename }}

@@ -1,26 +1,26 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: nginx-argocd
+  name: nginx-argo-cd
   namespace: team-a
   labels:
-    app.kubernetes.io/name: nginx-argocd
+    app.kubernetes.io/name: nginx-argo-cd
 spec:
   replicas: 2
   selector:
     matchLabels:
-      app.kubernetes.io/name: nginx-argocd
+      app.kubernetes.io/name: nginx-argo-cd
   template:
     metadata:
       labels:
-        app.kubernetes.io/name: nginx-argocd
+        app.kubernetes.io/name: nginx-argo-cd
     spec:
       securityContext:
         runAsNonRoot: true
         seccompProfile:
           type: RuntimeDefault
       containers:
-        - name: nginx-argocd
+        - name: nginx-argo-cd
           image: public.ecr.aws/nginx/nginx-unprivileged:1.30.5
           ports:
             - containerPort: 8080
@@ -39,14 +39,14 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: nginx-argocd
+  name: nginx-argo-cd
   namespace: team-a
   labels:
-    app.kubernetes.io/name: nginx-argocd
+    app.kubernetes.io/name: nginx-argo-cd
 spec:
   type: ClusterIP
   selector:
-    app.kubernetes.io/name: nginx-argocd
+    app.kubernetes.io/name: nginx-argo-cd
   ports:
     - port: 80
       targetPort: 8080
@@ -54,10 +54,10 @@ spec:
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: nginx-argocd
+  name: nginx-argo-cd
   namespace: team-a
   labels:
-    app.kubernetes.io/name: nginx-argocd
+    app.kubernetes.io/name: nginx-argo-cd
   annotations:
     alb.ingress.kubernetes.io/target-type: ip
 spec:
@@ -69,6 +69,6 @@ spec:
             pathType: Prefix
             backend:
               service:
-                name: nginx-argocd
+                name: nginx-argo-cd
                 port:
                   number: 80
