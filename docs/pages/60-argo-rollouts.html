@@ -141,7 +141,7 @@ rollouts.argoproj.io/status   …   [update patch]{% endcall %}{% endcall %}
 <p>The workload to roll out: a Rollout of nginx with four pods, and a Service and an Ingress in front of it. A developer delivers it by pushing its manifest to the workloads repository, which Argo CD reads.</p>
 {% endcall %}
 {% call files() %}
-{% call file("parts/60-argo-rollouts/workloads/team-a-argo-rollouts/pod-ratio/nginx-argo-rollouts-pod-ratio/nginx-argo-rollouts-pod-ratio.yaml", main=true) %}
+{% call file("parts/60-argo-rollouts/workloads/team-a-argo-rollouts/nginx-argo-rollouts/nginx-argo-rollouts.yaml", main=true) %}
   {% call note("readinessProbe", "Check whether a pod can take requests with an HTTP GET of the path `/` on port 8080.") %}Keeps the ALB from sending requests to a new pod until the pod answers.{% endcall %}
   {% call note("preStop", "Make the container wait 10 seconds before it stops.") %}Lets the ALB stop sending requests to the pod before it stops.{% endcall %}
   {{ note("setWeight: 25", "Raise the share of new pods to 25%, 50%, and 100%.") }}
@@ -165,11 +165,11 @@ rollouts.argoproj.io/status   …   [update patch]{% endcall %}{% endcall %}
 
 {% call step("applicationset", "ApplicationSet") %}
 {% call what() %}
-<p>An ApplicationSet that turns each directory under <code>team-a-argo-rollouts/pod-ratio/</code> of the workloads repository into an Application.</p>
+<p>An ApplicationSet that turns each directory under <code>team-a-argo-rollouts/</code> of the workloads repository into an Application.</p>
 {% endcall %}
 {% call files() %}
 {% call file("parts/60-argo-rollouts/manifests/applicationset.yaml", main=true) %}
-  {{ note("path: team-a-argo-rollouts/pod-ratio/*", "Create an Application for each directory right under `team-a-argo-rollouts/pod-ratio`.") }}
+  {{ note("path: team-a-argo-rollouts/*", "Create an Application for each directory right under `team-a-argo-rollouts`.") }}
 {% endcall %}
 {% endcall %}
 {% call apply() %}
@@ -180,16 +180,16 @@ rollouts.argoproj.io/status   …   [update patch]{% endcall %}{% endcall %}
 {% endcall %}
 {% call confirm() %}
 {% call check("The Application is Synced and Healthy.") %}kubectl --context <account-name>-admin \
-  get application team-a-nginx-argo-rollouts-pod-ratio -n argocd{% call output() %}NAME                                   SYNC STATUS   HEALTH STATUS
-team-a-nginx-argo-rollouts-pod-ratio   Synced        Healthy{% endcall %}{% endcall %}
+  get application team-a-nginx-argo-rollouts -n argocd{% call output() %}NAME                         SYNC STATUS   HEALTH STATUS
+team-a-nginx-argo-rollouts   Synced        Healthy{% endcall %}{% endcall %}
 {% call check("The Rollout is Synced along with the Service and the Ingress. If the AppProject does not allow Rollout, the sync fails as not permitted in the project.") %}kubectl --context <account-name>-admin \
-  get application team-a-nginx-argo-rollouts-pod-ratio -n argocd \
-  -o jsonpath='{range .status.resources[*]}{.kind}{"\t"}{.name}{"\t"}{.status}{"\n"}{end}'{% call output() %}Service   nginx-argo-rollouts-pod-ratio   Synced
-Rollout   nginx-argo-rollouts-pod-ratio   Synced
-Ingress   nginx-argo-rollouts-pod-ratio   Synced{% endcall %}{% endcall %}
+  get application team-a-nginx-argo-rollouts -n argocd \
+  -o jsonpath='{range .status.resources[*]}{.kind}{"\t"}{.name}{"\t"}{.status}{"\n"}{end}'{% call output() %}Service   nginx-argo-rollouts   Synced
+Rollout   nginx-argo-rollouts   Synced
+Ingress   nginx-argo-rollouts   Synced{% endcall %}{% endcall %}
 {% call check("The sample workload answers through its ALB. The ALB can take several minutes to answer.") %}alb=$( \
 kubectl --context <account-name>-admin \
-  get ingress nginx-argo-rollouts-pod-ratio -n team-a \
+  get ingress nginx-argo-rollouts -n team-a \
   -o jsonpath='{.status.loadBalancer.ingress[0].hostname}' \
 )
 
@@ -213,13 +213,13 @@ Server: nginx/1.30.5{% endcall %}{% endcall %}
 <p>A rollout starts with a push to the workloads repository, and runs as shown in <a href="#how">How a rollout runs</a>.</p>
 {% call run() %}
 {% call check("Before you start, the Rollout is Healthy, and every pod runs `1.30.5`.") %}kubectl argo rollouts --context <account-name>-team-a-dev \
-  get rollout nginx-argo-rollouts-pod-ratio -n team-a{% call output() %}Status:          ✔ Healthy
+  get rollout nginx-argo-rollouts -n team-a{% call output() %}Status:          ✔ Healthy
 Strategy:        Canary
   Step:          4/4
   SetWeight:     100
   ActualWeight:  100
 Images:          public.ecr.aws/nginx/nginx-unprivileged:1.30.5 (stable){% endcall %}{% endcall %}
-{% call check("Change the image tag of the sample workload to a newer one, such as `1.31.6`, push, and refresh the Application. Without the refresh, Argo CD picks up the push within about 10 minutes.") %}f=team-a-argo-rollouts/pod-ratio/nginx-argo-rollouts-pod-ratio/nginx-argo-rollouts-pod-ratio.yaml
+{% call check("Change the image tag of the sample workload to a newer one, such as `1.31.6`, push, and refresh the Application. Without the refresh, Argo CD picks up the push within about 10 minutes.") %}f=team-a-argo-rollouts/nginx-argo-rollouts/nginx-argo-rollouts.yaml
 sed -i 's/nginx-unprivileged:1.30.5/nginx-unprivileged:<new tag>/' ../eks-platform-lab-workloads/$f
 
 git -C ../eks-platform-lab-workloads add $f
@@ -227,10 +227,10 @@ git -C ../eks-platform-lab-workloads commit -m "Roll out <new tag>"
 git -C ../eks-platform-lab-workloads push
 
 kubectl --context <account-name>-admin \
-  annotate application team-a-nginx-argo-rollouts-pod-ratio -n argocd \
+  annotate application team-a-nginx-argo-rollouts -n argocd \
   argocd.argoproj.io/refresh=normal --overwrite{% endcall %}
 {% call check("The Rollout pauses at the first step: one pod of four runs the new version.") %}kubectl argo rollouts --context <account-name>-team-a-dev \
-  get rollout nginx-argo-rollouts-pod-ratio -n team-a{% call output() %}Status:          ॥ Paused
+  get rollout nginx-argo-rollouts -n team-a{% call output() %}Status:          ॥ Paused
 Message:         CanaryPauseStep
 Strategy:        Canary
   Step:          1/4
@@ -238,48 +238,48 @@ Strategy:        Canary
   ActualWeight:  25{% endcall %}{% endcall %}
 {% call check("About a quarter of the requests reach the new version. Wait a minute first, until the ALB sends requests to the new pod.") %}alb=$( \
 kubectl --context <account-name>-admin \
-  get ingress nginx-argo-rollouts-pod-ratio -n team-a \
+  get ingress nginx-argo-rollouts -n team-a \
   -o jsonpath='{.status.loadBalancer.ingress[0].hostname}' \
 )
 
 for i in $(seq 100); do curl -sI "http://${alb}/" | grep -i '^server:'; done \
   | sort | uniq -c{% call output() %}     75 Server: nginx/1.30.5
      25 Server: nginx/<new tag>{% endcall %}{% endcall %}
-{% call ui("a developer", "Applications|team-a-nginx-argo-rollouts-pod-ratio|the menu of the Rollout|Resume") %}Resume: the Rollout moves to 50%, waits 60 seconds, and goes to 100% by itself.{% endcall %}
+{% call ui("a developer", "Applications|team-a-nginx-argo-rollouts|the menu of the Rollout|Resume") %}Resume: the Rollout moves to 50%, waits 60 seconds, and goes to 100% by itself.{% endcall %}
 {% call check("At 100%, the Application is Synced and Healthy, and every request reaches the new version.") %}kubectl --context <account-name>-admin \
-  get application team-a-nginx-argo-rollouts-pod-ratio -n argocd
+  get application team-a-nginx-argo-rollouts -n argocd
 
 for i in $(seq 100); do curl -sI "http://${alb}/" | grep -i '^server:'; done \
-  | sort | uniq -c{% call output() %}NAME                                   SYNC STATUS   HEALTH STATUS
-team-a-nginx-argo-rollouts-pod-ratio   Synced        Healthy
+  | sort | uniq -c{% call output() %}NAME                         SYNC STATUS   HEALTH STATUS
+team-a-nginx-argo-rollouts   Synced        Healthy
     100 Server: nginx/<new tag>{% endcall %}{% endcall %}
 {% call check("Revert the commit, push, and refresh the Application. The rollback is a rollout too, and pauses at the first step.") %}git -C ../eks-platform-lab-workloads revert --no-edit HEAD
 git -C ../eks-platform-lab-workloads push
 
 kubectl --context <account-name>-admin \
-  annotate application team-a-nginx-argo-rollouts-pod-ratio -n argocd \
+  annotate application team-a-nginx-argo-rollouts -n argocd \
   argocd.argoproj.io/refresh=normal --overwrite{% endcall %}
 {% call check("The rollback pauses at the first step: one pod of four runs the old version.") %}kubectl argo rollouts --context <account-name>-team-a-dev \
-  get rollout nginx-argo-rollouts-pod-ratio -n team-a{% call output() %}Status:          ॥ Paused
+  get rollout nginx-argo-rollouts -n team-a{% call output() %}Status:          ॥ Paused
 Message:         CanaryPauseStep
 Strategy:        Canary
   Step:          1/4
   SetWeight:     25
   ActualWeight:  25{% endcall %}{% endcall %}
-{% call ui("a developer", "Applications|team-a-nginx-argo-rollouts-pod-ratio|the menu of the Rollout|Promote-Full") %}Promote-Full: the Rollout skips the remaining steps and goes to 100% at once.{% endcall %}
+{% call ui("a developer", "Applications|team-a-nginx-argo-rollouts|the menu of the Rollout|Promote-Full") %}Promote-Full: the Rollout skips the remaining steps and goes to 100% at once.{% endcall %}
 {% call check("The Application is Synced and Healthy, and every request reaches the old version again.") %}kubectl --context <account-name>-admin \
-  get application team-a-nginx-argo-rollouts-pod-ratio -n argocd
+  get application team-a-nginx-argo-rollouts -n argocd
 
 for i in $(seq 100); do curl -sI "http://${alb}/" | grep -i '^server:'; done \
-  | sort | uniq -c{% call output() %}NAME                                   SYNC STATUS   HEALTH STATUS
-team-a-nginx-argo-rollouts-pod-ratio   Synced        Healthy
+  | sort | uniq -c{% call output() %}NAME                         SYNC STATUS   HEALTH STATUS
+team-a-nginx-argo-rollouts   Synced        Healthy
     100 Server: nginx/1.30.5{% endcall %}{% endcall %}
 {% endcall %}
 
 {{ section("abort", "Abort a rollout") }}
 <p>Abort stops a rollout in progress, and gives every pod back to the old version. Git still asks for the new version, so the Rollout is Degraded until a revert.</p>
 {% call run() %}
-{% call check("Roll out the new version again, as in Run a rollout.") %}f=team-a-argo-rollouts/pod-ratio/nginx-argo-rollouts-pod-ratio/nginx-argo-rollouts-pod-ratio.yaml
+{% call check("Roll out the new version again, as in Run a rollout.") %}f=team-a-argo-rollouts/nginx-argo-rollouts/nginx-argo-rollouts.yaml
 sed -i 's/nginx-unprivileged:1.30.5/nginx-unprivileged:<new tag>/' ../eks-platform-lab-workloads/$f
 
 git -C ../eks-platform-lab-workloads add $f
@@ -287,35 +287,35 @@ git -C ../eks-platform-lab-workloads commit -m "Roll out <new tag>"
 git -C ../eks-platform-lab-workloads push
 
 kubectl --context <account-name>-admin \
-  annotate application team-a-nginx-argo-rollouts-pod-ratio -n argocd \
+  annotate application team-a-nginx-argo-rollouts -n argocd \
   argocd.argoproj.io/refresh=normal --overwrite{% endcall %}
 {% call check("The Rollout pauses at the first step: one pod of four runs the new version.") %}kubectl argo rollouts --context <account-name>-team-a-dev \
-  get rollout nginx-argo-rollouts-pod-ratio -n team-a{% call output() %}Status:          ॥ Paused
+  get rollout nginx-argo-rollouts -n team-a{% call output() %}Status:          ॥ Paused
 Message:         CanaryPauseStep
 Strategy:        Canary
   Step:          1/4
   SetWeight:     25
   ActualWeight:  25{% endcall %}{% endcall %}
-{% call ui("a developer", "Applications|team-a-nginx-argo-rollouts-pod-ratio|the menu of the Rollout|Abort") %}Abort: every pod goes back to the old version at once.{% endcall %}
+{% call ui("a developer", "Applications|team-a-nginx-argo-rollouts|the menu of the Rollout|Abort") %}Abort: every pod goes back to the old version at once.{% endcall %}
 {% call check("The Application is Synced but Degraded, and every request reaches the old version.") %}kubectl --context <account-name>-admin \
-  get application team-a-nginx-argo-rollouts-pod-ratio -n argocd
+  get application team-a-nginx-argo-rollouts -n argocd
 
 for i in $(seq 100); do curl -sI "http://${alb}/" | grep -i '^server:'; done \
-  | sort | uniq -c{% call output() %}NAME                                   SYNC STATUS   HEALTH STATUS
-team-a-nginx-argo-rollouts-pod-ratio   Synced        Degraded
+  | sort | uniq -c{% call output() %}NAME                         SYNC STATUS   HEALTH STATUS
+team-a-nginx-argo-rollouts   Synced        Degraded
     100 Server: nginx/1.30.5{% endcall %}{% endcall %}
 {% call check("Revert the commit, push, and refresh the Application. Git asks for `1.30.5` again, and the Rollout becomes Healthy at once.") %}git -C ../eks-platform-lab-workloads revert --no-edit HEAD
 git -C ../eks-platform-lab-workloads push
 
 kubectl --context <account-name>-admin \
-  annotate application team-a-nginx-argo-rollouts-pod-ratio -n argocd \
+  annotate application team-a-nginx-argo-rollouts -n argocd \
   argocd.argoproj.io/refresh=normal --overwrite{% endcall %}
 {% call check("The Application is Synced and Healthy, and every request reaches the old version.") %}kubectl --context <account-name>-admin \
-  get application team-a-nginx-argo-rollouts-pod-ratio -n argocd
+  get application team-a-nginx-argo-rollouts -n argocd
 
 for i in $(seq 100); do curl -sI "http://${alb}/" | grep -i '^server:'; done \
-  | sort | uniq -c{% call output() %}NAME                                   SYNC STATUS   HEALTH STATUS
-team-a-nginx-argo-rollouts-pod-ratio   Synced        Healthy
+  | sort | uniq -c{% call output() %}NAME                         SYNC STATUS   HEALTH STATUS
+team-a-nginx-argo-rollouts   Synced        Healthy
     100 Server: nginx/1.30.5{% endcall %}{% endcall %}
 {% endcall %}
 
@@ -345,14 +345,14 @@ team-a-nginx-argo-rollouts-pod-ratio   Synced        Healthy
 {% endcall %}
 {% call confirm() %}
 {% call check("The ApplicationSet and its Application are gone.") %}kubectl --context <account-name>-admin \
-  get applicationset team-a-argo-rollouts-pod-ratio -n argocd
+  get applicationset team-a-argo-rollouts -n argocd
 
 kubectl --context <account-name>-admin \
-  get application team-a-nginx-argo-rollouts-pod-ratio -n argocd{% call output() %}Error from server (NotFound): applicationsets.argoproj.io "team-a-argo-rollouts-pod-ratio" not found
-Error from server (NotFound): applications.argoproj.io "team-a-nginx-argo-rollouts-pod-ratio" not found{% endcall %}{% endcall %}
+  get application team-a-nginx-argo-rollouts -n argocd{% call output() %}Error from server (NotFound): applicationsets.argoproj.io "team-a-argo-rollouts" not found
+Error from server (NotFound): applications.argoproj.io "team-a-nginx-argo-rollouts" not found{% endcall %}{% endcall %}
 {% call check("No load balancer of the sample workload is left, so nothing is charged for it.") %}aws --profile <account-name>-admin \
   resourcegroupstaggingapi get-resources \
-  --tag-filters Key=ingress.eks.amazonaws.com/stack,Values=team-a/nginx-argo-rollouts-pod-ratio \
+  --tag-filters Key=ingress.eks.amazonaws.com/stack,Values=team-a/nginx-argo-rollouts \
   --resource-type-filters elasticloadbalancing:loadbalancer \
   --query 'ResourceTagMappingList[].ResourceARN' \
   --output text{% call output() %}(nothing){% endcall %}{% endcall %}
