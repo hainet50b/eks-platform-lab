@@ -1,0 +1,9 @@
+controller:
+  replicas: 1
+  nodeSelector:
+    karpenter.sh/nodepool: system
+  tolerations:
+    # The system NodePool taints its nodes with this key.
+    - key: CriticalAddonsOnly
+      operator: Exists
+      effect: NoSchedule

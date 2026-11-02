@@ -40,26 +40,26 @@ spec:
 {% call stage("build") %}
 {% call step("argo-rollouts", "Argo Rollouts") %}
 {% call what() %}
-<p>The CRD adds the kind Rollout, and the controller turns each Rollout into ReplicaSets. The kustomization takes the <a href="https://argo-rollouts.readthedocs.io/en/stable/installation/">installation manifest</a> as published and adds two things: the namespace <code>argo-rollouts</code>, and a place for the controller on the NodePool <code>system</code>. The ClusterRoles in the installation manifest add Rollouts to the built-in role <code>view</code>.</p>
+<p>The CRD adds the kind Rollout, and the controller turns each Rollout into ReplicaSets. Helm installs both from the <a href="https://github.com/argoproj/argo-helm/tree/main/charts/argo-rollouts">chart that the Argo project publishes</a>, and the values put the controller on the NodePool <code>system</code>. The ClusterRoles in the chart add Rollouts to the built-in role <code>view</code>.</p>
+<p><a href="https://helm.sh/">Helm</a> installs a chart, a package of Kubernetes resources, into the cluster. <a href="https://helm.sh/docs/intro/install/">Install Helm</a>, then check it.</p>
+{% call prepare() %}
+{% call check("Helm is installed.") %}helm version --short{% call output() %}v4.3.0+gbec5b06{% endcall %}{% endcall %}
+{% endcall %}
 {% endcall %}
 {% call files() %}
-{% call file("parts/60-argo-rollouts/manifests/argo-rollouts/kustomization.yaml", main=true) %}
-  {{ note("namespace: argo-rollouts", "Put every resource of the installation manifest in the namespace `argo-rollouts`.") }}
-  {% call note("install.yaml", "Use the official installation manifest, by the URL of one release.") %}An upgrade is a change of this URL.{% endcall %}
-  {{ note("path: controller.yaml", "Patch the Deployment `argo-rollouts` of the installation manifest with `controller.yaml`.") }}
-{% endcall %}
-{% call file("parts/60-argo-rollouts/manifests/argo-rollouts/controller.yaml") %}
+{% call file("parts/60-argo-rollouts/manifests/argo-rollouts/values.yaml", main=true) %}
+  {% call note("replicas: 1", "Run one controller.") %}The chart runs two by default, and leader election keeps one active.{% endcall %}
   {{ note("nodeSelector||key: CriticalAddonsOnly", "Place the controller on the NodePool `system`.") }}
 {% endcall %}
-{% call file("parts/60-argo-rollouts/manifests/argo-rollouts/namespace.yaml") %}
-  {{ note("name: argo-rollouts", "Create the namespace `argo-rollouts`.") }}
-{% endcall %}
-{{ external_link("parts/60-argo-rollouts/manifests/argo-rollouts/", "install.yaml (v1.10.0)", "https://github.com/argoproj/argo-rollouts/releases/download/v1.10.0/install.yaml") }}
+{{ external_link("parts/60-argo-rollouts/manifests/argo-rollouts/", "argo-rollouts chart (2.43.6)", "https://github.com/argoproj/argo-helm/tree/argo-rollouts-2.43.6/charts/argo-rollouts") }}
 {% endcall %}
 {% call apply() %}
 {% call command() %}
-{% call piece("Builds the kustomization and applies the result.") %}kubectl --context <account-name>-admin \
-  apply -k parts/60-argo-rollouts/manifests/argo-rollouts{% endcall %} {% call piece("Applies on the API server. The CRDs are too large for a client-side apply.") %}--server-side{% endcall %}
+{% call piece("Installs the chart as the release `argo-rollouts`.") %}helm --kube-context <account-name>-admin \
+  upgrade --install argo-rollouts oci://ghcr.io/argoproj/argo-helm/argo-rollouts \
+  --version 2.43.6{% endcall %} \
+  {% call piece("Creates the namespace `argo-rollouts` and installs into it.") %}--namespace argo-rollouts --create-namespace{% endcall %} \
+  {% call piece("Applies the values of this part.") %}--values parts/60-argo-rollouts/manifests/argo-rollouts/values.yaml{% endcall %}
 {% endcall %}
 <p>To let Argo CD see the kind Rollout, invalidate its cache in the Argo CD UI. Argo CD does not see a kind added after it read the cluster. Without this, the Rollout stays Unknown.</p>
 {% call command() %}
@@ -71,6 +71,9 @@ spec:
 {{ ui("the administrator", "Settings|Clusters|in-cluster|Invalidate Cache", opens_url=true) }}
 {% endcall %}
 {% call confirm() %}
+{% call check("Helm has the release `argo-rollouts`, on the chart version and the Argo Rollouts version that this step pins.") %}helm --kube-context <account-name>-admin \
+  list -n argo-rollouts{% call output() %}NAME            NAMESPACE       REVISION   …   STATUS     CHART                  APP VERSION
+argo-rollouts   argo-rollouts   1          …   deployed   argo-rollouts-2.43.6   v1.10.0{% endcall %}{% endcall %}
 {% call check("The controller is Running. It stays Pending for about a minute, until a new node of the NodePool `system` is ready.") %}kubectl --context <account-name>-admin \
   get pods -n argo-rollouts -o wide{% call output() %}NAME                   READY   STATUS    …   NODE
 argo-rollouts-<hash>   1/1     Running   …   <node>{% endcall %}{% endcall %}
@@ -329,8 +332,15 @@ team-a-nginx-argo-rollouts-pod-ratio   Synced        Healthy
 {% call piece("Deletes the Role and the RoleBindings.") %}kubectl --context <account-name>-admin \
   delete -f parts/60-argo-rollouts/manifests/rbac.yaml{% endcall %}
 
-{% call piece("Deletes the controller, the CRDs, the ClusterRoles, and the namespace.") %}kubectl --context <account-name>-admin \
-  delete -k parts/60-argo-rollouts/manifests/argo-rollouts{% endcall %}
+{% call piece("Uninstalls the release, which leaves the CRDs.") %}helm --kube-context <account-name>-admin \
+  uninstall argo-rollouts -n argo-rollouts{% endcall %}
+
+{% call piece("Deletes the CRDs, and with them any resource of their kinds.") %}kubectl --context <account-name>-admin \
+  delete crd rollouts.argoproj.io analysisruns.argoproj.io analysistemplates.argoproj.io \
+  clusteranalysistemplates.argoproj.io experiments.argoproj.io{% endcall %}
+
+{% call piece("Deletes the namespace, which Helm leaves.") %}kubectl --context <account-name>-admin \
+  delete namespace argo-rollouts{% endcall %}
 {% endcall %}
 {% endcall %}
 {% call confirm() %}

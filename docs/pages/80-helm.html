@@ -167,10 +167,6 @@ docker push "${repository_url}:${tag}"{% endcall %}
 {% include "partials/80-helm/memory.html" %}
 <p>The startup probe waits for the start, the liveness probe decides whether to restart the container, and the readiness probe decides whether the pod receives requests.</p>
 {% include "partials/80-helm/probes.html" %}
-<p><a href="https://helm.sh/">Helm</a> renders the chart on your machine. <a href="https://helm.sh/docs/intro/install/">Install Helm</a>, then check it.</p>
-{% call prepare() %}
-{% call check("Helm is installed.") %}helm version --short{% call output() %}v4.3.0+gbec5b06{% endcall %}{% endcall %}
-{% endcall %}
 {% endcall %}
 {% call files() %}
 {% call file("parts/80-helm/workloads/team-a-helm/helm-spring-boot/values.yaml", main=true) %}
