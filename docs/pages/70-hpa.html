@@ -76,7 +76,7 @@ terraform -chdir=parts/05-terraform-state/terraform \
   output -raw bucket_name \
 ){% endcall %}
 
-{% call piece("Prepares the directory, with the state in that bucket.") %}AWS_PROFILE=<account-name>-admin \
+{% call piece("Initializes the directory, and sets the backend to the state bucket.") %}AWS_PROFILE=<account-name>-admin \
 terraform -chdir=parts/70-hpa/terraform \
   init -backend-config="bucket=${bucket_name}"{% endcall %}
 

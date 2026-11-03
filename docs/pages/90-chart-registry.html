@@ -6,3 +6,48 @@
 <p>The developer changes the version in the same commit as the values, so the values always match the chart that renders them.</p>
 {% include "partials/90-chart-registry/versions.html" %}
 {% endcall %}
+
+{% call stage("build") %}
+{% call step("repository", "Chart repository") %}
+{% call what() %}
+<p>The chart goes to a repository in Amazon ECR, next to the application images. Helm stores a chart in a registry as an <a href="https://helm.sh/docs/topics/registries/">OCI artifact</a>, with the version of the chart as its tag.</p>
+{% endcall %}
+{% call files() %}
+{% call file("parts/90-chart-registry/terraform/main.tf", main=true) %}
+  {% call note("name                 = \"charts/workload-spring-boot\"", "Name the repository after the chart, under `charts/`.") %}{% endcall %}
+  {% call note("IMMUTABLE", "Refuse a push that reuses a version.") %}A version then always points to the same chart.{% endcall %}
+  {% call note("force_delete", "Let Terraform delete the repository while it still holds charts.") %}The lab deletes the repository every day.{% endcall %}
+{% endcall %}
+{% call file("parts/90-chart-registry/terraform/outputs.tf") %}{% endcall %}
+{% call file("parts/90-chart-registry/terraform/terraform.tf") %}{% endcall %}
+{% call file("parts/90-chart-registry/terraform/providers.tf") %}{% endcall %}
+{% endcall %}
+{% call apply() %}
+{% call command() %}
+{% call piece("Gets the name of the state bucket.") %}bucket_name=$( \
+AWS_PROFILE=<account-name>-admin \
+terraform -chdir=parts/05-terraform-state/terraform \
+  output -raw bucket_name \
+){% endcall %}
+
+{% call piece("Initializes the directory, and sets the backend to the state bucket.") %}AWS_PROFILE=<account-name>-admin \
+terraform -chdir=parts/90-chart-registry/terraform \
+  init -backend-config="bucket=${bucket_name}"{% endcall %}
+
+{% call piece("Plans the change and saves the plan.", "The plan adds one resource, the repository, and ends with `Plan: 1 to add, 0 to change, 0 to destroy.`") %}AWS_PROFILE=<account-name>-admin \
+terraform -chdir=parts/90-chart-registry/terraform \
+  plan -out=terraform.tfplan{% endcall %}
+
+{% call piece("Applies the saved plan.") %}AWS_PROFILE=<account-name>-admin \
+terraform -chdir=parts/90-chart-registry/terraform \
+  apply terraform.tfplan{% endcall %}
+{% endcall %}
+{% endcall %}
+{% call confirm() %}
+{% call check("The repository exists.") %}aws --profile <account-name>-admin \
+  ecr describe-repositories --repository-names charts/workload-spring-boot \
+  --query 'repositories[0].repositoryName' \
+  --output text{% call output() %}charts/workload-spring-boot{% endcall %}{% endcall %}
+{% endcall %}
+{% endcall %}
+{% endcall %}
