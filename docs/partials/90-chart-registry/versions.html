@@ -1,7 +1,7 @@
 <div class="diagram">
 <svg viewBox="0 0 1040 530" role="img" aria-labelledby="idea-title idea-description">
-  <title id="idea-title">Versions of the workload charts in ECR, and the chart and the version that each workload names</title>
-  <desc id="idea-description">The administrator pushes the workload charts to ECR, one repository for each chart. The repository charts/workload-spring-boot holds the versions 0.1.0 and 0.2.0, and the repository charts/workload-node holds the version 0.1.0. The developer pushes a workload.yaml for each workload to the workloads repository. One workload names workload-spring-boot 0.1.0, another names workload-spring-boot 0.2.0, and the third names workload-node 0.1.0.</desc>
+  <title id="idea-title">Versions of the workload charts in ECR, and the chart and the version that each workload.yaml specifies</title>
+  <desc id="idea-description">The administrator pushes the workload charts to ECR, one repository for each chart. The repository charts/workload-spring-boot holds the versions 0.1.0 and 0.2.0, and the repository charts/workload-node holds the version 0.1.0. The developer pushes a workload.yaml for each workload to the workloads repository. One specifies workload-spring-boot 0.1.0, another specifies workload-spring-boot 0.2.0, and the third specifies workload-node 0.1.0.</desc>
   <defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z"/></marker></defs>
 
   <g class="box role"><rect x="100" y="20" width="260" height="40"/><image href="{{ icon("aws/identity-center") }}" x="108" y="28" width="24" height="24"/><text x="230" y="45" text-anchor="middle">administrator</text></g>
@@ -22,8 +22,8 @@
   <g class="box this-part"><rect x="720" y="264" width="260" height="76"/><text x="736" y="286">workload.yaml</text><text class="mono" x="736" y="308">name: workload-spring-boot</text><text class="mono" x="736" y="328">version: 0.2.0</text></g>
   <g class="box this-part"><rect x="720" y="408" width="260" height="76"/><text x="736" y="430">workload.yaml</text><text class="mono" x="736" y="452">name: workload-node</text><text class="mono" x="736" y="472">version: 0.1.0</text></g>
 
-  <path class="edge" d="M720,214 H364"/><text class="edge-label" x="540" y="206" text-anchor="middle">names</text>
-  <path class="edge" d="M720,302 H364"/><text class="edge-label" x="540" y="294" text-anchor="middle">names</text>
-  <path class="edge" d="M720,446 H364"/><text class="edge-label" x="540" y="438" text-anchor="middle">names</text>
+  <path class="edge" d="M720,214 H364"/><text class="edge-label" x="540" y="206" text-anchor="middle">specifies</text>
+  <path class="edge" d="M720,302 H364"/><text class="edge-label" x="540" y="294" text-anchor="middle">specifies</text>
+  <path class="edge" d="M720,446 H364"/><text class="edge-label" x="540" y="438" text-anchor="middle">specifies</text>
 </svg>
 </div>

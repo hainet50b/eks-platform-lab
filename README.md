@@ -113,7 +113,7 @@ instructions.
 | [60 argo-rollouts](https://hainet50b.github.io/eks-platform-lab/60-argo-rollouts.html) | Argo Rollouts, which rolls out a new version of a workload in steps |
 | [70 hpa](https://hainet50b.github.io/eks-platform-lab/70-hpa.html) | A HorizontalPodAutoscaler and metrics-server, which scale a workload with its load |
 | [80 helm](https://hainet50b.github.io/eks-platform-lab/80-helm.html) | Helm and Amazon ECR, which turn your code into a running workload |
-| [90 chart-registry](https://hainet50b.github.io/eks-platform-lab/90-chart-registry.html) | Workload charts in Amazon ECR, in versions that each workload picks from |
+| [90 chart-registry](https://hainet50b.github.io/eks-platform-lab/90-chart-registry.html) | Workload charts in Amazon ECR, in versions that a developer picks for each workload |
 
 ## Tools
 
