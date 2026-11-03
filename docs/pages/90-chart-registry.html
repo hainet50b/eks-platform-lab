@@ -1,0 +1,8 @@
+{{ page_head("Pick a chart version for each workload") }}
+
+{% call stage("understand") %}
+{{ section("idea", "The idea") }}
+<p>The platform publishes workload charts to a registry, in versions. Each chart fits one type of workload, such as a Spring Boot application. Each workload names the chart and the version it uses, and stays on that version until a developer changes it.</p>
+<p>The developer changes the version in the same commit as the values, so the values always match the chart that renders them.</p>
+{% include "partials/90-chart-registry/versions.html" %}
+{% endcall %}
